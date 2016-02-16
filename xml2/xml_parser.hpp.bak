@@ -1,0 +1,954 @@
+#ifndef  __XML_PARSER_HPP_1400994344__
+#define  __XML_PARSER_HPP_1400994344__
+
+#include "xml_node.hpp"
+#include "xml_doc.hpp"
+
+#include <sss/stream/skipper.hpp>
+#include <sss/container/dtree.hpp>
+
+#include <list>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <stdexcept>
+
+// NOTE 测试用！
+#define protected public
+
+// 解析xml文件；并生成一个xml_doc对象或者xml2::node * 对象；
+namespace sss {
+    namespace xml2 {
+
+        class xml_parser {
+
+        public:
+            typedef sss::stream::skipper<std::string::const_iterator> skipper_t;
+            typedef sss::stream::Rewinder<std::string::const_iterator> Rewinder_t;
+
+        private:
+            class falldown_name_table : private std::map<std::string, int>{
+            public:
+                typedef std::map<std::string, int> value_type;
+
+                    enum fd_f_value {
+                        PARSE_BOM = 1,
+                        PARSE_DOCUMENT,
+                        PARSE_CHAR,
+                        PARSE_S,
+                        PARSE_NAMESTARTCHAR,
+                        PARSE_NAMECHAR,
+                        PARSE_NAME,
+                        PARSE_NAMES,
+                        PARSE_NMTOKEN,
+                        PARSE_NMTOKENS,
+                        PARSE_ENTITYVALUE,
+                        PARSE_ATTVALUE,
+                        PARSE_SYSTEMLITERAL,
+                        PARSE_PUBIDLITERAL,
+                        PARSE_PUBIDCHAR,
+                        PARSE_CHARDATA,
+                        PARSE_COMMENT,
+                        PARSE_PI,
+                        PARSE_PITARGET,
+                        PARSE_CDSECT,
+                        PARSE_CDSTART,
+                        PARSE_CDATA,
+                        PARSE_CDEND,
+                        PARSE_PROLOG,
+                        PARSE_XMLDECL,
+                        PARSE_VERSIONINFO,
+                        PARSE_EQ,
+                        PARSE_VERSIONNUM,
+                        PARSE_MISC,
+                        PARSE_DOCTYPEDECL,
+                        PARSE_DECLSEP,
+                        PARSE_INTSUBSET,
+                        PARSE_MARKUPDECL,
+                        PARSE_EXTSUBSET,
+                        PARSE_EXTSUBSETDECL,
+                        PARSE_SDDECL,
+                        PARSE_ELEMENT,
+                        PARSE_STAG,
+                        PARSE_ATTRIBUTE,
+                        PARSE_ETAG,
+                        PARSE_CONTENT,
+                        PARSE_EMPTYELEMTAG,
+                        PARSE_ELEMENTDECL,
+                        PARSE_CONTENTSPEC,
+                        PARSE_CHILDREN,
+                        PARSE_CP,
+                        PARSE_TIMES_SUFFIX,
+                        PARSE_CHOICE,
+                        PARSE_SEQ,
+                        PARSE_MIXED,
+                        PARSE_MIXED_SUFFIX,
+                        PARSE_ATTLISTDECL,
+                        PARSE_ATTDEF,
+                        PARSE_ATTTYPE,
+                        PARSE_STRINGTYPE,
+                        PARSE_TOKENIZEDTYPE,
+                        PARSE_ENUMERATEDTYPE,
+                        PARSE_NOTATIONTYPE,
+                        PARSE_ENUMERATION,
+                        PARSE_DEFAULTDECL,
+                        PARSE_CONDITIONALSECT,
+                        PARSE_INCLUDESECT,
+                        PARSE_IGNORESECT,
+                        PARSE_IGNORESECTCONTENTS,
+                        PARSE_IGNORE,
+                        PARSE_CHARREF,
+                        PARSE_REFERENCE,
+                        PARSE_ENTITYREF,
+                        PARSE_PEREFERENCE,
+                        PARSE_ENTITYDECL,
+                        PARSE_GEDECL,
+                        PARSE_PEDECL,
+                        PARSE_ENTITYDEF,
+                        PARSE_PEDEF,
+                        PARSE_EXTERNALID,
+                        PARSE_NDATADECL,
+                        PARSE_TEXTDECL,
+                        PARSE_EXTPARSEDENT,
+                        PARSE_ENCODINGDECL,
+                        PARSE_ENCNAME,
+                        PARSE_NOTATIONDECL,
+                        PARSE_PUBLICID,
+                        PARSE_LETTER,
+                        PARSE_BASECHAR,
+                        PARSE_IDEOGRAPHIC,
+                        PARSE_COMBININGCHAR,
+                        PARSE_DIGIT,
+                        PARSE_EXTENDER,
+                        PARSE_SDDECL_VALUE
+                    };
+
+            private:
+                falldown_name_table();
+
+                ~falldown_name_table()
+                {
+                }
+
+            public:
+                static falldown_name_table& get_instance() {
+                    static falldown_name_table single;
+                    return single;
+                }
+                static int conv(const std::string& val) {
+                    value_type::const_iterator it = get_instance().find(val);
+                    if (it != get_instance().end()) {
+                        return it->second;
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+
+                static const std::string& conv(int val) {
+                    value_type & instance = get_instance();
+                    static std::string not_find = "NULL";
+                    for (value_type::const_iterator it = instance.begin();
+                         it != instance.end();
+                         ++it)
+                    {
+                        if (it->second == val) {
+                            return it->first;
+                        }
+                    }
+                    return not_find;
+                }
+            };
+
+        public:
+            // NOTE 这并不是真正意义上的线段树；
+            // 按理说，此处的线段树，应该是这个样子：
+            // 根节点，关键元素，存储开始、结束位置；然后data域，存放函数名；
+            // 就是说，按照sql的关键字说法，是开始、结束、以及函数名，共同构成关键字！
+            // 然后，开始、结束，构成包含关系；首先，我假设，不存在完全相同的范围；
+            // 于是：
+            //
+            // 可以构建比较关系吗，两个表示范围的整数？
+            //
+            // 这样的，我觉得，可以在递归下降的时候，就构造这个所谓的"线段树"。
+            // 进入函数的时候，其实"线段树"父亲，就确定了；当然，还有开始位置，
+            // 只不过，结束位置，只有等到函数退出的时候，才知道；
+            //! 线段XML
+            class SegmentXML : public sss::can::dtree<SegmentXML> {
+                friend class Handle;
+
+                //class Handle // 参考 TinyXML2
+                //{
+
+                //public:
+                //    Handle( SegmentXML* node ){
+                //        _node = node;
+                //    }
+                //    /// Create a handle from a node.
+                //    Handle( SegmentXML& node ){
+                //        _node = &node;
+                //    }
+                //    /// Copy constructor
+                //    Handle( const Handle& ref ){
+                //        _node = ref._node;
+                //    }
+                //    /// Assignment
+                //    Handle& operator=( const Handle& ref ){
+                //        _node = ref._node;
+                //        return *this;
+                //    }
+
+                //    /// Get the first child of this handle.
+                //    Handle FirstChild(){
+                //        return Handle( _node ? _node->first_child() : 0 );
+                //    }
+
+                //    ///// Get the first child element of this handle.
+                //    //Handle FirstChildElement( const char* value=0 ){
+                //    //    return Handle( _node ? _node->FirstChildElement( value ) : 0 );
+                //    //}
+                //    /// Get the last child of this handle.
+                //    Handle LastChild(){
+                //        return Handle( _node ? _node->last_child() : 0 );
+                //    }
+                //    ///// Get the last child element of this handle.
+                //    //Handle LastChildElement( const char* _value=0 ){
+                //    //    return Handle( _node ? _node->LastChildElement( _value ) : 0 );
+                //    //}
+                //    /// Get the previous sibling of this handle.
+                //    Handle PreviousSibling(){
+                //        return Handle( _node ? _node->PreviousSibling() : 0 );
+                //    }
+                //    /// Get the previous sibling element of this handle.
+                //    Handle PreviousSiblingElement( const char* _value=0 ){
+                //        return Handle( _node ? _node->PreviousSiblingElement( _value ) : 0 );
+                //    }
+                //    /// Get the next sibling of this handle.
+                //    Handle NextSibling(){
+                //        return Handle( _node ? _node->NextSibling() : 0 );
+                //    }
+                //    /// Get the next sibling element of this handle.
+                //    Handle NextSiblingElement( const char* _value=0 ){
+                //        return Handle( _node ? _node->NextSiblingElement( _value ) : 0 );
+                //    }
+
+                //    /// Safe cast to Handle. This can return null.
+                //    Handle* ToNode(){
+                //        return _node;
+                //    }
+                //    /// Safe cast to XMLElement. This can return null.
+                //    XMLElement* ToElement(){
+                //        return ( ( _node == 0 ) ? 0 : _node->ToElement() );
+                //    }
+                //    /// Safe cast to XMLText. This can return null.
+                //    XMLText* ToText(){
+                //        return ( ( _node == 0 ) ? 0 : _node->ToText() );
+                //    }
+                //    /// Safe cast to XMLUnknown. This can return null.
+                //    XMLUnknown* ToUnknown(){
+                //        return ( ( _node == 0 ) ? 0 : _node->ToUnknown() );
+                //    }
+                //    /// Safe cast to XMLDeclaration. This can return null.
+                //    XMLDeclaration* ToDeclaration(){
+                //        return ( ( _node == 0 ) ? 0 : _node->ToDeclaration() );
+                //    }
+
+                //private:
+                //    SegmentXML * _node;
+                //};
+
+            public:
+                SegmentXML(const char * func_name,
+                           std::string::const_iterator sbeg,
+                           int _start, int _end = -1)
+                    : func_id(falldown_name_table::conv(func_name)),
+                      s_beg(sbeg),
+                      start(_start),
+                      end(_end),
+
+                      is_ok(false),
+                      parent(0)
+
+                {
+                    check_status();
+                }
+                SegmentXML()
+                    : func_id(0), start(-1), end(-1), is_ok(false),
+                      parent(0)
+                {
+                    check_status();
+                }
+
+                ~SegmentXML()
+                {
+                    this->clear_children();
+                }
+
+                void check_status()
+                {
+                    is_ok = (!func_id && start != -1 && end != -1);
+                }
+
+                bool set_start(int _start)
+                {
+                    bool ret = is_offset_ok(_start) && !is_offset_ok(this->start);
+                    if (ret) {
+                        this->start = _start;
+                    }
+                    return ret;
+                }
+
+                bool set_end(int _end)
+                {
+                    bool ret = is_offset_ok(_end) && !is_offset_ok(this->end);
+                    if (ret) {
+                        this->end = _end;
+                    }
+                    return ret;
+                }
+
+                bool set_func(int _id)
+                {
+                    bool ret = !this->func_id && (_id > 0);
+                    if (ret) {
+                        this->func_id = _id;
+                    }
+                    return ret;
+                }
+
+                bool set_func(const char * func_name)
+                {
+                    return this->set_func(falldown_name_table::conv(func_name));
+                }
+
+                int get_func() const
+                {
+                    return this->func_id;
+                }
+
+                SegmentXML * set_parent(SegmentXML * _parent)
+                {
+                    std::swap(this->parent, _parent);
+                    return _parent;
+                }
+
+                void print(std::ostream& out, std::string::const_iterator s_beg);
+
+                std::string get_slice() const
+                {
+                    return std::string(this->s_beg + this->start,
+                                       this->s_beg + this->end);
+                }
+                void string_slice_print(std::ostream& out, std::string::const_iterator s_beg);
+
+                SegmentXML * get_parent()
+                {
+                    return this->parent;
+                }
+
+                bool remove_child(SegmentXML * child)
+                {
+                    children_t::iterator it = std::remove(this->children.begin(), this->children.end(), child);
+                    bool ret = (it != this->children.end());
+                    if (ret) {
+                        this->pop();
+                    }
+                    return ret;
+                }
+
+                SegmentXML * first_child()
+                {
+                    if (!this->children.empty()) {
+                        return this->children.front();
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+                SegmentXML * last_child()
+                {
+                    if (!this->children.empty()) {
+                        return this->children.back();
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+
+                void clear()
+                {
+                    this->func_id = 0;
+                    this->start = -1;
+                    this->end = -1;
+                }
+
+                bool append(SegmentXML * child)
+                {
+                    bool ret = false;
+                    if (child) {
+                        if (!this->find(child)) {
+                            this->children.push_back(child);
+                            child->set_parent(this);
+                            ret = true;
+                        }
+                        else {
+                            throw std::runtime_error("encounter the same SegmentXML * child.");
+                        }
+                    }
+                    return ret;
+                }
+
+                bool pop()
+                {
+                    bool ret = false;
+                    if (this->size()) {
+                        SegmentXML * child = this->children.back();
+                        this->children.pop_back();
+                        delete child;
+                        ret = true;
+                    }
+                    return ret;
+                }
+
+                int size()
+                {
+                    return this->children.size();
+                }
+
+                int clear_children()
+                {
+                    int ret = this->size();
+                    while (this->size()) {
+                        this->pop();
+                    }
+                    return ret;
+                }
+
+                bool find(const SegmentXML * child)
+                {
+                    return
+                        std::find(this->children.begin(), this->children.end(), child) !=
+                        this->children.end();
+                }
+
+            protected:
+                static bool is_offset_ok(int _offset)
+                {
+                    return _offset != -1;
+                }
+
+            private:
+                int     func_id;
+                std::string::const_iterator s_beg;
+                int     start;
+                int     end;
+                bool    is_ok;
+
+                SegmentXML * parent;
+
+                typedef std::vector<SegmentXML*> children_t;
+                std::vector<SegmentXML*> children;
+
+            };
+
+            // 目的，用于falldown函数中，在函数开始和结尾的时候，在SegmentXML
+            // 树中，注册当前函数的调用信息——
+            // 它需要知道：
+            // 1. 调用函数的名字；通过 __func__ 宏；
+            // 2. 匹配开始的位置；通过 s_beg;
+            // 3. 匹配结束的位置；还是通过 s_beg;
+            // 并且，在当前选路失败的情况下，还可以从解析树中，删除该
+            // SegmentXML对象；
+            // 另外，匹配是否成功、匹配的开始结束位置，都可以通过 Rewinder_t
+            // r(s_beg)对象，获取到；
+            // 剩下的，就是这个 SegmentXML树的信息；鉴于解析，都是从
+            // parse_document函数开始的；可以先从这里把树建立起来。
+            //
+            // 即，xml_parser需要一个SegmentXML的跟节点指针——初始值，0；
+            // 接着，xml_parser需要一个指向当前工作SegmentXML的指针（父
+            // SegmentXML对象）；
+            //
+            // 就是说，SegmentXML_Helper构造函数，会往父指针下面，添加一个新节点；
+            // 它需要：
+            // 1. xml_parser 指针一枚；
+            // 2. ...
+            class SegmentXML_Helper
+            {
+            public:
+                SegmentXML_Helper(xml_parser*          _xp, //
+                                   const char *         _func_name,
+                                   xml_parser::Rewinder_t & _r);
+                ~SegmentXML_Helper();
+
+            private:
+                xml_parser  * xp;
+                SegmentXML * seg;
+                xml_parser::Rewinder_t & r;
+            };
+            //
+            // 这是是成功部分，走过的路径！
+            class XMLpathMem: private std::map<int, std::map<int, int > >
+            {
+                typedef std::map<int, std::map<int, int > > value_type;
+
+            public:
+                XMLpathMem();
+                ~XMLpathMem();
+
+            public:
+                bool add(const char * func_name, int offset, int consume) throw(const char *);
+                bool has_trival(const char * func_name, int offset, int & consume);
+            };
+
+
+            // 本质上，是将传入的字符串，解释、并分析，最后组建一个xml2::node 对
+            // 象；
+            // NOTE 可以是xml_doc类型；
+            // 那么，就需要进行分析；
+            //
+            // 首先，分析是否是bom；
+            // 此时，需要预读3个字节；以判断bom；
+            // 然后，尝试读取<?..?>标记；（以"<?"开头，并且以"?>"结尾，忽略空白字符）
+            // 接着，就开始解析<...>标签；此处，使用递归完成即可；
+
+        public:
+            xml_parser();
+            ~xml_parser();
+
+        public:
+            // 将传入的字符串，按xml方式解析，并生成到 传入的 xml_doc 对象上
+            // 并返回该对象
+            xml2::xml_doc * parse(std::string::const_iterator s_ini,
+                                  std::string::const_iterator s_fin);
+
+            xml2::xml_doc * parse(const std::string&);
+
+
+        protected:
+            // 解析bom文件头；返回消耗的字节数
+            int    parse_bom(std::string::const_iterator& s_beg,
+                             std::string::const_iterator s_end);
+
+        protected:
+            // document    ::= prolog element Misc*
+            int parse_document(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // Char       ::=          0x9 | 0xA | 0xD | [0x20-0xD7FF] | [0xE000-0xFFFD] | [0x10000-0x10FFFF]
+            /* any Unicode character, excluding the surrogate blocks, FFFE, and FFFF. */
+            int parse_Char(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // NOTE 以下函数的返回值，都表示，匹配的时候，消耗的字节数；
+            // S           ::=  (0x20 | 0x9 | 0xD | 0xA)+
+            int parse_S(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            //NameStartChar    ::=   ":" | [A-Z] | "_" | [a-z] | [0xC0-0xD6] | [0xD8-0xF6] | [0xF8-0x2FF] | [0x370-0x37D]
+            //                      | [0x37F-0x1FFF] | [0x200C-0x200D] | [0x2070-0x218F] | [0x2C00-0x2FEF] | [0x3001-0xD7FF]
+            //                    | [0xF900-0xFDCF] | [0xFDF0-0xFFFD] | [0x10000-0xEFFFF]
+            int parse_NameStartChar(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            //NameChar   ::=   NameStartChar | "-" | "." | [0-9] | 0xB7 | [0x0300-0x036F] | [0x203F-0x2040]
+            int parse_NameChar(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            //Name     ::=   NameStartChar (NameChar)*
+            int parse_Name(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            //Names    ::=   Name (0x20 Name)*
+            int parse_Names(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            //Nmtoken          ::=   (NameChar)+
+            int parse_Nmtoken(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            //Nmtokens   ::=   Nmtoken (0x20 Nmtoken)*
+            int parse_Nmtokens(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // EntityValue   ::=   '"' ([^%&"] | PEReference | Reference)* '"'
+            //                  |  "'" ([^%&'] | PEReference | Reference)* "'"
+            int parse_EntityValue(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // AttValue        ::=   '"' ([^<&"] | Reference)* '"'
+            //                       |  "'" ([^<&'] | Reference)* "'"
+            int parse_AttValue(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // SystemLiteral           ::=   ('"' [^"]* '"') | ("'" [^']* "'")
+            int parse_SystemLiteral(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PubidLiteral    ::=   '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
+            int parse_PubidLiteral(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PubidChar       ::=   0x20 | 0xD | 0xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
+            int parse_PubidChar(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // CharData   ::=   [^<&]* - ([^<&]* ']]>' [^<&]*)
+            int parse_CharData(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Comment         ::=   '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
+            int parse_Comment(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PI      ::=   '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
+            int parse_PI(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PITarget   ::=   Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
+            int parse_PITarget(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // CDSect          ::=   CDStart CData CDEnd
+            int parse_CDSect(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // CDStart         ::=   '<![CDATA['
+            int parse_CDStart(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // CData           ::=   (Char* - (Char* ']]>' Char*))
+            int parse_CData(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // CDEnd           ::=   ']]>'
+            int parse_CDEnd(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // prolog          ::=   XMLDecl? Misc* (doctypedecl Misc*)?
+            int parse_prolog(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // XMLDecl         ::=   '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
+            int parse_XMLDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // VersionInfo  ::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
+            int parse_VersionInfo(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Eq      ::=   S? '=' S?
+            int parse_Eq(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // VersionNum   ::= '1.' [0-9]+
+            int parse_VersionNum(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Misc    ::=   Comment | PI | S
+            int parse_Misc(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // doctypedecl   ::=  '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+            int parse_doctypedecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // DeclSep         ::=     PEReference | S
+            int parse_DeclSep(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // intSubset   ::=    (markupdecl | DeclSep)*
+            int parse_intSubset(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // markupdecl   ::=   elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
+            int parse_markupdecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // extSubset       ::=          TextDecl? extSubsetDecl
+            int parse_extSubset(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // extSubsetDecl           ::=          ( markupdecl | conditionalSect | DeclSep)*
+            int parse_extSubsetDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // SDDecl          ::=          S 'standalone' Eq SDDecl_Value
+            int parse_SDDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // SDDecl_Value    ::= ("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"')
+            int parse_SDDecl_Value(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // element         ::=          EmptyElemTag
+            //              | STag content ETag
+            int parse_element(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // STag    ::=          '<' Name (S Attribute)* S? '>'
+            int parse_STag(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Attribute       ::=          Name Eq AttValue
+            int parse_Attribute(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // ETag       ::=          '</' Name S? '>'
+            int parse_ETag(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // content    ::=          CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+            int parse_content(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // EmptyElemTag       ::=          '<' Name (S Attribute)* S? '/>'
+            int parse_EmptyElemTag(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // elementdecl        ::=          '<!ELEMENT' S Name S contentspec S? '>'
+            int parse_elementdecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // contentspec        ::=          'EMPTY' | 'ANY' | Mixed | children
+            int parse_contentspec(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // children   ::=          (choice | seq) ('?' | '*' | '+')?
+            int parse_children(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // cp         ::=          (Name | choice | seq) cp_suffix
+            int parse_cp(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // cp_suffix ::= ('?' | '*' | '+')?
+            int parse_Times_suffix(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // choice     ::=          '(' S? cp ( S? '|' S? cp )+ S? ')'
+            int parse_choice(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // seq        ::=          '(' S? cp ( S? ',' S? cp )* S? ')'
+            int parse_seq(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // Mixed      ::=   '(' S? '#PCDATA' (S? '|' S? Name)* S? ')' Mixed_suffix
+            //                 | '(' S? '#PCDATA' S? ')'
+            int parse_Mixed(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // Mixed_suffix ::= '*'
+            int parse_Mixed_suffix(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // AttlistDecl   ::=       '<!ATTLIST' S Name AttDef* S? '>'
+            int parse_AttlistDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // AttDef     ::=          S Name S AttType S DefaultDecl
+            int parse_AttDef(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // AttType    ::=          StringType | TokenizedType | EnumeratedType
+            int parse_AttType(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // StringType         ::=          'CDATA'
+            int parse_StringType(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // TokenizedType      ::=          'ID'
+            //                 | 'IDREF'
+            //                 | 'IDREFS'
+            //                 | 'ENTITY'
+            //                 | 'ENTITIES'
+            //                 | 'NMTOKEN'
+            //                 | 'NMTOKENS'
+            int parse_TokenizedType(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // EnumeratedType     ::=          NotationType | Enumeration
+            int parse_EnumeratedType(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // NotationType       ::=          'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
+            int parse_NotationType(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Enumeration        ::=          '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
+            int parse_Enumeration(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // DefaultDecl   ::=       '#REQUIRED' | '#IMPLIED'
+            //                 | (('#FIXED' S)? AttValue)
+            int parse_DefaultDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // conditionalSect    ::=          includeSect | ignoreSect
+            int parse_conditionalSect(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // includeSect        ::=          '<![' S? 'INCLUDE' S? '[' extSubsetDecl ']]>'
+            int parse_includeSect(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // ignoreSect         ::=          '<![' S? 'IGNORE' S? '[' ignoreSectContents* ']]>'
+            int parse_ignoreSect(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // ignoreSectContents         ::=          Ignore ('<![' ignoreSectContents ']]>' Ignore)*
+            int parse_ignoreSectContents(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Ignore     ::=          Char* - (Char* ('<![' | ']]>') Char*)
+            int parse_Ignore(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // CharRef    ::=   '&#' [0-9]+ ';'
+            //                 | '&0x' [0-9a-fA-F]+ ';'
+            int parse_CharRef(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // Reference          ::=          EntityRef | CharRef
+            int parse_Reference(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // EntityRef          ::=          '&' Name ';'
+            int parse_EntityRef(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PEReference        ::=          '%' Name ';'
+            int parse_PEReference(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // EntityDecl ::=   GEDecl | PEDecl
+            int parse_EntityDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // GEDecl     ::=   '<!ENTITY' S Name S EntityDef S? '>'
+            int parse_GEDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PEDecl     ::=   '<!ENTITY' S '%' S Name S PEDef S? '>'
+            int parse_PEDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // EntityDef  ::=   EntityValue | (ExternalID NDataDecl?)
+            int parse_EntityDef(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PEDef      ::=   EntityValue | ExternalID
+            int parse_PEDef(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // ExternalID  ::=   'SYSTEM' S SystemLiteral
+            //         | 'PUBLIC' S PubidLiteral S SystemLiteral
+            int parse_ExternalID(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // NDataDecl   ::=   S 'NDATA' S Name
+            int parse_NDataDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // TextDecl   ::=   '<?xml' VersionInfo? EncodingDecl S? '?>'
+            int parse_TextDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // extParsedEnt   ::=   TextDecl? content
+            int parse_extParsedEnt(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // EncodingDecl   ::=   S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
+            int parse_EncodingDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // EncName   ::=   [A-Za-z] ([A-Za-z0-9._] | '-')* /* Encoding name contains only Latin characters */
+            int parse_EncName(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // NotationDecl       ::=          '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'
+            int parse_NotationDecl(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // PublicID           ::=          'PUBLIC' S PubidLiteral
+            int parse_PublicID(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+            // Letter     ::=   BaseChar | Ideographic
+            int parse_Letter(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // BaseChar   ::=   [0x0041-0x005A] | [0x0061-0x007A] | [0x00C0-0x00D6] | [0x00D8-0x00F6] | [0x00F8-0x00FF]
+            //                | [0x0100-0x0131] | [0x0134-0x013E] | [0x0141-0x0148] | [0x014A-0x017E] | [0x0180-0x01C3]
+            //                | [0x01CD-0x01F0] | [0x01F4-0x01F5] | [0x01FA-0x0217] | [0x0250-0x02A8] | [0x02BB-0x02C1]
+            //                | 0x0386 | [0x0388-0x038A] | 0x038C | [0x038E-0x03A1] | [0x03A3-0x03CE] | [0x03D0-0x03D6]
+            //                | 0x03DA | 0x03DC | 0x03DE | 0x03E0 | [0x03E2-0x03F3] | [0x0401-0x040C] | [0x040E-0x044F]
+            //                | [0x0451-0x045C] | [0x045E-0x0481] | [0x0490-0x04C4] | [0x04C7-0x04C8] | [0x04CB-0x04CC]
+            //                | [0x04D0-0x04EB] | [0x04EE-0x04F5] | [0x04F8-0x04F9] | [0x0531-0x0556] | 0x0559 | [0x0561-0x0586]
+            //                | [0x05D0-0x05EA] | [0x05F0-0x05F2] | [0x0621-0x063A] | [0x0641-0x064A] | [0x0671-0x06B7]
+            //                | [0x06BA-0x06BE] | [0x06C0-0x06CE] | [0x06D0-0x06D3] | 0x06D5 | [0x06E5-0x06E6] | [0x0905-0x0939]
+            //                | 0x093D | [0x0958-0x0961] | [0x0985-0x098C] | [0x098F-0x0990] | [0x0993-0x09A8] | [0x09AA-0x09B0]
+            //                | 0x09B2 | [0x09B6-0x09B9] | [0x09DC-0x09DD] | [0x09DF-0x09E1] | [0x09F0-0x09F1] | [0x0A05-0x0A0A]
+            //                | [0x0A0F-0x0A10] | [0x0A13-0x0A28] | [0x0A2A-0x0A30] | [0x0A32-0x0A33] | [0x0A35-0x0A36]
+            //                | [0x0A38-0x0A39] | [0x0A59-0x0A5C] | 0x0A5E | [0x0A72-0x0A74] | [0x0A85-0x0A8B] | 0x0A8D
+            //                | [0x0A8F-0x0A91] | [0x0A93-0x0AA8] | [0x0AAA-0x0AB0] | [0x0AB2-0x0AB3] | [0x0AB5-0x0AB9]
+            //                | 0x0ABD | 0x0AE0 | [0x0B05-0x0B0C] | [0x0B0F-0x0B10] | [0x0B13-0x0B28] | [0x0B2A-0x0B30]
+            //                | [0x0B32-0x0B33] | [0x0B36-0x0B39] | 0x0B3D | [0x0B5C-0x0B5D] | [0x0B5F-0x0B61] | [0x0B85-0x0B8A]
+            //                | [0x0B8E-0x0B90] | [0x0B92-0x0B95] | [0x0B99-0x0B9A] | 0x0B9C | [0x0B9E-0x0B9F] | [0x0BA3-0x0BA4]
+            //                | [0x0BA8-0x0BAA] | [0x0BAE-0x0BB5] | [0x0BB7-0x0BB9] | [0x0C05-0x0C0C] | [0x0C0E-0x0C10]
+            //                | [0x0C12-0x0C28] | [0x0C2A-0x0C33] | [0x0C35-0x0C39] | [0x0C60-0x0C61] | [0x0C85-0x0C8C]
+            //                | [0x0C8E-0x0C90] | [0x0C92-0x0CA8] | [0x0CAA-0x0CB3] | [0x0CB5-0x0CB9] | 0x0CDE | [0x0CE0-0x0CE1]
+            //                | [0x0D05-0x0D0C] | [0x0D0E-0x0D10] | [0x0D12-0x0D28] | [0x0D2A-0x0D39] | [0x0D60-0x0D61]
+            //                | [0x0E01-0x0E2E] | 0x0E30 | [0x0E32-0x0E33] | [0x0E40-0x0E45] | [0x0E81-0x0E82] | 0x0E84
+            //                | [0x0E87-0x0E88] | 0x0E8A | 0x0E8D | [0x0E94-0x0E97] | [0x0E99-0x0E9F] | [0x0EA1-0x0EA3]
+            //                | 0x0EA5 | 0x0EA7 | [0x0EAA-0x0EAB] | [0x0EAD-0x0EAE] | 0x0EB0 | [0x0EB2-0x0EB3] | 0x0EBD
+            //                | [0x0EC0-0x0EC4] | [0x0F40-0x0F47] | [0x0F49-0x0F69] | [0x10A0-0x10C5] | [0x10D0-0x10F6]
+            //                | 0x1100 | [0x1102-0x1103] | [0x1105-0x1107] | 0x1109 | [0x110B-0x110C] | [0x110E-0x1112]
+            //                | 0x113C | 0x113E | 0x1140 | 0x114C | 0x114E | 0x1150 | [0x1154-0x1155] | 0x1159 | [0x115F-0x1161]
+            //                | 0x1163 | 0x1165 | 0x1167 | 0x1169 | [0x116D-0x116E] | [0x1172-0x1173] | 0x1175 | 0x119E
+            //                | 0x11A8 | 0x11AB | [0x11AE-0x11AF] | [0x11B7-0x11B8] | 0x11BA | [0x11BC-0x11C2] | 0x11EB
+            //                | 0x11F0 | 0x11F9 | [0x1E00-0x1E9B] | [0x1EA0-0x1EF9] | [0x1F00-0x1F15] | [0x1F18-0x1F1D]
+            //                | [0x1F20-0x1F45] | [0x1F48-0x1F4D] | [0x1F50-0x1F57] | 0x1F59 | 0x1F5B | 0x1F5D | [0x1F5F-0x1F7D]
+            //                | [0x1F80-0x1FB4] | [0x1FB6-0x1FBC] | 0x1FBE | [0x1FC2-0x1FC4] | [0x1FC6-0x1FCC] | [0x1FD0-0x1FD3]
+            //                | [0x1FD6-0x1FDB] | [0x1FE0-0x1FEC] | [0x1FF2-0x1FF4] | [0x1FF6-0x1FFC] | 0x2126 | [0x212A-0x212B]
+            //                | 0x212E | [0x2180-0x2182] | [0x3041-0x3094] | [0x30A1-0x30FA] | [0x3105-0x312C] | [0xAC00-0xD7A3]
+            int parse_BaseChar(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Ideographic   ::=   [0x4E00-0x9FA5] | 0x3007 | [0x3021-0x3029]
+            int parse_Ideographic(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // CombiningChar ::=   [0x0300-0x0345] | [0x0360-0x0361] | [0x0483-0x0486] | [0x0591-0x05A1] | [0x05A3-0x05B9]
+            //                | [0x05BB-0x05BD] | 0x05BF | [0x05C1-0x05C2] | 0x05C4 | [0x064B-0x0652] | 0x0670 | [0x06D6-0x06DC]
+            //                | [0x06DD-0x06DF] | [0x06E0-0x06E4] | [0x06E7-0x06E8] | [0x06EA-0x06ED] | [0x0901-0x0903] | 0x093C
+            //                | [0x093E-0x094C] | 0x094D | [0x0951-0x0954] | [0x0962-0x0963] | [0x0981-0x0983] | 0x09BC | 0x09BE
+            //                | 0x09BF | [0x09C0-0x09C4] | [0x09C7-0x09C8] | [0x09CB-0x09CD] | 0x09D7 | [0x09E2-0x09E3] | 0x0A02
+            //                | 0x0A3C | 0x0A3E | 0x0A3F | [0x0A40-0x0A42] | [0x0A47-0x0A48] | [0x0A4B-0x0A4D] | [0x0A70-0x0A71]
+            //                | [0x0A81-0x0A83] | 0x0ABC | [0x0ABE-0x0AC5] | [0x0AC7-0x0AC9] | [0x0ACB-0x0ACD] | [0x0B01-0x0B03]
+            //                | 0x0B3C | [0x0B3E-0x0B43] | [0x0B47-0x0B48] | [0x0B4B-0x0B4D] | [0x0B56-0x0B57] | [0x0B82-0x0B83]
+            //                | [0x0BBE-0x0BC2] | [0x0BC6-0x0BC8] | [0x0BCA-0x0BCD] | 0x0BD7 | [0x0C01-0x0C03] | [0x0C3E-0x0C44]
+            //                | [0x0C46-0x0C48] | [0x0C4A-0x0C4D] | [0x0C55-0x0C56] | [0x0C82-0x0C83] | [0x0CBE-0x0CC4]
+            //                | [0x0CC6-0x0CC8] | [0x0CCA-0x0CCD] | [0x0CD5-0x0CD6] | [0x0D02-0x0D03] | [0x0D3E-0x0D43]
+            //                | [0x0D46-0x0D48] | [0x0D4A-0x0D4D] | 0x0D57 | 0x0E31 | [0x0E34-0x0E3A] | [0x0E47-0x0E4E] | 0x0EB1
+            //                | [0x0EB4-0x0EB9] | [0x0EBB-0x0EBC] | [0x0EC8-0x0ECD] | [0x0F18-0x0F19] | 0x0F35 | 0x0F37 | 0x0F39
+            //                | 0x0F3E | 0x0F3F | [0x0F71-0x0F84] | [0x0F86-0x0F8B] | [0x0F90-0x0F95] | 0x0F97 | [0x0F99-0x0FAD]
+            //                | [0x0FB1-0x0FB7] | 0x0FB9 | [0x20D0-0x20DC] | 0x20E1 | [0x302A-0x302F] | 0x3099 | 0x309A
+            int parse_CombiningChar(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Digit   ::=   [0x0030-0x0039] | [0x0660-0x0669] | [0x06F0-0x06F9] | [0x0966-0x096F] | [0x09E6-0x09EF]
+            //                | [0x0A66-0x0A6F] | [0x0AE6-0x0AEF] | [0x0B66-0x0B6F] | [0x0BE7-0x0BEF] | [0x0C66-0x0C6F]
+            //                | [0x0CE6-0x0CEF] | [0x0D66-0x0D6F] | [0x0E50-0x0E59] | [0x0ED0-0x0ED9] | [0x0F20-0x0F29]
+            int parse_Digit(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+            // Extender  ::=   0x00B7 | 0x02D0 | 0x02D1 | 0x0387 | 0x0640 | 0x0E46 | 0x0EC6 | 0x3005 | [0x3031-0x3035]
+            //                | [0x309D-0x309E] | [0x30FC-0x30FE]
+            int parse_Extender(std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+
+        public:
+            typedef int (xml_parser::*parser_Func_t) (std::string::const_iterator& s_beg, std::string::const_iterator s_end);
+
+        public:
+            void set_sbeg(std::string::const_iterator s_beg)
+            {
+                this->sbeg_bak = s_beg;
+            }
+
+            std::string::const_iterator get_sbeg()
+            {
+                return this->sbeg_bak;
+            }
+
+            int get_offset(std::string::const_iterator it)
+            {
+                return std::distance(this->sbeg_bak, it);
+            }
+
+        public:
+            SegmentXML * seg_get_root()
+            {
+                return this->seg_root;
+            }
+            void seg_set_root(SegmentXML * seg)
+            {
+                this->seg_root = seg;
+            }
+
+            SegmentXML * seg_get_current()
+            {
+                return this->seg_current;
+            }
+            void seg_set_current(SegmentXML * seg)
+            {
+                this->seg_current = seg;
+            }
+
+        protected:
+            inline int loop_times(std::string::const_iterator& s_beg, std::string::const_iterator s_end,
+                                  parser_Func_t func)
+            {
+                int times = 0;
+                while ( (this->*func)(s_beg, s_end)) {
+                        times++;
+                }
+                return times;
+            }
+            inline void accumluate(int & val)
+            {
+                val += this->cur_consume;
+                this->cur_consume = 0;
+            }
+            inline int consume(const char * func_name, int cnt)
+            {
+                this->cur_consume = cnt;
+                if (cnt && func_name) {
+                    this->last_func_name = func_name;
+                }
+                return this->cur_consume;
+            }
+            inline int consume() const
+            {
+                return this->cur_consume;
+            }
+
+            inline bool or_throw(const char * msg) {
+                if (p_it) {
+                    std::cout
+                        << __func__ << "(" << (last_func_name ? last_func_name : "") << ")"
+                        << " encounter " << *(*p_it) << *(*p_it + 1)
+                        << " msg = " << msg << std::endl;
+                }
+                throw msg;
+                return true;
+            }
+
+            inline void set_p_it(std::string::const_iterator & it) {
+                this->p_it = &it;
+            }
+
+            inline void seg_print(std::ostream& out)
+            {
+                if (this->seg_get_root()) {
+                    this->seg_get_root()->print(out, this->sbeg_bak);
+                }
+            }
+
+        public:
+            void element_stack_push(const std::string& name)
+            {
+                this->element_stack.push_back(name);
+            }
+
+            void element_stack_pop(const std::string& name)
+            {
+                if (this->element_stack.empty()) {
+                    throw std::logic_error("empty element_stack pop!");
+                }
+
+                SSS_LOG_EXPRESSION(sss::log::log_DEBUG, (this->element_stack.back() == name));
+                if (this->element_stack.back() != name) {
+                    throw std::logic_error("element_stack pop not match");
+                }
+                this->element_stack.pop_back();
+            }
+
+        private:
+            xml2::node *                tmp_node; // 临时工作节点
+            std::string                 bom_str;
+            std::string                 charset_str;
+            std::vector<std::string>    level_stack;
+
+            skipper_t sk;
+            int cur_consume;
+            std::string::const_iterator * p_it;
+            std::string::const_iterator sbeg_bak;
+
+            // 解析用
+            // 注意，这些指针，最好改为 handle模式！
+            // 参考 jsonpp::JHandle
+            xml2::node *                p_root; // 根节点
+            xml2::node_info *           p_info; // info节点
+            xml2::node_doctype *        p_doctype; // doctype节点
+
+            const char *                last_func_name;
+            std::vector<std::pair<std::string, std::string> >    tmp_data;
+
+            SegmentXML * seg_root;
+            SegmentXML * seg_current;
+
+        public:
+            std::list<std::string>      element_stack;
+        };
+    }
+}
+
+
+#endif  /* __XML_PARSER_HPP_1400994344__ */

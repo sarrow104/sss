@@ -1,0 +1,45 @@
+* todo
+
+date:2015-10-15
+
+======================================================================
+
+** utlstring
+
+std::pair<std::string, int> collection_between_pair(std::string text,
+						    std::string begin_pattern,
+                                                    std::string end_pattern,
+						    function skip_functor);
+
+作用，返回text中，以 begin_pattern 开始，并且以 end_pattern 结束的字符串；
+
+注意，在做判断的时候，会避开符合skip_functor的情况的子串；
+
+最终的目的，是像使得形如：
+
+>	" xxxxx "
+
+这种字符串的判断，变得简单；内部可以使用 escape 序列。
+
+----------------------------------------------------------------------
+
+** 指针句柄
+
+在C++11中，std::auto_ptr 是被抛弃的对象；取而代之的是 std::unique_ptr；
+
+那么兼容性问题就出现了。
+
+我的想法是，实现sss::auto_ptr 或者 sss::unique_ptr ——当然，其实就是把代码copy
+过来而已。
+
+此外，有用的指针句柄还有：
+
+sss::scope_ptr
+
+等；
+
+----------------------------------------------------------------------
+
+** ant \ lexer 组件
+
+基于分词的工具的解析器组件；

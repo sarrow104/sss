@@ -1,0 +1,11 @@
+#! http://blog.csdn.net/a9529lty/article/details/6363322
+<element-define> ::= '<!ELEMENT' element-name element-definition '>'
+<element-name> ::= [\w+:]\w+
+<element-definition> ::= '(' type-describe ')' | '(' subnode-list ')' | 'ANY' | 'EMPTY'
+<type-describe> ::= '#PCDATA' | '#CDATA'
+
+<subnode-list> ::= subnode-list [, subnode-list]*
+<subnode-list> ::= '(' subnode-list ')'
+<subnode-list> ::= element-name [ '|' element-name ]*
+<element-name> ::= element-name [ element-suffix ]?
+<element-suffix> ::= '' | '?' | '+' | '*'

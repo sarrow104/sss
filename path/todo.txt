@@ -1,0 +1,37 @@
+* todo
+
+date:2015-12-08
+
+======================================================================
+
+** 正确处理链接类型的文件以及目录
+
+** 部分目录的查找，会多出一些条目，比如
+
+22:10:53 sarrow@sarrow-T61:/usr/share
+$ fd --name-pat "*.qch"
+/usr/share/npm/bin
+./qt5/doc/qdoc.qch
+./qt5/doc/qtqml.qch
+./qt5/doc/qtx11extras.qch
+./qt5/doc/qtconcurrent.qch
+./qt5/doc/qtgui.qch
+./qt5/doc/qtwidgets.qch
+./qt5/doc/qtcore.qch
+./qt5/doc/qtxmlpatterns.qch
+...
+./qt5/doc/qtscript.qch
+./qt5/doc/qtquick.qch
+./qtcreator/doc/qtcreator.qch
+/usr/share/node-gyp/bin
+/usr/share/libreoffice/bin
+opendir("/usr/share/doc/google-chrome-stable") : Permission denied
+/usr/share/texlive/texmf-dist/source/latex/koma-script/doc/bin
+
+----------------------------------------------------------------------
+
+$ ls -l /usr/share/npm/ | grep bin
+drwxr-xr-x  2 root root 4096  4月 27  2015 bin
+
+----------------------------------------------------------------------
+

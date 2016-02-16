@@ -1,0 +1,11 @@
+获取毫秒级别时间差；
+
+    #include <sys/time.h>
+
+    timeval end,start;
+    gettimeofday(&start,NULL);
+    do_someting()
+    gettimeofday(&end,NULL);
+    uint time = (end.tv_sec-start.tv_sec)*1000000 + end.tv_usec - start.tv_usec;
+    cout<<time/1000000<<" s and "<<time%1000000<<" us."<<endl;
+

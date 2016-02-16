@@ -1,0 +1,640 @@
+* GNU.util.find工具源码分析
+
+date:2015-12-09
+
+======================================================================
+
+** 起源
+
+我做了一个fd工具，是因为shell脚本的fd，本质是用 find . -name keyword 这样来做的
+；
+
+而fd本身有一个缺点是，无法在将检索结果，重定向到外部文件的时候，取消高亮显示；
+
+而 find 工具，本身有一个小缺陷，就是无法检测 -name like-keyword 与 ! -name
+-hate-keyword 之间的冲突。
+
+要知道，在输入参数冲突的时候，程序完全可以拒绝执行——并给出有效的提示；
+
+这不是啥大问题，但我这个完美主义者，想实验自己的 sss::path::glob_path_recursive
+组件，到底有多大能耐，就想，干脆自己做一个fd。
+
+当然，find貌似还不能类似Xpath、CSS-path的方式来组合检索，比如，要避开*_files文件
+夹中的文件，貌似不太好办到。
+
+----------------------------------------------------------------------
+
+在折腾程序逻辑、多关键高亮之后，我的fd工具出炉了。
+
+但是，在根目录开始检索的时候，我发现了我这个工具的两个bug——因为在“/”下，我的
+工具，马上就退出了，没有任何输出。
+
+
+*** bug1 段错误
+
+现象：
+
+   当枚举根目录特殊文件夹（只有root用户才有x权限）的时候，出现问题；一开始，是没
+   有回显；在我很快发现是访问权限的问题的时候，我在 glob_path 构造函数这里，使用
+   access(path, X_OK | R_OK) 做了检测；这样，只有在 glob_path 构造成功之后，我的
+   glob_path_recursive 才会成功执行 dpush动作；这样做了之后，反而造成了 段错误！
+
+如何解决的
+
+   这个段错误很耗费了我的时间；先是通过 SSS_LOG_FUNC_TRACE 定位到大概的位置；但
+   是具体的原因，却没法知道；于是，我换到qtcreator下，利用其栈回溯的功能，定位到
+   了，是源自 file_descriptor::get_path() 中的 std::string::resize() 运算；
+
+   进而找到了真正的原因：
+
+   段错误的原因是，在创建 glob_path对象的时候，会调用
+   file_descriptor::bind函数，以绑定这两个对象实体；
+
+   但是，我没有在拥有正确的进入文件夹的权限监测之后，才做这个绑定；
+   导致 file_descriptor 对象，被绑定到了已经delete的glob_path对象上了；
+   而file_descriptor::get_path()函数，内部需要通过glob_path对象，来知道
+   base路径信息；当然就出错了。
+
+    > ls -l /proc/tty/driver
+    > ls: 无法打开目录/proc/tty/driver: 权限不够
+
+    > 这个目录，没有x权限，对于普通用户来说。
+    > $ sudo ls -l /proc/tty/driver
+    > [sudo] password for sarrow:
+    > 总用量 0
+    > -r--r--r-- 1 root root 0 12月  9 13:22 serial
+    > 我觉得 is_normal_dir 需要用 access 判断一下……
+
+*** bug2 看似有权限，但实际无法完成枚举的特殊文件
+
+现象
+
+   在处理完 bug1 之后，我专门用来除bug的程序，竟然有如下的特征：
+
+   枚举 “/” 的时候，只进入 /proc 就完了；我除bug的同时，添加了
+   glob_path_recursive::max_depth()方法；通过这个，我发现，是在 /proc 内部枚举的
+   时候，出的问题；
+
+   形如 /proc/[pid] 的文件夹中，很多子文件夹，如 map_files 拥有这种特性，
+   access和ls，都得出相同的结论：我拥有 R 和 W 两个权限；而glob_path的实际工作函
+   数 opendir 返回的是一个非零值；就是说，opendir动作是成功的，而后续的枚举，却
+   失败了。
+
+   实测，该文件夹下，只有root可以进行ls枚举……
+
+   要知道，为了进行分析、排除干扰，我甚至，修改了 glob_path 的属性和结构，使得在
+   构造函数的时候，我就调用 opendir（或者win32下的FindFirstFile），以保证，该文
+   件夹“确实”能枚举……
+
+   因为，我不可能在进入文件夹内部之后，才放弃枚举——这意味着，我需要对
+   glob_path_recursive进行重大的改造，这不大可能接受。我需要在 glob_path 生成的
+   时候，就获取到这个信息；但是，access 和 opendir 都不行了；而且，从ls -l返回的
+   访问权限来看，也找不出“漏洞”；
+
+   于是，我想看看，程序的原型，GNU.find有没有这种问题；
+
+   发现，GNU.find虽然会完成各种枚举，但其行为，也有不统一的地方；
+
+   首先，说ls；
+
+> $ls -l /proc/1088/ | grep map_files
+> dr-x------  2 sarrow sarrow 0 12月  9 11:01 map_files
+
+> $ ls -l /proc/1088/map_files
+> ls: 正在读取目录/proc/1088/map_files: 不允许的操作
+> 总用量 0
+
+	从权限可以看到，确实有矛盾；
+
+	当使用 sudo 的时候，当然会成功了！
+
+> $ sudo ls /proc/1088/map_files
+> 400000-6fe000		   7f624b590000-7f624b597000  7f625ab58000-7f625ab59000
+> 7f620bfff000-7f6210000000  7f624b597000-7f624b5a3000  7f625ab59000-7f625ab76000
+> ...
+> 7f624b578000-7f624b57d000  7f625a6af000-7f625a8ae000  7f6262803000-7f6262804000
+> 7f624b57d000-7f624b57f000  7f625a8ae000-7f625a8af000  7f6262804000-7f6262805000
+> 7f624b57f000-7f624b588000  7f625a8af000-7f625a8b0000  8fd000-8fe000
+> 7f624b588000-7f624b58e000  7f625a8b0000-7f625a951000  8fe000-98a000
+> 7f624b58e000-7f624b58f000  7f625a951000-7f625ab51000
+> 7f624b58f000-7f624b590000  7f625ab51000-7f625ab58000
+
+----------------------------------------------------------------------
+
+	不对，权限好像不太和谐，会不会是500的原因——没有用户组的权限？
+
+> $ mkdir dir_tmp
+> $ echo "123" > dir_tmp/out.txt
+> $ cat dir_tmp/out.txt
+> 123
+> $ chmod 500 dir_tmp/
+> $ ls -l | grep dir_tmp
+> dr-x------ 2 sarrow sarrow   4096 12月  9 23:06 dir_tmp
+> $ ls -l dir_tmp/
+> 总用量 4
+> -rw-rw-r-- 1 sarrow sarrow 4 12月  9 23:06 out.txt
+
+	可见，并不是组权限的原因。
+
+----------------------------------------------------------------------
+
+	现在，说find；它虽然标准输出的行为正常，但是错误输出，却不太一致；描述如
+	下：
+
+	直接 -print：
+
+        > find /proc -print
+        > ./27231/task/27231/fdinfo
+        > find: `./27231/task/27231/fdinfo': 权限不够
+        > ./27231/task/27231/ns
+        > find: `./27231/task/27231/ns': 权限不够
+
+	同时使用 -name：
+
+        > $ find /proc/1088 -name map_files -print | grep "1088.*map_files"
+        > /proc/1088/map_files
+        >
+        > $ find /proc -name map_files  -print | grep "1088.*map_files"
+        > ...
+        > /proc/1088/map_files
+        > ...
+        > find: `/proc/1175/map_files': 权限不够
+
+	另外，/proc/[pid] 下，类似 map_files 的文件夹，还有很多；
+
+----------------------------------------------------------------------
+
+        看样子，只能查看 GNU findutil 工具的源代码了！
+        ~/Sources/findutils-4.4.2/find/
+
+----------------------------------------------------------------------
+
+	我刚顾着想，功能类似的find工具了，其实完全可以看ls的源码；它不是也显示“
+	权限不够”的错误提示吗？
+
+----------------------------------------------------------------------
+
+参考：
+         How to skip “permission denied” errors when running find in Linux?
+         [duplicate]
+        ! http://unix.stackexchange.com/questions/42841/how-to-skip-permission-denied-errors-when-running-find-in-linux
+
+----------------------------------------------------------------------
+
+** find源码分析
+
+首先，find给出的是标准错误输出的信息，并且是中文，而不是英文的“permission
+denied”。这说明，find工具，是使用的系统errno相关处理过程来完成的输出！
+
+> NAME
+>        errno - number of last error
+>
+> SYNOPSIS
+>        #include <errno.h>
+>
+> ...
+>
+>        EACCES          Permission denied (POSIX.1)
+
+例如：
+
+> #include <errno.h>
+> #include <iostream>
+>
+> int main(int argc, char *argv[])
+> {
+>     std::cout << strerror(EACCES) << std::endl;
+> }
+
+输出：
+
+> Permission denied
+
+----------------------------------------------------------------------
+
+** ls源码分析
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|578
+
+> /* True means when an argument is a directory name, display info
+>    on it itself.  -d  */
+>
+> static bool immediate_dirs;
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|1261
+
+>  if (n_files <= 0)
+>    {
+>      if (immediate_dirs)
+>	gobble_file (".", directory, NOT_AN_INODE_NUMBER, true, "");
+>      else
+>	queue_directory (".", NULL, true);
+>    }
+>  else
+>    do
+>      gobble_file (argv[i++], unknown, NOT_AN_INODE_NUMBER, true, "");
+>    while (i < argc);
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|207
+
+> static uintmax_t gobble_file (char const *name, enum filetype type,
+> 			      ino_t inode, bool command_line_arg,
+> 			      char const *dirname);
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2538
+
+> static uintmax_t
+> gobble_file (char const *name, enum filetype type, ino_t inode,
+> 	     bool command_line_arg, char const *dirname)
+> {
+>   uintmax_t blocks = 0;
+>   struct fileinfo *f;
+>   ...
+>   if (print_inode)
+>     {
+>       char buf[INT_BUFSIZE_BOUND (uintmax_t)];
+>       int len = strlen (umaxtostr (f->stat.st_ino, buf));
+>       if (inode_number_width < len)
+> 	inode_number_width = len;
+>     }
+>
+>   f->name = xstrdup (name);
+>   cwd_n_used++;
+>
+>   return blocks;
+> }
+
+----------------------------------------------------------------------
+
+这里用到的函数
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2611
+>	  err = stat (absolute_name, &f->stat);
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2615
+>	case DEREF_COMMAND_LINE_ARGUMENTS:
+>	case DEREF_COMMAND_LINE_SYMLINK_TO_DIR:
+>	  if (command_line_arg)
+>	    {
+>	      bool need_lstat;
+>	      err = stat (absolute_name, &f->stat);
+>	      do_deref = true;
+>
+>	      if (dereference == DEREF_COMMAND_LINE_ARGUMENTS)
+>		break;
+>
+>	      need_lstat = (err < 0
+>			    ? errno == ENOENT
+>			    : ! S_ISDIR (f->stat.st_mode));
+>	      if (!need_lstat)
+>		break;
+>
+>	      /* stat failed because of ENOENT, maybe indicating a dangling
+>		 symlink.  Or stat succeeded, ABSOLUTE_NAME does not refer to a
+>		 directory, and --dereference-command-line-symlink-to-dir is
+>		 in effect.  Fall through so that we call lstat instead.  */
+>	    }
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2638
+
+>	default: /* DEREF_NEVER */
+>	  err = lstat (absolute_name, &f->stat);
+>	  do_deref = false;
+>	  break;
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2644
+
+>      if (err != 0)
+>	{
+>	  /* Failure to stat a command line argument leads to
+>	     an exit status of 2.  For other files, stat failure
+>	     provokes an exit status of 1.  */
+>	  file_failure (command_line_arg,
+>			_("cannot access %s"), absolute_name);
+>	  if (command_line_arg)
+>	    return 0;
+>
+>	  f->name = xstrdup (name);
+>	  cwd_n_used++;
+>
+>	  return 0;
+>	}
+
+----------------------------------------------------------------------
+
+一样的，用上面用到的 stat,lstat两个函数，也没有发现异常；传入 struct stat 之后，
+都成功获取到信息了。
+
+另外，我在ls源码中，看到了 acl（访问控制列表）的相关语句，难道是这个不同？
+
+参考：
+http://blog.163.com/jgh2008@126/blog/static/28596246201010321918750/
+
+$ cat /boot/config-3.13.0-71-generic | grep -i acl
+CONFIG_EXT4_FS_POSIX_ACL=y
+CONFIG_REISERFS_FS_POSIX_ACL=y
+CONFIG_JFS_POSIX_ACL=y
+CONFIG_XFS_POSIX_ACL=y
+CONFIG_BTRFS_FS_POSIX_ACL=y
+CONFIG_FS_POSIX_ACL=y
+CONFIG_GENERIC_ACL=y
+CONFIG_TMPFS_POSIX_ACL=y
+CONFIG_HFSPLUS_FS_POSIX_ACL=y
+CONFIG_F2FS_FS_POSIX_ACL=y
+CONFIG_NFS_V3_ACL=y
+CONFIG_NFSD_V2_ACL=y
+CONFIG_NFSD_V3_ACL=y
+CONFIG_NFS_ACL_SUPPORT=m
+CONFIG_CIFS_ACL=y
+CONFIG_9P_FS_POSIX_ACL=y
+
+利用 getfacl 工具，检视上述两个路径：
+
+$ getfacl /proc/1055/map_files/
+getfacl: 从绝对路径名尾部去除" / "字符。
+# file: proc/1055/map_files/
+# owner: root
+# group: root
+user::r-x
+group::---
+other::---
+
+14:42:23 sarrow@sarrow-T61:~
+$ getfacl ~/project/sss_test/glob/glob@root_dir/dir_tmp/
+getfacl: 从绝对路径名尾部去除" / "字符。
+# file: home/sarrow/project/sss_test/glob/glob@root_dir/dir_tmp/
+# owner: sarrow
+# group: sarrow
+user::r-x
+group::---
+other::---
+
+基本没有区别；
+
+说明，也不是acl的原因。
+
+----------------------------------------------------------------------
+
+怎么办？貌似直接看，解决不了问题；只能通过debug了！我需要重新编译一个ls——然后
+通过qt-creator进行调试，看枚举路径是 **/map_files 的时候，发生了什么事！
+
+----------------------------------------------------------------------
+
+小插曲——我竟然像通过自己拷贝出源码，然后利用qmake自动创建makefile的方式，自己
+编译一个ls出来。
+
+没想到，白白浪费了一个下午的时间。最后，还没有编译成功……
+
+----------------------------------------------------------------------
+
+最后，就是通过下载的 coreutils ，自己编译成功！
+
+注意，需要先安装依赖库：
+
+	sudo apt-get install libselinux1-dev
+
+因为，额外使用到了 <selinux/selinux.h> 头文件。
+
+./configure // -> 会生成额外的 config.h
+make // -> 会生成额外的 configmake.h
+
+----------------------------------------------------------------------
+
+ok，打开QtCreator，进入 <Debug-Start Debugging-Start and Debug External
+Application...>
+
+再输入：
+
+> Local executable: /home/sarrow/project/sss_test/glob/ls-clone/build/ls
+> Command line arguments: -l /proc/1055/map_files/
+> Working directory: .
+> Break at "main": 勾选
+
+即可；
+
+然后，在main进入，自动停止后，就会自动打开对应的源码——
+
+----------------------------------------------------------------------
+
+跟踪到这里：
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|2327
+
+>  errno = 0;
+>  dirp = opendir (name);
+>  if (!dirp)
+>    {
+>      file_failure (command_line_arg, _("cannot open directory %s"), name);
+>      return;
+>    }
+
+此处，opendir (name) 返回值是0！
+
+其中，参数 name = "/proc/1055/map_files/"
+
+接着，就回到了，main函数的调用处：
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c|1318
+
+>      print_dir (thispend->name, thispend->realname,
+>		 thispend->command_line_arg);
+
+同时，Qt的调试窗口tab页Application Output 显示：
+
+> /home/sarrow/Sources/coreutils-6.10/src/ls: 无法打开目录/proc/1055/map_files/: 权限不够
+
+----------------------------------------------------------------------
+
+** OK，貌似问题还是没有解决
+
+date:2015-12-11
+
+当然，现象还是 fd /proc 无法完成枚举；在枚举 /proc/2044/map_files/ 路径的时候，
+失败了——这是我在调整了 sss::path::glob_path 构造行为之后，发生的事情；
+
+按照ls源码调试的结果，应当是在 opendir() 函数的时候，就将这个给拦截下来才对！
+
+但，实际情况是：
+
+> bool test_opendir(const char * path)
+> {
+>     printf("==============\n");
+>     DIR * dirp = opendir(path);
+>     printf("opendir(\"%s\") = %p\n", path, dirp);
+>     if (!dirp) {
+>         printf("%s\n", strerror(errno));
+>     }
+>     return dirp;
+> }
+>
+> int main(int argc, char *argv[])
+> {
+>     test_opendir("/proc/1962/map_files/");
+>     test_opendir("/proc/2044/map_files/");
+> }
+
+输出：
+==============
+opendir("/proc/1962/map_files/") = (nil)
+Permission denied
+==============
+opendir("/proc/2044/map_files/") = 0x644010
+
+检查ls的输出：
+
+> ls -l /proc/1962/ 2>/dev/null | grep map_files
+> $ ls -l /proc/1962/ 2>/dev/null | grep map_files
+> dr-x------ 2 root   root 0 12月 11 10:44 map_files
+>
+> ls -l /proc/2044/ 2>/dev/null | grep map_files
+> $ ls -l /proc/2044/ 2>/dev/null | grep map_files
+> dr-x------ 2 sarrow sarrow 0 12月 11 10:44 map_files
+
+即，root用户才能打开、浏览的文件夹，opendir失败——这没啥可说，正常；
+即，而用户sarrow可以打开、浏览的文件夹，opendir成功——这没啥可说，当然正常；但
+是，用 sarrow 来执行 ls，则上述两个，都失败了！
+
+> $ ls /proc/1962/map_files/
+> ls: 无法打开目录/proc/1962/map_files/: 权限不够
+>
+> $ ls /proc/2044/map_files/
+> ls: 正在读取目录/proc/2044/map_files/: 不允许的操作
+
+跟踪到 ls.c|2373
+
+/home/sarrow/Sources/coreutils-6.10/src/ls.c
+
+      next = readdir (dirp);
+
+发现函数 print_dir 会马上处理获取到的 dirp 结构体指针——使用 readdir 函数！
+
+----------------------------------------------------------------------
+
+分别，用上述两个路径，作为调试参数，在
+
+ls.c|1317行，得到的调试输出，也证实了上述现象：
+/home/sarrow/Sources/coreutils-6.10/src/ls: 无法打开目录/proc/1962/map_files/: 权限不够
+/home/sarrow/Sources/coreutils-6.10/src/ls: 正在读取目录/proc/2044/map_files/: 不允许的操作
+       EACCES          Permission denied (POSIX.1)
+       EPERM           Operation not permitted (POSIX.1)
+
+----------------------------------------------------------------------
+
+** OK问题解决
+
+
+	本质上，glob_path_recursive::fetch_no_filter函数的目的是，让最后一个
+	glob_path对象，获取一个file_descriptor；之前，我并不知道，有上述
+
+> 无法打开目录/proc/1962/map_files/: 权限不够
+> 正在读取目录/proc/2044/map_files/: 不允许的操作
+
+	的区别；在意识到存在上述现象之后，我知道了，opendir() 和 readdir() 这两
+	个函数，在路径正确的时候，都有可能出现失败；
+
+	这意味着，我需要在外面套一个循环，来保证，递归栈没空的时候，获取到正确的
+	file_descriptor，并保证正确的析构；
+
+修改如下：
+
+/home/sarrow/extra/sss/include/sss/path/glob_path_recursive.cpp|100
+
+>                ret = fetch_no_filter();
+
+修改为
+
+>                while (true) {
+>                    ret = fetch_no_filter();
+>                    if (this->_stack.back()->good()) {
+>                        break;
+>                    }
+>                    this->dpop();
+>                }
+
+----------------------------------------------------------------------
+
+** 简单的调试操作快捷键
+
+<F10> 单步
+<F11> 进入函数
+<Shift-F11> 从当前函数中跳出——在进入一个函数之后，可以选择这个……
+
+----------------------------------------------------------------------
+
+Qt Creator的常用快捷键给列一下。
+
+F1:  选中某一类或函数，按下F1，出现帮助文档；
+
+F2： 选中某一类或函数，按下F2，迅速定位到给类或函数申明的地方或被调用的地方；
+
+F3:  查找時按F3查找下一個你選中的內容，Shift + F3為 查找上一個；
+
+F4： 在*.cpp  和*.h之間切換；
+
+调试 F5(Debug)
+
+停止调试 Shift+F5
+
+单步跳过 F10
+
+单步进入 F11
+
+单步跳出 Shift + F11
+
+重启调试 Ctrl + Shift + F5
+
+设置/切换 断点 F9
+
+
+激活欢迎模式 Ctrl + 1
+
+激活编辑模式 Ctrl + 2
+
+激活调试模式 Ctrl + 3
+
+激活项目模式 Ctrl + 4
+
+激活帮助模式 Ctrl + 5
+
+激活输出模式 Ctrl + 6
+
+查找当前文档 Ctrl + F
+
+查找下一个 F3
+
+查找上一个 Shift + F3
+
+弹出查找对话框 Ctrl + Shift + F
+
+返回到代码编辑状态 Esc
+
+页面之间切换 Alt +左，按Alt +右
+
+自动完成 Ctrl + Space
+
+声明和定义之间切换 F2
+
+头文件和源文件之间切换 F4
+
+隐藏或显示边栏 Alt + 0
+
+切换至生成窗口 Alt + 1
+
+切换至搜索结果窗口 Alt + 2
+
+切换至应用输出窗口 Alt + 3
+
+切换至编译输出窗口 Alt + 4
+
+下一个书签 Ctrl + .
+
+上一个书签 Ctrl + ,
+
+书签之间切换 Ctrl + M
+
+----------------------------------------------------------------------
+
+** 关于 /proc/[pid]/map_files目录结构分析的文章：
+https://lwn.net/Articles/456198/
+
+----------------------------------------------------------------------
+

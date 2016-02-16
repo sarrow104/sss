@@ -1,0 +1,108 @@
+#include "glob_path.hpp"
+#include "filter_t.hpp"
+
+#include <sss/log.hpp>
+#include <sss/path.hpp>
+#include <sss/utlstring.hpp>
+#include <sss/log.hpp>
+
+#include <algorithm>
+#include <iostream>
+#include <stdexcept>
+
+
+// NOTE win32api FindFirstFile 必须要提供匹配串；并且，不支持多后缀选择
+// 因此，不管是 win32 还是 linux，都默认使用 regex 库，用来……
+//
+
+namespace sss { namespace path {
+
+    std::string file_descriptor::get_path() const
+    {
+//        SSS_LOG_FUNC_TRACE(sss::log::log_ERROR);
+        assert(this->_p_pg);
+        //std::cout << __func__ << ": " << this->_p_pg->basedir() << " | " << this->get_name() << std::endl;
+        return sss::path::append_copy(this->_p_pg->basedir(), this->get_name());
+    }
+
+    glob_path::glob_path(const std::string& root,
+              file_descriptor& fd,
+              filter_t * filter)
+    : is_ok(true), _pfd(&fd), _dir(root), _filter(filter)
+#ifdef __WIN32__
+      ,hFind(INVALID_HANDLE_VALUE)
+#else
+      ,dirp(0)
+#endif
+    {
+        // std::cout << __func__ << "(" << root << ")" << std::endl;
+        try {
+            if (!sss::path::is_directory(_dir)) {
+                is_ok = false;
+                throw std::runtime_error("invalid path `" + root + "`");
+            }
+#ifdef __WIN32__
+#else
+            // 2015-12-09
+            // 检查是否有该文件夹的执行权限；
+            this->is_ok = (0 == access(this->_dir.c_str(), R_OK | X_OK));
+#endif
+            if (this->good() && this->_pfd) {
+                _pfd->bind(*this);
+            }
+        }
+        catch(...) {
+            throw;
+        }
+    }
+
+    glob_path::~glob_path()
+    {
+#ifdef __WIN32__
+        if (INVALID_HANDLE_VALUE != hFind) {
+            ::FindClose(hFind);
+            hFind = INVALID_HANDLE_VALUE;
+        }
+#else
+        if (dirp) {
+            (void)closedir(dirp);
+            dirp = 0;
+        }
+#endif
+    }
+
+    bool glob_path::fetch()
+    {
+        bool is_valid = false;
+#ifdef __WIN32__
+        if (is_ok) {
+            if (this->is_first()) {
+                hFind = ::FindFirstFile((_dir + "/*").c_str(), &_pfd->_ffd);
+
+                is_valid = is_ok = (INVALID_HANDLE_VALUE != hFind);
+            }
+            else {
+                is_valid = this->next();
+            }
+        }
+#else
+        if (is_ok) {
+            if (this->is_first()) {
+                this->dirp = opendir(_dir.c_str());
+                is_ok = dirp;
+            }
+            is_valid = this->next();
+        }
+#endif
+        if (is_valid && _filter) {
+            do {
+                if (_filter->is_match(*_pfd)) {
+                    break;
+                }
+            } while ( (is_valid = this->next()) );
+        }
+        return is_valid;
+    }
+
+} // end of namespace sss
+} // end of namespace path

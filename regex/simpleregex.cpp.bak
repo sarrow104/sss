@@ -1,0 +1,1122 @@
+#include <sss/regex/simpleregex.hpp>
+
+#include <sss/utlstring.hpp>
+#include <sss/log.hpp>
+
+#include <sstream>
+#include <stdexcept>
+#include <map>
+#include <set>
+
+#define _MODEL_NAME_ "sss::regex::simpleregex"
+
+namespace sss{
+    namespace regex {
+
+        inline bool isword(char ch) // {{{1
+        {
+            return std::isalpha(ch) || ch == '_';
+        }
+
+        inline bool isdigitword(char ch) // {{{1
+        {
+            return std::isalnum(ch) || ch == '_';
+        }
+
+        // 截取串前20字符并返回；超过的话，附上"..."代表未完
+        static const char * get_match_type_name(simpleregex::match_type_t t) // {{{1
+        {
+            static std::map<simpleregex::match_type_t, const char *> names;
+
+            // vim: '<,'>s/^\S\+$/names[simpleregex::\0] = "\0";/ge
+
+            if (names.empty()) {
+                names[simpleregex::NULL_MATCH] = "NULL_MATCH";
+                names[simpleregex::START_MATCH] = "START_MATCH";
+                names[simpleregex::END_MATCH] = "END_MATCH";
+                names[simpleregex::WORD_L_MATCH] = "WORD_L_MATCH";
+                names[simpleregex::WORD_R_MATCH] = "WORD_R_MATCH";
+                names[simpleregex::CHAR_MATCH] = "CHAR_MATCH";
+                names[simpleregex::SET_MATCH] = "SET_MATCH";
+                names[simpleregex::SET_VERSE_MATCH] = "SET_VERSE_MATCH";
+                names[simpleregex::DIGIT_MATCH] = "DIGIT_MATCH";
+                names[simpleregex::ALPHA_MATCH] = "ALPHA_MATCH";
+                names[simpleregex::ALNUM_MATCH] = "ALNUM_MATCH";
+                names[simpleregex::SPACE_MATCH] = "SPACE_MATCH";
+                names[simpleregex::NOTSPACE_MATCH] = "NOTSPACE_MATCH";
+                names[simpleregex::ANY_MATCH] = "ANY_MATCH";
+                names[simpleregex::ANCHOR_L_MATCH] = "ANCHOR_L_MATCH";
+                names[simpleregex::ANCHOR_R_MATCH] = "ANCHOR_R_MATCH";
+                names[simpleregex::STAR_MATCH] = "STAR_MATCH";
+                names[simpleregex::PLUS_MATCH] = "PLUS_MATCH";
+                names[simpleregex::REFER_MATCH] = "REFER_MATCH";
+            }
+            return names[t];
+        }
+
+        simpleregex::match_token::match_token(match_type_t t, const std::string& str, match_case_t m_case) // {{{1
+            : type(t), match_case(m_case), anchor_id(0), data(str)
+        {
+            SSS_LOG_DEBUG("%s %s\n",
+                          get_match_type_name(t),
+                          data.c_str());
+            this->sort_with_case();
+        }
+
+        simpleregex::match_token::match_token(match_type_t t, const std::string& str, int pos, match_case_t m_case) // {{{1
+            : type(t), match_case(m_case), anchor_id(pos), data(str)
+        {
+            SSS_LOG_DEBUG("%s %s %d\n",
+                          get_match_type_name(t),
+                          data.c_str(),
+                          anchor_id);
+            this->sort_with_case();
+        }
+
+        void simpleregex::match_token::sort_with_case() // {{{1
+        {
+            // NOTE 本函数的目的在于，构造set\set_inverse集合的时候，先进行排序
+            // ？
+            if (!this->is_case_sensitive()) {
+                std::sort(this->data.begin(), this->data.end(), sss::char_less_casei());
+            }
+        }
+
+        bool simpleregex::match_token::is_case_sensitive() const // {{{1
+        {
+            return this->match_case == case_sensitive;
+        }
+
+        bool simpleregex::match_token::enable_case_sensitive() // {{{1
+        {
+            if (this->is_case_sensitive()) {
+                return false;
+            }
+            // case_insensitive -> case_sensitive
+            switch (this->type) {
+            case SET_MATCH:
+            case SET_VERSE_MATCH:
+                std::sort(this->data.begin(), this->data.end());
+                break;
+
+            default:
+                break;
+            }
+            this->match_case = case_sensitive;
+            return true;
+        }
+
+        bool simpleregex::match_token::enable_case_insensitive() // {{{1
+        {
+            if (!this->is_case_sensitive()) {
+                return false;
+            }
+
+            // case_sensitive -> case_insensitive
+            if (this->is_set_type()) {
+            }
+            switch (this->type) {
+            case SET_MATCH:
+            case SET_VERSE_MATCH:
+                std::sort(this->data.begin(), this->data.end(), sss::char_less_casei());
+                break;
+
+            default:
+                break;
+            }
+
+            this->match_case = case_insensitive;
+            return true;
+        }
+
+        bool simpleregex::match_token::is_set_type() const // {{{1
+        {
+            switch (this->type)
+            {
+            case SET_MATCH:
+            case SET_VERSE_MATCH:
+                return true;
+
+            default:
+                return false;
+            }
+            return false;
+        }
+
+        bool simpleregex::match_token::match(char ch) const // {{{1
+        {
+            try {
+                SSS_LOG_DEBUG("%s [%s : %c] %s\n",
+                              get_match_type_name(this->type),
+                              this->data.c_str(),
+                              ch,
+                              this->is_case_sensitive() ? "case_sensitive" : "case_insensitive");
+                // NOTE 如何支持忽略大小写的比较？
+                // 可以在一开始创建的时候，就体现这种不同。特别是 SET_MATCH
+                // ，可以使用大堆；还有 set<std::string> ，传入比较函数。
+                // 还有一种办法是使用 vector堆；只不过，在最终find比较的时候
+                // ，使用忽略大小写的比较函数（或者对象）
+                // 还有，就是 std::set 的 find 插入插入策略。这就限制了变化
+                // ……即，simpleregex 在一开始，就要从内部数据上，体现忽略
+                // 大小写的不同。
+                // 当然，原始数据，还是需要用类set来过滤重复的数据。
+                // 不过，就算是vector 模拟的 堆排序即可，在是否忽略大小写的
+                // 情况下，顺序还是不同的！
+                // 以最大堆为例：
+                // std::make_heap(v.begin(), v.end(), std::less)
+                // 将生成以根节点为最大值，其左右子树根节点，不大于本根节点
+                // 的二叉树。
+                // 即，为了体现效率，在切换比较行为时（是否大小写敏感），需
+                // 要对各个match成员数据，进行重排。
+                // 当然，也可以不管效率，直接用std::find……
+                // 另外，排序后，应该用 二分查找 好一点。
+                // lower_bound
+                // upper_bound
+                //
+                // 于是，对应是否大小写敏感的修改，将分为两步进行：
+                // 1. 修改内部数据结构——set->vector，+ lower_bound or
+                // upper_bound
+                // 2. 根据属性，来判断大小写敏感。
+                //
+                // 还有一个办法，可以用空间换时间——即，同时存储两种风格的
+                // 内存比较序列。
+                // 不过，上述变化真心很少出现……
+                if (!this->is_case_sensitive()) {
+                    ch = std::toupper(ch);
+                }
+                switch (this->type) {
+                case NULL_MATCH:
+                    throw std::invalid_argument("NULL_MATCH token matched!");
+                    break;
+
+                case CHAR_MATCH:
+                    if (this->is_case_sensitive()) {
+                        return this->data[0] == ch;
+                    }
+                    else {
+                        return std::toupper(this->data[0]) == ch;
+                    }
+                    break;
+
+                case SET_MATCH:
+                    if (this->is_case_sensitive()) {
+                        return std::binary_search(this->data.begin(), this->data.end(), ch);
+                    }
+                    else {
+                        return std::binary_search(this->data.begin(), this->data.end(), ch, sss::char_less_casei());
+                    }
+                    break;
+
+                case SET_VERSE_MATCH:
+                    if (this->is_case_sensitive()) {
+                        return !std::binary_search(this->data.begin(), this->data.end(), ch);
+                    }
+                    else {
+                        return !std::binary_search(this->data.begin(), this->data.end(), ch, sss::char_less_casei());
+                    }
+                    break;
+
+                case DIGIT_MATCH:
+                    if (std::isdigit(ch)) {
+                        return true;
+                    }
+                    break;
+
+                case ALPHA_MATCH:
+                    if (isword(ch)) {
+                        return true;
+                    }
+                    break;
+
+                case ALNUM_MATCH:
+                    if (isdigitword(ch)) {
+                        return true;
+                    }
+                    break;
+
+                case SPACE_MATCH:
+                    if (std::isspace(ch)) {
+                        return true;
+                    }
+                    break;
+
+                case NOTSPACE_MATCH:
+                    if (!std::isspace(ch)) {
+                        return true;
+                    }
+                    break;
+
+                case ANY_MATCH:
+                    return true;
+
+                default:
+                    return false;
+                }
+                return false;
+            }
+            catch (std::exception & e) {
+                std::cout << __FILE__ << ", " << __LINE__ << std::endl;
+                throw;
+            }
+        }
+
+        simpleregex::simpleregex(const std::string& reg_str, match_case_t _match_case) // {{{1
+            : reg_string(reg_str), start_pos(-1), consumed_cnt(0), match_case(_match_case)
+        {
+            SSS_LOG_DEBUG("(\"%s\", %s)\n", reg_str.c_str(), this->is_case_sensitive() ? "case_sensitive" : "case_insensitive");
+            // 这里，应该对 reg_string 进行"分词"
+            // 比如，将'^\[sql\d\] --$' 分割为：
+            // START_MATCH  "^"
+            // CHAR_MATCH   "["
+            // CHAR_MATCH   "s"
+            // CHAR_MATCH   "q"
+            // CHAR_MATCH   "l"
+            // DIGIT_MATCH  "\d"
+            // CHAR_MATCH   "]"
+            // CHAR_MATCH   " "
+            // CHAR_MATCH   "-"
+            // CHAR_MATCH   "-"
+            // END_MATCH    "$"
+            //
+            // 其他：
+            // ALNUM_MATCH "\w"
+
+            for (size_t i = 0; i != reg_string.length(); ++i) {
+                switch (reg_string[i]) {
+                case '^':
+                    match_tokens.push_back(match_token(START_MATCH, "^"));
+                    break;
+
+                case '$':
+                    match_tokens.push_back(match_token(END_MATCH, "$"));
+                    break;
+
+                case '*':
+                    if (match_tokens.empty() ||
+                        match_tokens.back().type == START_MATCH)
+                    {
+                        throw std::invalid_argument("STAR_MATCH token cannot at first!");
+                    }
+                    match_tokens.push_back(match_token(STAR_MATCH, "*"));
+                    break;
+
+                case '+':
+                    if (match_tokens.empty() ||
+                        match_tokens.back().type == START_MATCH)
+                    {
+                        throw std::invalid_argument("PLUS_MATCH token cannot at first!");
+                    }
+                    match_tokens.push_back(match_token(PLUS_MATCH, "+"));
+                    break;
+
+                case '[':       // SET_MATCH or SET_VERSE_MATCH
+                    // NOTE 如果需要包含减号'-'，使用"\\-" 即可！
+                    {
+                        bool is_set_end = false;
+                        typedef std::set<char> sub_set_t;
+                        sub_set_t sub_set;
+                        match_type_t current_type = SET_MATCH;
+                        bool is_range = false;
+                        char range_beg = '\0';
+                        for (size_t j = i + 1; j != reg_string.length(); ++j) {
+                            if (j == i + 1 && reg_string[j] == '^') {
+                                current_type = SET_VERSE_MATCH;
+                            }
+                            else if (reg_string[j] == '\\' &&
+                                     j + 1 != reg_string.length())
+                            {
+                                range_beg = reg_string[++j];
+                                is_range = false;
+                                sub_set.insert(range_beg);
+                            }
+                            else if (reg_string[j] == ']') {
+                                i = j;
+                                is_set_end = true;
+                                break;
+                            }
+                            else if (reg_string[j] == '-') {
+                                if (range_beg != '\0') {
+                                    is_range = true;
+                                }
+                                else {
+                                    throw std::invalid_argument("reg set encouter : [-]");
+                                }
+                                // FIXME 如果一开始，就是一个'-'；那么……
+                            }
+                            else {
+                                if (is_range) {
+                                    char range_end = reg_string[j];
+                                    for (char c = range_beg; c <= range_end; ++c) {
+                                        sub_set.insert(c);
+                                    }
+                                    is_range = false;
+
+                                    // 重新取为'\0'；以防止[a-d-k]这种形式！
+                                    range_beg = '\0';
+                                }
+                                else {
+                                    range_beg = reg_string[j];
+                                    sub_set.insert(reg_string[j]);
+                                }
+                            }
+                        }
+
+                        if (!is_set_end) {
+                            throw std::invalid_argument("reg set unmatched \"[\"");
+                        }
+                        std::string string_set;
+                        for (sub_set_t::iterator it = sub_set.begin();
+                             it != sub_set.end();
+                             ++it)
+                        {
+                            string_set += *it;
+                        }
+                        match_tokens.push_back(match_token(current_type, string_set));
+                    }
+                    break;
+
+                case '\\':
+                    {
+                        if (i + 1 == reg_string.length()) {
+                            throw std::invalid_argument("转义字符不完整");
+                        }
+                        switch (reg_string[++i]) {
+                        case '[':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "["));
+                            break;
+
+                        case ']':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "]"));
+                            break;
+
+                        case '^':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "^"));
+                            break;
+
+                        case '$':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "$"));
+                            break;
+
+                        case '.': // 2014-08-19 漏了一个 \\. 小数点！
+                            match_tokens.push_back(match_token(CHAR_MATCH, "."));
+                            break;
+
+                        case '*':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "*"));
+                            break;
+
+                        case '+':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "+"));
+                            break;
+
+                        case 's':
+                            match_tokens.push_back(match_token(SPACE_MATCH, "\\s"));
+                            break;
+
+                        case 'S':
+                            match_tokens.push_back(match_token(NOTSPACE_MATCH, "\\S"));
+                            break;
+
+                        case 'w':
+                            match_tokens.push_back(match_token(ALNUM_MATCH, "\\w"));
+                            break;
+
+                        case 'c':
+                            match_tokens.push_back(match_token(ALPHA_MATCH, "\\c"));
+                            break;
+
+                        case 'd':
+                            match_tokens.push_back(match_token(DIGIT_MATCH, "\\d"));
+                            break;
+
+                        case '<':
+                            match_tokens.push_back(match_token(WORD_L_MATCH, "\\<"));
+                            break;
+
+                        case '>':
+                            match_tokens.push_back(match_token(WORD_R_MATCH, "\\>"));
+                            break;
+
+                        //! 如何进行左右锚点匹配？
+                        // NOTE 允许嵌套！但是，不允许未完成的锚点。
+                        // 也就是说，是否"合格"的要求，与带括号的运算式相同！
+                        // 即，
+                        // 1. 左括号，可以随便出现；
+                        // 2. 右括号出现的时候，必须在左侧找到空闲的"左括号"
+                        // 3. 解析完成的时候，没有孤立(未配对)的括号。
+                        case '(':
+                            match_tokens.push_back(match_token(ANCHOR_L_MATCH,
+                                                               "\\(",
+                                                               left_anchors.size()));
+                            left_anchors.push_back(0);
+                            break;
+
+                        case ')':
+                            if (left_anchors.size() <= right_anchors.size()) {
+                                throw std::invalid_argument("single right anchor!");
+                            }
+                            match_tokens.push_back(match_token(ANCHOR_R_MATCH,
+                                                               "\\)",
+                                                               right_anchors.size()));
+                            right_anchors.push_back(0);
+                            break;
+
+                        case '\\':
+                            match_tokens.push_back(match_token(CHAR_MATCH, "\\"));
+                            break;
+
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            {
+                                int refer_id = reg_string[i] - '0';
+                                if (int(right_anchors.size()) < refer_id) {
+                                    throw std::invalid_argument(std::string("invalid reference id :\"\\")
+                                                                + reg_string[i]+"\"");
+                                }
+                                // NOTE 没必要支持多位数……；于是……
+                                match_tokens.push_back(match_token(REFER_MATCH,
+                                                                   std::string("\\") + reg_string[i],
+                                                                   reg_string[i] - '0'));
+                            }
+                            break;
+
+                        default:
+                            throw std::invalid_argument(std::string("unsupport escape string:\"\\")
+                                                        + reg_string[i]+"\"");
+                        }
+                    }
+                    break;
+
+                case '.':
+                    match_tokens.push_back(match_token(ANY_MATCH, "."));
+                    break;
+
+                default:
+                    match_tokens.push_back(match_token(CHAR_MATCH,
+                                                       std::string(1, reg_string[i])));
+                }
+            }
+
+            if (left_anchors.size() != right_anchors.size()) {
+                throw std::invalid_argument("anchor numbers not balance.");
+            }
+
+            if (!this->is_case_sensitive()) {
+                this->sort_with_case();
+            }
+        }
+
+        simpleregex::~simpleregex() // {{{1
+        {
+        }
+
+        bool simpleregex::is_case_sensitive() const // {{{1
+        {
+            return this->match_case == simpleregex::case_sensitive;
+        }
+
+        bool simpleregex::enable_case_sensitive() // {{{1
+        {
+            if (this->is_case_sensitive()) {
+                return false;
+            }
+
+            this->sort_with_case();
+            this->match_case = case_sensitive;
+            //for (match_tokens_t::iterator it = this->match_tokens.begin();
+            //     it != this->match_tokens.end();
+            //     ++it)
+            //{
+            //    match_token & match_cur = *it;
+            //    match_cur.enable_case_sensitive();
+            //}
+            return true;
+        }
+
+        void simpleregex::sort_with_case() // {{{1
+        {
+            if (this->is_case_sensitive()) {
+                std::for_each(this->match_tokens.begin(),
+                              this->match_tokens.end(),
+                              std::mem_fun_ref(&simpleregex::match_token::enable_case_sensitive));
+            } else {
+                std::for_each(this->match_tokens.begin(),
+                              this->match_tokens.end(),
+                              std::mem_fun_ref(&simpleregex::match_token::enable_case_insensitive));
+            }
+        }
+
+        bool simpleregex::enable_case_insensitive() // {{{1
+        {
+            if (!this->is_case_sensitive()) {
+                return false;
+            }
+
+            this->sort_with_case();
+
+            this->match_case = case_insensitive;
+            //for (match_tokens_t::iterator it = this->match_tokens.begin();
+            //     it != this->match_tokens.end();
+            //     ++it)
+            //{
+            //    match_token & match_cur = *it;
+            //    match_cur.enable_case_insensitive();
+            //}
+            return true;
+        }
+
+        std::string simpleregex::get_submatch(int id) const // {{{1
+        {
+            if (id == 0) {
+                return this->to_match.substr(this->start_pos,
+                                             this->consumed_cnt);
+            }
+            else if (id > 0 && id <= this->get_submatch_count()) {
+                int start_pos_ = this->get_submatch_start(id);
+                int consumed_cnt_ = this->get_submatch_consumed(id);
+
+                return this->to_match.substr(start_pos_,
+                                             consumed_cnt_);
+            }
+            else {
+                return "";
+            }
+        }
+
+        int         simpleregex::get_submatch_count() const
+        {
+            return this->left_anchors.size();
+        }
+
+        int         simpleregex::get_submatch_start(int id) const
+        {
+            return this->left_anchors[id - 1];
+        }
+
+        int         simpleregex::get_submatch_end(int id) const
+        {
+            return this->right_anchors[id - 1];
+        }
+
+        int         simpleregex::get_submatch_consumed(int id) const
+        {
+            return this->get_submatch_end(id) - this->get_submatch_start(id);
+        }
+
+        bool simpleregex::match(const std::string& str) // {{{1
+        {
+            return match(str.begin(), str.end());
+        }
+
+        bool simpleregex::match(const std::string& str, std::string& matched_sub) // {{{1
+        {
+            bool ret = match(str.begin(), str.end());
+            if (ret) {
+                matched_sub = str.substr(this->start_pos, this->consumed_cnt);
+            }
+            return ret;
+        }
+
+        bool simpleregex::match(const std::string& str, std::string& matched_sub, int& begin_pos) // {{{1
+        {
+            bool ret = this->match(str, matched_sub);
+            if (ret) {
+                begin_pos = this->start_pos;
+            }
+            return ret;
+        }
+
+        bool simpleregex::match(std::string::const_iterator str_beg, std::string::const_iterator str_end) // {{{1
+        {
+            // 备份匹配的起始位置
+            this->to_match = std::string(str_beg, str_end);
+            this->str_beg_bak = str_beg;
+            this->start_pos = -1;
+            this->consumed_cnt = 0;
+
+            SSS_LOG_DEBUG("\"%s\" =~ simpleregex(\"%s\")\n",
+                          sss::utlstr::sample_string(str_beg, str_end).c_str(),
+                          this->reg_string.c_str());
+            // 空的regex，能匹配所有的字符串
+            if (match_tokens.empty()) {
+                this->consumed_cnt = 0;
+                return true;
+            }
+
+            // FIXME 2014-07-04 这里好像有问题！
+            // START_MATCH 只出现在 match(,) 函数中！
+            // 是不是应该在match_here 里面处理它？
+            if (match_tokens[0].type == START_MATCH) {
+                SSS_LOG_DEBUG("patch to match_here START_MATCH at [0]\n");
+                this->start_pos = 0;
+                return match_here(match_tokens.begin() + 1,
+                                  match_tokens.end(),
+                                  str_beg,
+                                  str_end);
+            }
+
+            std::string::const_iterator str_beg_bak = str_beg;
+            do {
+                SSS_LOG_DEBUG("patch to match_here loop at [%d]\n",
+                              std::distance(str_beg_bak, str_beg));
+
+                // 每次循环开始，consumed_cnt 都应该清零；
+                // 因为，就是因为没有匹配到，所以，才需要下一次循环；
+                // 所以，consumed_cnt 肯定是 为0 的；
+                this->consumed_cnt = 0;
+                this->start_pos = std::distance(str_beg_bak, str_beg);
+
+                if (sss::log::model(_MODEL_NAME_)) {
+                    SSS_LOG_DEBUG("consumed_cnt = %d; start_pos = %d\n",
+                                  this->consumed_cnt,
+                                  this->start_pos);
+                }
+
+                if (match_here(match_tokens.begin(),
+                               match_tokens.end(),
+                               str_beg,
+                               str_end))
+                {
+                    return true;
+                }
+            } while (++str_beg != str_end);
+            return false;
+        }
+
+        bool simpleregex::match(std::string::const_iterator str_beg, std::string::const_iterator str_end, std::string& matched_sub) // {{{1
+        {
+            std::string::const_iterator match_beg;
+            std::string::const_iterator match_end;
+
+            bool ret = match(str_beg, str_end, match_beg, match_end);
+            if (ret) {
+                matched_sub = std::string(match_beg, match_end);
+            }
+            return ret;
+        }
+
+        // bool simpleregex::match(str_beg, str_end, match_beg, match_end) // {{{1
+        bool simpleregex::match(std::string::const_iterator str_beg,
+                                std::string::const_iterator str_end,
+                                std::string::const_iterator& match_beg,
+                                std::string::const_iterator& match_end)
+        {
+            bool ret = match(str_beg, str_end);
+            if (ret) {
+                match_beg = str_beg;
+                std::advance(match_beg, this->start_pos);
+
+                match_end = match_beg;
+                std::advance(match_end, this->consumed_cnt);
+            }
+            return ret;
+        }
+
+        // bool simpleregex::match(str_beg, str_end, matched_sub, begin_pos) // {{{1
+        bool simpleregex::match(std::string::const_iterator str_beg,
+                                std::string::const_iterator str_end,
+                                std::string& matched_sub,
+                                int& begin_pos)
+        {
+            bool ret = match(str_beg, str_end, matched_sub);
+            if (ret) {
+                begin_pos = this->start_pos;
+            }
+            return ret;
+        }
+
+        // 替换
+        struct subs_stem_t // {{{1
+        {
+            enum enum_subs_stem_t { ID = 0, STRING};
+
+        private:
+            enum_subs_stem_t type;
+            int         subs_id;
+            std::string str_val;
+
+        public:
+            explicit subs_stem_t(const std::string& s)
+                : type(STRING), subs_id(0), str_val(s)
+            {
+            }
+
+            explicit subs_stem_t(int id)
+                : type(ID), subs_id(id)
+            {
+            }
+
+        public:
+            int get_id() const
+            {
+                return this->subs_id;
+            }
+
+            std::string get_str() const
+            {
+                return this->str_val;
+            }
+
+        public:
+            static void parse_subs_str(const std::string& subs, std::vector<subs_stem_t>& out)
+            {
+                parse_subs_str(subs.begin(), subs.end(), out);
+            }
+
+            static void parse_subs_str(std::string::const_iterator subs_beg,
+                                       std::string::const_iterator subs_end,
+                                       std::vector<subs_stem_t>& out)
+            {
+                // NOTE，C++字符串，两个反斜杠，表示一个反斜杠！所以下面是6个反
+                // 斜杠！
+                sss::regex::simpleregex reg_subs("\\\\\\d\\>");
+
+                // NOTE 需要特殊处理 "\\" 即可；
+                std::string::const_iterator match_beg_it = subs_beg;
+                std::string::const_iterator match_end_it = subs_end;
+
+                std::string::const_iterator submatch_beg_it;
+                std::string::const_iterator submatch_end_it;
+
+                while (match_beg_it < match_end_it)
+                {
+                    if (reg_subs.match(match_beg_it, match_end_it,
+                                       submatch_beg_it, submatch_end_it))
+                    {
+                        int id = sss::string_cast<int>(std::string(submatch_beg_it + 1, submatch_end_it));
+                        if (match_beg_it != submatch_beg_it) {
+                            std::string stem = std::string(match_beg_it, submatch_beg_it);
+                            out.push_back(subs_stem_t(stem));
+                        }
+                        out.push_back(subs_stem_t(id));
+                        match_beg_it = submatch_end_it;
+                    }
+                    else {
+                        std::string stem = std::string(match_beg_it, match_end_it);
+                        out.push_back(subs_stem_t(stem));
+                        match_beg_it = match_end_it;
+                    }
+                }
+            }
+
+            static void print_subs_str(sss::regex::simpleregex& reg, const std::vector<subs_stem_t>& v_subs, std::ostream& oss)
+            {
+                for (size_t i = 0; i != v_subs.size(); ++i) {
+                    const subs_stem_t& sub(v_subs[i]);
+                    switch (sub.type)
+                    {
+                    case subs_stem_t::ID:
+                        oss << reg.get_submatch(sub.get_id());
+
+                    case subs_stem_t::STRING:
+                        oss << sub.get_str();
+                    }
+                }
+            }
+        };
+
+        std::string simpleregex::substitute(const std::string& s, const std::string& subs) // {{{1
+        {
+            return this->substitute(s.begin(), s.end(), subs.begin(), subs.end());
+        }
+
+        // bool simpleregex::substitute {{{1
+        std::string simpleregex::substitute(std::string::const_iterator tar_beg,
+                                            std::string::const_iterator tar_end,
+                                            std::string::const_iterator subs_beg,
+                                            std::string::const_iterator subs_end)
+        {
+            std::ostringstream oss;
+            std::vector<subs_stem_t> v_subs;
+            subs_stem_t::parse_subs_str(subs_beg, subs_end, v_subs);
+
+            std::string::const_iterator match_beg_it = tar_beg;
+            std::string::const_iterator match_end_it = tar_end;
+
+            std::string::const_iterator submatch_beg_it;
+            std::string::const_iterator submatch_end_it;
+
+            while (match_beg_it < match_end_it)
+            {
+                if (this->match(match_beg_it, match_end_it,
+                                submatch_beg_it, submatch_end_it))
+                {
+                    oss << std::string(match_beg_it, submatch_beg_it);
+                    subs_stem_t::print_subs_str(*this, v_subs, oss);
+                    match_beg_it = submatch_end_it;
+                }
+                else {
+                    oss << std::string(match_beg_it, match_end_it);
+                    match_beg_it = match_end_it;
+                }
+            }
+            return oss.str();
+        }
+
+        int  simpleregex::sub_match_count() const
+        {
+            // 不算 "\\0"
+            return left_anchors.size() - 1;
+        }
+
+        void simpleregex::print_match_info(std::ostream& out) // {{{1
+        {
+            out << "start_pos = " << start_pos
+                << ", consumed_cnt = " << consumed_cnt << std::endl;
+        }
+
+        // bool simpleregex::match_here(tok_beg, tok_end, str_beg, str_end) {{{1
+        bool simpleregex::match_here(match_tokens_t::const_iterator tok_beg,
+                                     match_tokens_t::const_iterator tok_end,
+                                     std::string::const_iterator str_beg,
+                                     std::string::const_iterator str_end)
+        {
+            //if( regex[0]=='\0' )
+            //    return 1;
+            //if( regex[1]=='*' )
+            //    return matchStar(regex[0], regex+2, text);
+            //if( strcmp(regexp, "$") == 0 )
+            //    return *text=='\0';
+            //if( *text!='\0' && (regex[0]=='.' || regex[0]==*text))
+            //    return matchHere(regex+1, text+1);
+            //return 0;
+
+            // 0 长的 regex，可以匹配任何字符串
+            if (tok_beg == tok_end) {
+                return true;
+            }
+
+            // 如果是"左锚点"
+            if (tok_beg->type == ANCHOR_L_MATCH) {
+                left_anchors[tok_beg->anchor_id] = std::distance(str_beg_bak,
+                                                                 str_beg);
+                return match_here(tok_beg + 1,
+                                  tok_end,
+                                  str_beg,
+                                  str_end);
+            }
+            // 如果是"右锚点"
+            if (tok_beg->type == ANCHOR_R_MATCH) {
+                right_anchors[tok_beg->anchor_id] = std::distance(str_beg_bak,
+                                                                  str_beg);
+                return match_here(tok_beg + 1,
+                                  tok_end,
+                                  str_beg,
+                                  str_end);
+            }
+
+            // NOTE 如何匹配分支？
+            // 分支的话，需要知道定位上次的分割；
+            // 形如：
+            // \(part1\|part2\|part3\)
+            // 另外，\|不应该出现在头部？如：
+            // \(\|part1\|part3\)
+            //
+            // 其实，分支也简单；做一个循环就好；
+            // 如何操作？
+            // 我需要将配对区域内的 范围，用 "\|" 进行分割；然后，分段尝试进行配对；
+            // 为此，我需要修改递归下降法对应的函数：
+            // ——
+            // 我需要一个新的函数，叫：
+            // simpleregex::match_anchor 来代替，原本的：
+            //> // 如果是"左锚点"
+            //> if (tok_beg->type == ANCHOR_L_MATCH) {
+            //>     ...
+            //> }
+            //> // 如果是"右锚点"
+            //> if (tok_beg->type == ANCHOR_R_MATCH) {
+            //>     ...
+            //> }
+
+            if (tok_beg + 1 != tok_end) {
+                if ((tok_beg + 1)->type == STAR_MATCH) {
+                    // 至少需要消耗0个字符！
+                    return match_star(*tok_beg,
+                                      tok_beg + 2,
+                                      tok_end,
+                                      str_beg,
+                                      str_end);
+                }
+
+                if ((tok_beg + 1)->type == PLUS_MATCH &&
+                    str_beg != str_end && tok_beg->match(*str_beg))
+                {
+                    // 至少需要消耗一个str字符！
+                    bool ret = match_star(*tok_beg,
+                                          tok_beg + 2,
+                                          tok_end,
+                                          str_beg + 1,
+                                          str_end);
+                    if (ret) {
+                        this->consumed_cnt++;
+                    }
+                    return ret;
+                }
+            }
+
+            if (std::distance(tok_beg, tok_end) == 1
+                && tok_beg->type == END_MATCH)
+            {
+                return str_beg == str_end;
+            }
+
+            // NOTE WORD_L_MATCH, WORD_R_MATCH
+            if (tok_beg->type == WORD_L_MATCH) {
+                return match_word_left(tok_beg,
+                                       tok_end,
+                                       str_beg,
+                                       str_end);
+
+            }
+            // NOTE
+            // WORD_R_MATCH 经常出现在正则表达式结尾；而此时，待匹配字符串，也
+            // 常常恰好走到结尾
+            if (tok_beg->type == WORD_R_MATCH) {
+                return match_word_right(tok_beg,
+                                        tok_end,
+                                        str_beg,
+                                        str_end);
+            }
+
+            // NOTE 引用匹配
+            if (tok_beg->type == REFER_MATCH) {
+                return match_refer(tok_beg,
+                                   tok_end,
+                                   str_beg,
+                                   str_end);
+            }
+
+            if (str_beg != str_end) {
+                // 还有未匹配的字符；并且当前字符匹配成功
+                if (tok_beg->match(*str_beg)) {
+                    bool ret = match_here(tok_beg + 1,
+                                          tok_end,
+                                          str_beg + 1,
+                                          str_end);
+                    this->consumed_cnt += ret ? 1 : 0;
+                    return ret;
+                }
+            }
+
+            return false;
+        }
+
+        // bool simpleregex::match_word_left(tok_beg, tok_end, str_beg, str_end) {{{1
+        // prev is null or !isalnum(prev)
+        //  and
+        // isalnum(next)
+        bool simpleregex::match_word_left(match_tokens_t::const_iterator tok_beg,
+                                          match_tokens_t::const_iterator tok_end,
+                                          std::string::const_iterator str_beg,
+                                          std::string::const_iterator str_end)
+        {
+            if ((str_beg_bak == str_beg || ! isdigitword(*(str_beg - 1)))
+                &&
+                isdigitword(*str_beg))
+            {
+                return this->match_here(tok_beg + 1, tok_end, str_beg, str_end);
+            }
+            return false;
+        }
+
+        //bool simpleregex::match_word_right(tok_beg, tok_end, str_beg, str_end) {{{1
+        // isalnum(prev)
+        //   and
+        // next is last or !isalnum(next)
+        bool simpleregex::match_word_right(match_tokens_t::const_iterator tok_beg,
+                                           match_tokens_t::const_iterator tok_end,
+                                           std::string::const_iterator str_beg,
+                                           std::string::const_iterator str_end)
+        {
+            match_tokens_t::const_iterator tok_beg_bak = this->match_tokens.begin();
+            SSS_LOG_DEBUG("(%d, ..., %c, %c)\n",
+                          std::distance(tok_beg_bak, tok_beg),
+                          (str_beg==str_end) ? '\0' : *str_beg,
+                          '\0');
+            bool ret = false;
+            if ((str_beg_bak != str_beg && isdigitword(*(str_beg - 1)))
+                &&
+                (str_beg == str_end || ! isdigitword(*str_beg) ))
+            {
+                ret = this->match_here(tok_beg + 1, tok_end, str_beg, str_end);
+            }
+
+            SSS_LOG_DEBUG("ret = %d\n", ret);
+
+            return ret;
+        }
+
+
+        //bool simpleregex::match_refer(tok_beg, tok_end, str_beg, str_end) {{{1
+        // sss::is_begin_with( std::string(str_beg, str_end), pref_refer_substring )
+        bool simpleregex::match_refer(match_tokens_t::const_iterator tok_beg,
+                                      match_tokens_t::const_iterator tok_end,
+                                      std::string::const_iterator str_beg,
+                                      std::string::const_iterator str_end)
+        {
+            match_tokens_t::const_iterator tok_beg_bak = this->match_tokens.begin();
+            SSS_LOG_DEBUG("(%d, ..., %c, %c)\n",
+                          std::distance(tok_beg_bak, tok_beg),
+                          (str_beg==str_end) ? '\0' : *str_beg,
+                          '\0');
+
+            size_t refer_id = tok_beg->anchor_id;
+            if (this->left_anchors.size() < refer_id) {
+                throw std::invalid_argument("invalid refer_id.");
+            }
+            std::string refer_string = this->get_submatch(refer_id);
+
+            bool ret = false;
+
+            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, std::string(str_beg, str_end));
+            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, refer_string);
+
+            // FIXME 这里应该还需要考虑是否大小写敏感
+            if (sss::is_begin_with(str_beg, str_end, refer_string.begin(), refer_string.end())) {
+                ret = this->match_here(tok_beg + 1,
+                                       tok_end,
+                                       str_beg + this->get_submatch_consumed(refer_id),
+                                       str_end);
+
+                SSS_LOG_EXPRESSION(sss::log::log_DEBUG, ret);
+                if (ret) {
+                    this->consumed_cnt += this->get_submatch_consumed(refer_id);
+                }
+            }
+            return ret;
+        }
+
+        // bool simpleregex::match_star(tok, tok_beg, tok_end, str_beg, str_end) {{{1
+        bool simpleregex::match_star(match_token tok,
+                                     match_tokens_t::const_iterator tok_beg,
+                                     match_tokens_t::const_iterator tok_end,
+                                     std::string::const_iterator str_beg,
+                                     std::string::const_iterator str_end)
+        {
+
+            //do{ // a * matches zero or more instances
+            //    if( matchHere(regex, text))
+            //        return 1;
+            //}while( *text!='\0' && ( *text++==c || c=='.' ));
+            //return 0;
+
+            std::string::const_iterator str_beg_bak = str_beg;
+            do {
+                if (match_here(tok_beg, tok_end,
+                               str_beg, str_end))
+                {
+                    this->consumed_cnt += std::distance(str_beg_bak, str_beg);
+                    return true;
+                }
+            } while ( str_beg != str_end && tok.match(*str_beg++) );
+            return false;
+        }
+    } // end-of namespace regex
+}// end-of namespace sss

@@ -1,0 +1,28 @@
+* bug
+
+======================================================================
+
+date:2014-08-03
+
+D:\program\msys\extra\sss\include\sss\tdspp2\field.cpp|190
+
+right:
+    delete[] this->data;
+
+wrong:
+    delete this->data;
+
+症状说明：
+	本 tespp 程序，总是出现一些奇葩的特性：结果集的检索，不能嵌套使用，不然
+	数据异常。
+
+	最近的 project/oasis/gn-analyze 则出现不同运行环境——程序开关先后、配置
+	文件变化，flow文件夹变化，而不定时出现非法访问——而且不是0x00000000位置
+	！
+
+	最后，在重新编译了debug版libsss_debug.a，并使用drmemory监控
+	gn-analyze.exe程序执行之后，终于发现错误所在；如上：this->data 本来是
+
+	new []
+
+	也应该使用匹配的 delete [] 来释放内存——但是，我基本忘记这个写法了！
