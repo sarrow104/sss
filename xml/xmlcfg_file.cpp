@@ -1,6 +1,6 @@
 #include <sss/xml/xmlcfg_file.hpp>
-#include <sss/log.hpp>
 
+#include <sss/log.hpp>
 #include <sss/path.hpp>
 
 namespace sss {

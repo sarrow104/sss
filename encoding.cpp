@@ -1,18 +1,18 @@
 #include "encoding.hpp"
 
-#ifdef _USING_UCHARDET_
-#       include <uchardet/uchardet.h>
-#else
-#       include "popenRWE.h"
-#       include <sss/ps.hpp>
-#endif
+#include <stdexcept>
 
 #include <sss/spliter.hpp>
 #include <sss/iConvpp.hpp>
 #include <sss/utlstring.hpp>
 #include <sss/path.hpp>
 
-#include <stdexcept>
+#ifdef _USING_UCHARDET_
+#       include <uchardet/uchardet.h>
+#else
+#       include "popenRWE.h"
+#       include <sss/ps.hpp>
+#endif
 
 namespace {
     inline void encoding_normalize(std::string& encoding)

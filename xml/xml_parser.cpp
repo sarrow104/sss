@@ -1,12 +1,13 @@
 #include "xml_parser.hpp"
-#include "xml_doc.hpp"
-
-#include <sss/log.hpp>
 
 #include <assert.h>
 
 #include <algorithm>
 #include <stdexcept>
+
+#include <sss/log.hpp>
+
+#include "xml_doc.hpp"
 
 namespace sss {
 

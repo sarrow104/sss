@@ -1,7 +1,8 @@
 #include "html_doc.hpp"
-#include "html_tag_factory.hpp"
 
 #include <algorithm>
+
+#include "html_tag_factory.hpp"
 
 namespace sss {
 

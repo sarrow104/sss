@@ -1,7 +1,6 @@
 #include <sss/time.hpp>
-#include <sss/util/Parser.hpp>
-#include <sss/util/StringSlice.hpp>
-#include <sss/log.hpp>
+
+#include <time.h>
 
 #include <stdexcept>
 #include <cstdio>
@@ -11,7 +10,9 @@
 #include <map>
 #include <string>
 
-#include <time.h>
+#include <sss/util/Parser.hpp>
+#include <sss/util/StringSlice.hpp>
+#include <sss/log.hpp>
 
 #ifdef __WIN32__
 

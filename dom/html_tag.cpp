@@ -1,12 +1,13 @@
 #include "html_tag.hpp"
-#include "html_tag_name_map.hpp"
-#include "html_tag_factory.hpp"
-
-#include <sss/log.hpp>
 
 #include <string>
 #include <cassert>
 #include <sstream>
+
+#include <sss/log.hpp>
+
+#include "html_tag_name_map.hpp"
+#include "html_tag_factory.hpp"
 
 //#define HTML_TAG_USE_VIRTUAL_BASE
 

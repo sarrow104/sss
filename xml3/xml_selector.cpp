@@ -1,10 +1,11 @@
 #include "xml_selector.hpp"
-#include "xml_node.hpp"
-
-#include <sss/utlstring.hpp>
 
 #include <stdexcept>
 #include <iostream>
+
+#include <sss/utlstring.hpp>
+
+#include "xml_node.hpp"
 
 namespace sss {
     namespace xml3 {

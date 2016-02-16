@@ -1,12 +1,6 @@
 #include "xml_node.hpp"
-#include "xml_doc.hpp"
 
-#include <sss/iConvpp.hpp>
-#include <sss/regex/simpleregex.hpp>
-#include <sss/spliter.hpp>
-#include <sss/utlstring.hpp>
-#include <sss/Exception.hpp>
-#include <sss/log.hpp>
+#include <stdio.h>
 
 #include <stdexcept>
 #include <algorithm>
@@ -15,8 +9,14 @@
 #include <typeinfo>
 #include <map>
 
-#include <stdio.h>
+#include <sss/iConvpp.hpp>
+#include <sss/regex/simpleregex.hpp>
+#include <sss/spliter.hpp>
+#include <sss/utlstring.hpp>
+#include <sss/Exception.hpp>
+#include <sss/log.hpp>
 
+#include "xml_doc.hpp"
 
 namespace sss{
     namespace xml{

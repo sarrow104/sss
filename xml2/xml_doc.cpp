@@ -1,4 +1,10 @@
 #include "xml_doc.hpp"
+
+#include <stdexcept>
+#include <fstream>
+#include <map>
+#include <sstream>
+
 #include "xml_parser.hpp"
 
 #include <sss/util/Memory.hpp>
@@ -7,11 +13,6 @@
 #include <sss/spliter.hpp>
 #include <sss/path.hpp>
 #include <sss/log.hpp>
-
-#include <stdexcept>
-#include <fstream>
-#include <map>
-#include <sstream>
 
 namespace sss{
     namespace xml2{

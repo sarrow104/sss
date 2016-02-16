@@ -1,0 +1,9 @@
+**/Release/
+**/Debug/
+*.bak
+*.bak.1
+*.bak.2
+*.bak1
+*.bak2
+*.bak3
+

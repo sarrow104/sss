@@ -1,13 +1,13 @@
 #include "ConfigFile.hpp"
 
+#include <fstream>
+#include <string>
+#include <algorithm>
+
 #include <sss/enc/encbase.hpp>
 #include <sss/utlstring.hpp>
 #include <sss/path.hpp>
 #include <sss/log.hpp>
-
-#include <fstream>
-#include <string>
-#include <algorithm>
 
 namespace sss{
 static const char INI_FILE_SEC_OPT_SEP = '\n';

@@ -1,9 +1,10 @@
 #include <sss/CMLParser.hpp>
-#include <sss/spliter.hpp>
 
 #include <sstream>
 #include <map>
 #include <algorithm>
+
+#include <sss/spliter.hpp>
 
 namespace sss {
     namespace CMLParser {

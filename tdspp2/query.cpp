@@ -1,11 +1,12 @@
 #include "query.hpp"
-#include "DBLink.hpp"
-#include "tdspp.hpp"
+
+#include <sqldb.h>
 
 #include <sss/utlstring.hpp>
 #include <sss/log.hpp>
 
-#include <sqldb.h>
+#include "DBLink.hpp"
+#include "tdspp.hpp"
 
 namespace sss {
 namespace tdspp2 {

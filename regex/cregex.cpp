@@ -1,14 +1,14 @@
 #include "cregex.hpp"
 
-#include <sss/bit_operation/bit_operation.h>
-#include <sss/stream/skipper.hpp>
-#include <sss/utlstring.hpp>
-
 #include <stdexcept>
 
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+
+#include <sss/bit_operation/bit_operation.h>
+#include <sss/stream/skipper.hpp>
+#include <sss/utlstring.hpp>
 
 namespace {
     class regstr_refer_counter

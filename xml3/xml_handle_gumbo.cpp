@@ -2,6 +2,8 @@
 
 #include "xml_handle.hpp"
 
+#include <assert.h>
+
 #include <gumbo_query/Document.h>
 #include <gumbo_query/Node.h>
 #include <gumbo_query/DocType.h>
@@ -11,8 +13,6 @@
 #include <sss/utlstring.hpp>
 #include <sss/encoding.hpp>
 #include <sss/path.hpp>
-
-#include <assert.h>
 
 namespace {
     void appendRecursively(sss::xml3::node * p, CNode n)

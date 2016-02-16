@@ -1,9 +1,9 @@
 #include "dosini.hpp"
 
-#include <sss/log.hpp>
-
 #include <fstream>
 #include <iostream>
+
+#include <sss/log.hpp>
 
 namespace {
     struct StrRange

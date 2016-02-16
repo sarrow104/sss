@@ -1,12 +1,12 @@
 #include "token.hpp"
 
-#include <sss/regex/simpleregex.hpp>
-#include <sss/log.hpp>
-#include <sss/utlstring.hpp>
-
 #include <stdexcept>
 #include <vector>
 #include <map>
+
+#include <sss/regex/simpleregex.hpp>
+#include <sss/log.hpp>
+#include <sss/utlstring.hpp>
 
 // FIXME
 // 这个模块，还必须输出 SSS_LOG_ERROR ，不然执行出错？非法内存读取？

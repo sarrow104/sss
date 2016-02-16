@@ -9,10 +9,10 @@
 #       include <unistd.h>             // isatty(STDOUT_FILENO)
 #endif
 
-#include <sss/log.hpp>
-
 #include <cstring>
 #include <stdexcept>
+
+#include <sss/log.hpp>
 
 namespace inner { // {{{
 

@@ -1,9 +1,10 @@
 #include "css.hpp"
-#include "css_color_table.hpp"
 
 #include <sss/spliter.hpp>
 #include <sss/utlstring.hpp>
 #include <sss/log.hpp>
+
+#include "css_color_table.hpp"
 
 namespace sss {
 css_inline::css_inline(const std::string& style) {

@@ -1,10 +1,3 @@
-/*
- * $Id: field.cc,v 2.7 2005/10/20 11:24:12 martin Exp $
- * Copyright (c) 2004, 2005, Voidsoft AB
- */
-
-#include <sss/log.hpp>
-
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
@@ -12,6 +5,8 @@
 #include <stdio.h>
 
 #include "tdspp.hpp"
+
+#include <sss/log.hpp>
 
 namespace sss{
 namespace tdspp2{

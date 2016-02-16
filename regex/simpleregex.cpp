@@ -1,7 +1,5 @@
 #include <sss/regex/simpleregex.hpp>
 
-#include <sss/utlstring.hpp>
-#include <sss/log.hpp>
 //#include <cstdint>
 #include <limits>
 
@@ -10,6 +8,9 @@
 #include <map>
 #include <set>
 #include <list>
+
+#include <sss/utlstring.hpp>
+#include <sss/log.hpp>
 
 #define _MODEL_NAME_ "sss::regex::simpleregex"
 #define SSS_REG_FUNC_TRACE

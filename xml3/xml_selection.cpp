@@ -1,13 +1,15 @@
 #include "xml_selection.hpp"
+
+#include <memory>
+#include <set>
+
+#include <sss/util/Memory.hpp>
+
 #include "xml_selector.hpp"
 #include "xml_handle.hpp"
 
 #include "selector_parser.hpp"
 #include "xml_node.hpp"
-
-#include <sss/util/Memory.hpp>
-#include <memory>
-#include <set>
 
 namespace {
     void unionInnerSet(const sss::xml3::node_list_t& list_in,

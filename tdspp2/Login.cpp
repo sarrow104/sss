@@ -1,11 +1,12 @@
 #include "tdspp.hpp"
-#include "handlers.hpp"
-#include "Environment.hpp"
+
+#include <iostream>
 
 #include <sss/log.hpp>
 #include <sss/path.hpp>
 
-#include <iostream>
+#include "handlers.hpp"
+#include "Environment.hpp"
 
 namespace sss {
 namespace tdspp2 {

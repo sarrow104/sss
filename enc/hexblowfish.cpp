@@ -1,8 +1,9 @@
 #include <sss/enc/hexblowfish.hpp>
-#include <sss/utlstring.hpp>
 
 #include <string>
 #include <cstring>
+
+#include <sss/utlstring.hpp>
 
 namespace sss { namespace enc {
 

@@ -1,14 +1,6 @@
 #include "xml_node.hpp"
-#include "xml_doc.hpp"
-#include "xml_visitor.hpp"
-#include "xml_vprinter.hpp"
 
-#include <sss/iConvpp.hpp>
-#include <sss/regex/simpleregex.hpp>
-#include <sss/spliter.hpp>
-#include <sss/utlstring.hpp>
-#include <sss/Exception.hpp>
-#include <sss/log.hpp>
+#include <stdio.h>
 
 #include <stdexcept>
 #include <algorithm>
@@ -18,8 +10,16 @@
 #include <map>
 #include <set>
 
-#include <stdio.h>
+#include <sss/iConvpp.hpp>
+#include <sss/regex/simpleregex.hpp>
+#include <sss/spliter.hpp>
+#include <sss/utlstring.hpp>
+#include <sss/Exception.hpp>
+#include <sss/log.hpp>
 
+#include "xml_doc.hpp"
+#include "xml_visitor.hpp"
+#include "xml_vprinter.hpp"
 
 namespace sss{
     namespace xml3{

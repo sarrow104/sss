@@ -1,15 +1,16 @@
 #include "glob_path_recursive.hpp"
+// #define _DEBUG_GPR_
+
+#include <assert.h>
+
+#include <iostream>
+#include <memory>
+
 #include "filter_t.hpp"
 
 #include <sss/util/Memory.hpp>
 #include <sss/log.hpp>
 
-// #define _DEBUG_GPR_
-
-#include <iostream>
-#include <memory>
-
-#include <assert.h>
 
 namespace sss {
     namespace path {

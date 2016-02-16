@@ -1,10 +1,12 @@
 #include "xml_handle.hpp"
-#include "xml_parser.hpp"
-#include "exception.hpp"
+
+#include <iostream>
 
 #include <sss/Exception.hpp>
 #include <sss/path.hpp>
-#include <iostream>
+
+#include "xml_parser.hpp"
+#include "exception.hpp"
 
 namespace sss{
     namespace xml3 {

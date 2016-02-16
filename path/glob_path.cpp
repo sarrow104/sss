@@ -1,4 +1,9 @@
 #include "glob_path.hpp"
+
+#include <algorithm>
+#include <iostream>
+#include <stdexcept>
+
 #include "filter_t.hpp"
 
 #include <sss/Terminal.hpp>
@@ -7,10 +12,6 @@
 #include <sss/path.hpp>
 #include <sss/utlstring.hpp>
 #include <sss/log.hpp>
-
-#include <algorithm>
-#include <iostream>
-#include <stdexcept>
 
 
 // NOTE win32api FindFirstFile 必须要提供匹配串；并且，不支持多后缀选择

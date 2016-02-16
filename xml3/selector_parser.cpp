@@ -1,11 +1,12 @@
 #include "selector_parser.hpp"
-#include "xml_selector.hpp"
-#include "exception.hpp"
+
+#include <memory>
 
 #include <sss/util/Memory.hpp>
 #include <sss/utlstring.hpp>
 
-#include <memory>
+#include "xml_selector.hpp"
+#include "exception.hpp"
 
 namespace sss{
     namespace xml3 {

@@ -1,9 +1,5 @@
 #include <sss/fs.hpp>
 
-#include <sss/path.hpp>
-
-#include <fstream>
-
 #ifdef __WIN32__
 #       include <windows.h>
 #       include <winbase.h>
@@ -14,6 +10,10 @@
 #       include <unistd.h>
 #       include <utime.h>
 #endif
+
+#include <fstream>
+
+#include <sss/path.hpp>
 
 namespace sss { namespace fs {
 

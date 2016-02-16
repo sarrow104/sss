@@ -1,9 +1,10 @@
 #include "sql_var_replacer.hpp"
-#include <sss/log.hpp>
 
 #include <sstream>
 #include <iostream>
 #include <cctype>
+
+#include <sss/log.hpp>
 
 namespace sss {
 namespace tdspp2 {

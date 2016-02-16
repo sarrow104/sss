@@ -1,8 +1,9 @@
 #ifndef  __DTREE_HPP_1437623293__
 #define  __DTREE_HPP_1437623293__
 
-#include <sss/container/dlist.hpp>
 #include <assert.h>
+
+#include <sss/container/dlist.hpp>
 
 // NOTE
 // 使用者，创建的实体类，其方法，如果与本基类方法同名，会将其覆盖掉；

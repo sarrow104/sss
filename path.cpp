@@ -1,9 +1,4 @@
 #include <sss/path.hpp>
-#include <sss/spliter.hpp>
-#include <sss/utlstring.hpp>
-#include <sss/ps.hpp>
-
-#include <stdlib.h>
 
 #ifdef __WIN32__
 #       include <windows.h>
@@ -17,23 +12,25 @@
 #ifndef __WIN32__
 #       include <error.h>
 #endif
+
 #include <errno.h>
 
-#include <sss/algorithm.hpp>
-
+#include <stdlib.h>
 #include <algorithm>
-
 #include <stdexcept>
-
 #include <vector>
 
 #include <sstream>
 #include <string>
-//#include <iostream>
 
 #include <cstring>
 #include <cstdio>
 #include <cctype>
+
+#include <sss/algorithm.hpp>
+#include <sss/spliter.hpp>
+#include <sss/utlstring.hpp>
+#include <sss/ps.hpp>
 
 namespace {
     void sub_dir_after(std::string& path, size_t pos)

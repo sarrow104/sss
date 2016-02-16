@@ -1,8 +1,9 @@
 #include "xml_visitor.hpp"
-#include "xml_node.hpp"
 
 #include <stdexcept>
 #include <sstream>
+
+#include "xml_node.hpp"
 
 namespace sss{
     namespace xml3 {

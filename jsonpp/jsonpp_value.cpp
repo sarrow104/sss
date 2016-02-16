@@ -1,10 +1,10 @@
 #include "jsonpp.hpp"
 
-#include "jsonpp_vprinter.hpp"
-#include "jsonpp_vcounter.hpp"
-
 #include <stdexcept>
 #include <iostream>
+
+#include "jsonpp_vprinter.hpp"
+#include "jsonpp_vcounter.hpp"
 
 namespace sss
 {

@@ -1,6 +1,5 @@
 #include "name_filter.hpp"
 
-
 namespace sss{
     namespace path{
 

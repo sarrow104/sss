@@ -1,9 +1,9 @@
 #include "KeywordFilter.hpp"
 
+#include <stdexcept>
+
 #include <sss/Terminal.hpp>
 #include <sss/utlstring.hpp>
-
-#include <stdexcept>
 
 namespace {
     bool isSubstrOf(const std::string& inner, const std::string& outer)

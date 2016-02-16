@@ -1,8 +1,9 @@
 #include "DBLink.hpp"
-#include "Login.hpp"
-#include "query.hpp"
 
 #include <sss/log.hpp>
+
+#include "Login.hpp"
+#include "query.hpp"
 
 namespace sss {
 namespace tdspp2 {

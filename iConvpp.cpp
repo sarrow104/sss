@@ -1,7 +1,4 @@
 #include <sss/iConvpp.hpp>
-#include <sss/log.hpp>
-#include <sss/bit_operation/bit_operation.h>
-#include <sss/utlstring.hpp>
 
 #include <iconv.h>
 #include <errno.h>
@@ -12,6 +9,10 @@
 
 #include <cstdlib>
 #include <stdexcept>
+
+#include <sss/log.hpp>
+#include <sss/bit_operation/bit_operation.h>
+#include <sss/utlstring.hpp>
 
 namespace {
     bool is_wchar_t_codename(const std::string& codename)

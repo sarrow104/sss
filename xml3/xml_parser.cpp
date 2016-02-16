@@ -6,19 +6,20 @@
 //#endif
 
 #include "xml_parser.hpp"
-#include "xml_doc.hpp"
-#include "exception.hpp"
-
-#include <sss/Exception.hpp>
-#include <sss/util/Memory.hpp>
-#include <sss/utlstring.hpp>
-#include <sss/log.hpp>
 
 #include <assert.h>
 
 #include <algorithm>
 #include <stdexcept>
 #include <set>
+
+#include <sss/Exception.hpp>
+#include <sss/util/Memory.hpp>
+#include <sss/utlstring.hpp>
+#include <sss/log.hpp>
+
+#include "xml_doc.hpp"
+#include "exception.hpp"
 
 // FIXME 怎么办？有些是预读的！就是说，允许解析失败！
 // 即，有些是必须完成匹配（匹配一次），有些是允许（0或1次）；

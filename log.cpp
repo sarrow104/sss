@@ -1,6 +1,4 @@
 #include <sss/log.hpp>
-#include <sss/time.hpp>
-#include <sss/CMLParser.hpp>
 
 #include <cstdio>
 #include <cstdarg>
@@ -8,6 +6,9 @@
 #include <vector>
 #include <cassert>
 #include <map>
+
+#include <sss/time.hpp>
+#include <sss/CMLParser.hpp>
 
 namespace sss{
     namespace log {
