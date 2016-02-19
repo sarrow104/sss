@@ -110,13 +110,13 @@ namespace jsonpp
         //----------------------------------------------------------------------
 
     public:
-        int             get_type()      const;
+        jtype_t         get_type()      const;
         const char *    get_type_str()  const;
 
         int             node_count()    const;
 
     public:
-        void            print(std::ostream& os) const;
+        void            print(std::ostream& os, bool is_pretty = false) const;
 
     public:
         static const char * type_id2name(int id);
@@ -388,14 +388,17 @@ namespace jsonpp
     public:
         explicit JHandle(const std::string& jsonstr);
         explicit JHandle(JValue * pval);
+
+        JHandle(const JHandle& );
+
         JHandle();
         ~JHandle();
 
     public:
-        //inline operator JValue*()
-        //{
-        //    return this->data;
-        //}
+        JHandle& operator = (const JHandle&);
+
+    public:
+        JHandle& init(const std::string& jsonstr);
 
         void swap(JHandle& ref);
 
@@ -406,6 +409,7 @@ namespace jsonpp
                 throw std::runtime_error("zero JValue * pointer");
             }
         }
+
         inline JValue * operator->() const
         {
             this->validate();
@@ -433,15 +437,26 @@ namespace jsonpp
         // 这里重点在于所有权！
         JValue * release();
 
+        JHandle operator[] (int idx);
+        JHandle operator[] (const std::string& key);
+
+        void print(std::ostream& o, bool is_pretty = false) const;
+
+        int size() const;
+
+        jtype_t type() const;
+
+        std::string to_string() const;
+        int         to_int()    const;
+        double      to_double() const;
+        bool        to_bool()   const;
+
         // ...
         void clear();
 
-    private:// 禁止拷贝与复制
-        JHandle(const JHandle& );
-        JHandle& operator = (const JHandle&);
-
     private:
         JValue * data;
+        bool     m_is_owner;
     };
 
     class JVisitor

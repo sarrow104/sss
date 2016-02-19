@@ -13,74 +13,40 @@ namespace jsonpp
     class JVPrinter : public JVisitor
     {
     public:
-        JVPrinter(std::ostream& os):
-            p_os(&os)
+        JVPrinter(std::ostream& os,
+                  bool is_pretty = false):
+            p_os(&os), m_is_pretty(is_pretty), m_depth(0)
         {
         }
+
         ~JVPrinter()
         {
         }
 
     public:
-        virtual void visit(const JArray * pj)
-        {
-            bool is_first = true;
-            (*p_os) << "[";
-            for (JArray::data_t::const_iterator it = pj->get_data().begin();
-                 it != pj->get_data().end();
-                 ++it)
-            {
-                if (!is_first) {
-                    (*p_os) << ", ";
-                }
-                (*it)->accept(*this);
-                is_first = false;
-            }
-            (*p_os) << "]";
-        }
+        virtual void visit(const JArray * pj);
 
-        virtual void visit(const JObject * pj)
-        {
-            bool is_first = true;
-            (*p_os) << "{";
-            for (JObject::data_t::const_iterator it = pj->get_data().begin();
-                 it != pj->get_data().end();
-                 ++it)
-            {
-                if (!is_first) {
-                    (*p_os) << ", ";
-                }
-                (*p_os) << '"' << it->first << "\": ";
-                it->second->accept(*this);
-                is_first = false;
-            }
-            (*p_os) << "}";
-        }
+        virtual void visit(const JObject * pj);
 
-        virtual void visit(const JBool * pj)
-        {
-            (*p_os) << pj->to_str();
-        }
-        virtual void visit(const JDouble * pj)
-        {
-            (*p_os) << pj->data;
-        }
-        virtual void visit(const JInt * pj)
-        {
-            (*p_os) << pj->data;
-        }
-        virtual void visit(const JNull * pj)
-        {
-            (*p_os) << pj->to_str();
-        }
+        virtual void visit(const JBool * pj);
+        
+        virtual void visit(const JDouble * pj);
+        
+        virtual void visit(const JInt * pj);
+        
+        virtual void visit(const JNull * pj);
 
-        virtual void visit(const JString * pj)
-        {
-            (*p_os) << '\"' << pj->get_string() << '\"';
+        virtual void visit(const JString * pj);
+
+    protected:
+        std::ostream& o() const {
+            return *p_os;
         }
 
     private:
-        std::ostream * p_os;
+        std::ostream *  p_os;
+        bool            m_is_pretty;
+        int             m_depth;
     };
 }
 }

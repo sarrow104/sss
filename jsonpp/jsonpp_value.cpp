@@ -199,7 +199,7 @@ namespace jsonpp
 
     //----------------------------------------------------------------------
 
-    int     JValue::get_type() const
+    jtype_t  JValue::get_type() const
     {
         return jtype;
     }
@@ -256,9 +256,9 @@ namespace jsonpp
         visitor.visit(this);
     }
 
-    void JValue::print(std::ostream& os) const
+    void JValue::print(std::ostream& os, bool is_pretty) const
     {
-        jsonpp::JVPrinter jpos(os);
+        jsonpp::JVPrinter jpos(os, is_pretty);
         this->accept(jpos);
     }
 }
