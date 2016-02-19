@@ -464,6 +464,8 @@ namespace path {
 #else
         struct stat sb;
 
+        // NOTE stat函数，对于 symlink文件，透明；
+        // 所以可以直接使用！
         if (stat(path, &sb) == 0)
         {
             if (S_ISDIR(sb.st_mode & S_IFMT)) {
@@ -480,6 +482,91 @@ namespace path {
     sss::path_type file_exists(const std::string& path) // {{{1
     {
         return sss::path::file_exists(path.c_str());
+    }
+
+    bool is_symlink(const std::string& path) // {{{1
+    {
+#ifdef __WIN32__
+        // TODO FIXME
+        return false;
+#else
+        struct stat statbuff;
+        std::string buf;
+        bool ret = false;
+        if (lstat(path.c_str(), &statbuff) < 0) {
+            throw std::runtime_error(std::strerror(errno));
+        }
+        ret = S_ISLNK(statbuff.st_mode);
+        return ret;
+#endif
+    }
+
+    std::string readlink(const std::string& path) // {{{1
+    {
+#ifdef  __WIN32__
+        // TODO FIXME
+        return path;
+#else
+        struct stat statbuff;
+        std::string buf(path.begin(), path.end());
+
+        if (sss::path::is_symlink(path)) {
+            buf.resize(statbuff.st_size);
+            if (::readlink(path.c_str(), const_cast<char*>(buf.c_str()), buf.size()) == -1) {
+                throw std::runtime_error(std::strerror(errno));
+            }
+        }
+        return buf;
+#endif
+    }
+
+    bool symlink(const std::string& oldpath, const std::string& newpath)
+    {
+#ifdef  __WIN32__
+        // TODO FIXME
+        return false;
+#else
+        return ::symlink(oldpath.c_str(), newpath.c_str()) == 0;
+#endif
+    }
+
+    bool is_equal(const std::string& path1, const std::string& path2)
+    {
+        std::string full_path1 = sss::path::full_of_copy(path1);
+        std::string full_path2 = sss::path::full_of_copy(path2);
+        sss::path::simplify(full_path1);
+        sss::path::simplify(full_path2);
+
+        if (!full_path1.empty() && *full_path1.rbegin() == sss::path::sp_char) {
+            full_path1.resize(full_path1.length() - 1);
+        }
+
+        if (!full_path2.empty() && *full_path2.rbegin() == sss::path::sp_char) {
+            full_path2.resize(full_path2.length() - 1);
+        }
+
+        std::string::const_iterator first1 = full_path1.begin();
+        std::string::const_iterator last1 = full_path1.end();
+
+        std::string::const_iterator first2 = full_path2.begin();
+        std::string::const_iterator last2 = full_path2.end();
+
+        if (full_path1.length() != full_path2.length()) {
+            return false;
+        }
+
+        while (first1 != last1 && first2 != last2) {
+            bool is_equal =
+#ifdef __WIN32__
+                sss::char_equal_casei()(*first1, *first2);
+#else
+            *first1 == *first2;
+#endif
+            if (!is_equal) {
+                return false;
+            }
+        }
+        return true;
     }
 
     bool is_relative(const std::string& path) // {{{1
@@ -560,6 +647,18 @@ namespace path {
         return random_fname;
     }
 
+    bool rename(const std::string& oldpath, const std::string& newpath)
+    {
+        return sss::path::rename(oldpath.c_str(), newpath.c_str());
+    }
+
+    bool rename(const char * oldpath, const char * newpath)
+    {
+        bool ret = (std::rename(oldpath, newpath) != -1);
+        // std::cout << oldpath << " -> " << newpath << (ret ? " ok" : " failed") << std::endl;
+        return ret;
+    }
+
     std::string getbin() // {{{1
     {
         std::string ret;
@@ -582,7 +681,7 @@ namespace path {
         size_t linksize = 256;
         char exeName[linksize];
         ssize_t len = 0;
-        if ( (len = readlink("/proc/self/exe", exeName, linksize)) != -1 )
+        if ( (len = ::readlink("/proc/self/exe", exeName, linksize)) != -1 )
         {
             exeName[len] = '\0';
             ret = exeName;

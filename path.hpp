@@ -12,20 +12,16 @@
 #endif
 
 #include <cstdlib>
+#include <cstring>
 #include <cassert>
 
+#include <stdexcept>
 #include <string>
 #include <iostream>
 
 namespace sss {
 
 enum path_type{PATH_NOT_EXIST = 0, PATH_TO_DIRECTORY = 1, PATH_TO_FILE = 2};
-
-// TODO
-// std::vector<std::string> path::glob("x.txt") --> 当前文件夹，完全匹配；
-//
-// std::vector<std::string> path::glob("*/**/x.txt") --> 递归查找；完全匹配；
-//
 
     // Sarrow: 2011-09-25
 std::string escape_str(const std::string & s, const std::string& patterns, const char escape_char);
@@ -150,6 +146,17 @@ namespace path {
      * @return the empty fname; on failed length == 0;
      */
     std::string gen_random_fname(const std::string& path = "", size_t len = 8);
+
+    bool rename(const std::string& oldpath, const std::string& newpath);
+    bool rename(const char * oldpath,       const char * newpath);
+
+    bool is_symlink(const std::string& path);
+
+    std::string readlink(const std::string& oldpath, const std::string& newpath);
+
+    bool symlink(const std::string& path);
+
+    bool is_equal(const std::string& path1, const std::string& path2);
 
     bool is_relative(const std::string& path);
 
