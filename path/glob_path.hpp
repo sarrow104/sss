@@ -164,11 +164,14 @@ public:
             (std::strcmp(this->get_name(), "..") != 0 && std::strcmp(this->get_name(), ".") != 0);
     }
 
-    bool is_normal_file() const {
+    bool is_normal_file() const;
+
+    bool is_symlink() const {
 #ifdef __WIN32__
-        return !this->is_dir();
+        // TODO FIXME
+        return false;
 #else
-        return _entry.d_type == DT_REG;
+        return _entry.d_type == DT_LNK;
 #endif
     }
 
