@@ -11,7 +11,9 @@
 #       include <utime.h>
 #endif
 
+#include <cstring>
 #include <fstream>
+#include <stdexcept>
 
 #include <sss/path.hpp>
 
