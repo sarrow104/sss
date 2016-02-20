@@ -78,6 +78,7 @@ class glob_path_recursive;
 class file_descriptor {
     friend class glob_path;
     friend class glob_path_recursive;
+    friend class glob_path_recursive_bf;
 
 protected:
 #ifdef __WIN32__

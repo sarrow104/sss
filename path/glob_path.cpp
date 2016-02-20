@@ -65,18 +65,17 @@ namespace sss { namespace path {
     }
 
     glob_path::glob_path(const std::string& root,
-              file_descriptor& fd,
-              filter_t * filter)
-    :
+                         file_descriptor& fd,
+                         filter_t * filter) :
         _is_next(false),
         is_ok(true),
         _pfd(&fd),
         _dir(root),
-        _filter(filter)
+        _filter(filter),
 #ifdef __WIN32__
-      ,hFind(INVALID_HANDLE_VALUE)
+        hFind(INVALID_HANDLE_VALUE)
 #else
-      ,dirp(0)
+        dirp(0)
 #endif
     {
         // std::cout << __func__ << "(" << root << ")" << std::endl;
@@ -96,10 +95,9 @@ namespace sss { namespace path {
             if (!this->dirp) {
                 ::fprintf(stderr, "opendir(\"%s\") : %s%s%s\n",
                           _dir.c_str(),
-                          sss::Terminal::style::begin(sss::Terminal::style::FONT_BOLD |
-                                                      sss::Terminal::style::FONT_F_RED).data(),
+                          sss::Terminal::error.data(),
                           ::strerror(errno),
-                          sss::Terminal::style::end.data());
+                          sss::Terminal::end.data());
             }
 #endif
             if (this->good() && this->_pfd) {
@@ -175,10 +173,9 @@ namespace sss { namespace path {
             if (!_pfd->is_ok() && errno) {
                 ::fprintf(stderr, "readdir_r(\"%s\") : %s%s%s\n",
                           _dir.c_str(),
-                          sss::Terminal::style::begin(sss::Terminal::style::FONT_BOLD |
-                                                      sss::Terminal::style::FONT_F_RED).data(),
+                          sss::Terminal::error.data(),
                           ::strerror(errno),
-                          sss::Terminal::style::end.data());
+                          sss::Terminal::end.data());
                 (void)::closedir(this->dirp);
                 this->dirp = 0;
                 this->is_ok = false;
