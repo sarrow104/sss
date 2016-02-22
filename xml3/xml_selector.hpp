@@ -30,6 +30,13 @@
 //E! > F - selects an E element, parent of F
 //
 //注意，"!" 是与前面的E结合；并且，可以是任意的tag，用'*'表示；
+//
+// 额，gumbo-query，已经是完备的了：
+//
+//! /home/sarrow/extra/sss/include/sss/xml3/selector_parser.cpp|412
+// 它，提供了伪类语法 E:haschild(F)，以支持 E! > F 的扫描规则！
+//
+// 我不必修改了；
 
 
 #include "xml_node.hpp"
