@@ -321,7 +321,12 @@ int ParseBase::do_parse_current(char ** argv_b, char ** argv_e)
     // 是：
     //   !this->rules.empty();
     // 这个条件，是调用 do_parse_current 的上层函数保证的！
+    //
+    // NOTE 不过；因为要"--"操作，所以要检查是否是begin()!
     rule_map_t::iterator it = this->rules.upper_bound(*argv_b);
+    if (it == this->rules.begin()) {
+        return current_used;
+    }
     --it;
     const std::string & param = it->first;
     RuleBase & rule = *it->second.second;
