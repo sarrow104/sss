@@ -194,7 +194,12 @@ namespace sss {
             sss::scoped_ptr<glob_path> tmp_gp(new glob_path(dir, *_pfd));
             if (tmp_gp.get() && tmp_gp->good()) {
                 this->_stack_exclude.push_back(tmp_is_enum);
-                this->_stack.push_back(tmp_gp.release());
+
+                // NOTE 因为 std::vector 在push_back过程中，可能失败；
+                // 所以下面分为两句；
+                this->_stack.push_back(tmp_gp.get());
+                tmp_gp.release();
+
 #ifdef _DEBUG_GPR_
                 std::cout << " succeed." << std::endl;
 #endif
