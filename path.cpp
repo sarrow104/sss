@@ -468,7 +468,7 @@ namespace path {
         // 所以可以直接使用！
         if (stat(path, &sb) == 0)
         {
-            if (S_ISDIR(sb.st_mode & S_IFMT)) {
+            if (S_ISDIR(sb.st_mode)) {
                 ret = PATH_TO_DIRECTORY;
             }
             else {
