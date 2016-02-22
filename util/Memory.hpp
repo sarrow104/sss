@@ -44,6 +44,11 @@ public:
         return m_px;
     }
 
+    operator void * () const
+    {
+        return m_px;
+    }
+
     T* get() const
     {
         return m_px;
