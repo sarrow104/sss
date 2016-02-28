@@ -32,6 +32,8 @@
 #include <sss/utlstring.hpp>
 #include <sss/ps.hpp>
 
+#include <sss/bit_operation/bit_operation.h>
+
 namespace {
     void sub_dir_after(std::string& path, size_t pos)
     {
@@ -1124,6 +1126,67 @@ namespace path {
             }
         }
         return path;
+    }
+
+    bool chmod(const std::string& path, int mode)
+    {
+        return sss::path::chmod(path.c_str(), mode);
+    }
+
+    inline int fmode_dec2hex(int mode) {
+        int sys_mode = (((mode / 100) % 10) & 7u);
+        sys_mode <<= 3;
+        sys_mode |= (((mode / 10) % 10) & 7u);
+        sys_mode <<= 3;
+        sys_mode |= ((mode % 10) & 7u);
+        return sys_mode;
+    }
+
+    // TODO
+    // 要不，额外用'+'，'-'参数，表示增加、减去某属性？
+    bool chmod(const char * path, int mode)
+    {
+        ::chmod(path, fmode_dec2hex(mode));
+
+        return true;
+    }
+
+    bool chmod(const std::string& path, char option, int mode)
+    {
+        return sss::path::chmod(path.c_str(), option, mode);
+    }
+
+    bool chmod(const char * path, char option, int mode)
+    {
+        struct stat statbuff;
+        std::string buf;
+        bool ret = false;
+        if (stat(path, &statbuff) == 0) {
+            int old_mode = statbuff.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+
+            int sys_mode = fmode_dec2hex(mode);
+
+            int new_mode = -1;
+            switch (option) {
+            case '+':
+                new_mode = old_mode | sys_mode;
+                break;
+
+            case '-':
+                new_mode = old_mode & ~sys_mode;
+                break;
+
+            default:
+                break;
+            }
+
+            if (new_mode != -1 && new_mode != old_mode) {
+                ::chmod(path, sys_mode);
+                ret = true;
+            }
+        }
+
+        return ret;
     }
 
     // 返回全路径

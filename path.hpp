@@ -118,6 +118,11 @@ namespace path {
     std::string  modify_copy(const std::string& path, const std::string& modifier);
     std::string& modify(std::string& path, const std::string& modifier);
 
+    bool chmod(const std::string& path, int mode);
+    bool chmod(const char * path, int mode);
+
+    bool chmod(const std::string& path, char option, int mode);
+    bool chmod(const char * path, char option, int mode);
 
     std::string  full_of_copy(const std::string& path);
     std::string& full_of(std::string& path);
