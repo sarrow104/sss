@@ -155,22 +155,62 @@ namespace sss
 
     template<typename _InputIterator1,
              typename _InputIterator2>
-    inline int is_equal(_InputIterator1 __first1, _InputIterator1 __last1,
-                        _InputIterator2 __first2, _InputIterator2 __last2)
+    inline int equal(_InputIterator1 __first1, _InputIterator1 __last1,
+                     _InputIterator2 __first2, _InputIterator2 __last2)
     {
-        int cnt = max_match(__first1, __last1, __first2, __last2);
-        return cnt == std::distance(__first1, __last1) && cnt == std::distance(__first2, __last2);
+        while (__first1 != __last1 &&
+               __first2 != __last2 &&
+               bool(*__first1 == *__first2))
+        {
+            ++__first1;
+            ++__first2;
+        }
+        return __first1 == __last1 && __first2 == __last2;
+
     }
 
     template<typename _InputIterator1,
              typename _InputIterator2,
              typename _BinaryPredicate>
-    inline int is_equal(_InputIterator1 __first1, _InputIterator1 __last1,
-                        _InputIterator2 __first2, _InputIterator2 __last2,
-                        _BinaryPredicate __binary_pred)
+    inline int equal(_InputIterator1 __first1, _InputIterator1 __last1,
+                     _InputIterator2 __first2, _InputIterator2 __last2,
+                     _BinaryPredicate __binary_pred)
     {
-        int cnt = max_match(__first1, __last1, __first2, __last2, __binary_pred);
-        return cnt == std::distance(__first1, __last1) && cnt == std::distance(__first2, __last2);
+        while (__first1 != __last1 &&
+               __first2 != __last2 &&
+               bool(__binary_pred(*__first1, *__first2)))
+        {
+            ++__first1;
+            ++__first2;
+        }
+        return __first1 == __last1 && __first2 == __last2;
+    }
+
+    template<typename _InputIterator,
+             typename _T>
+    inline _InputIterator binary_find(_InputIterator __first, _InputIterator __last, const _T& val)
+    {
+        __first = std::lower_bound(__first, __last, val);
+        if (__first != __last && !(val < *__first)) {
+            return __first;
+        }
+        else {
+            return __last;
+        }
+    }
+
+    template<typename _InputIterator,
+             typename _T,
+             typename _Compare>
+    inline _InputIterator binary_find(_InputIterator __first, _InputIterator __last, const _T& val, _Compare comp)
+    {
+        __first = std::lower_bound(__first, __last, val, comp);
+        if (__first != __last && !comp(val, *__first)) {
+            return __first;
+        }
+        else {
+            return __last;
+        }
     }
 }
 
