@@ -954,7 +954,9 @@ namespace path {
         sss::ps::StringPipe ps;
         ps.add("file").add("--brief").add("--mime-type").add(path);
         ps << " 2>/dev/null";
-        return ps.run();
+        std::string ret = ps.run();
+        sss::trim(ret);
+        return ret;
 #endif
     }
 

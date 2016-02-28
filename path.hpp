@@ -70,6 +70,8 @@ namespace path {
                                             std::string::const_iterator stem_end);
 
     // 在path后面，在附加一个stem；
+    // NOTE 如果该stem是绝对路径，则path会被stem替换掉，并执行simplify
+    // stem结束的sp_char，会保留？
     std::string& append(std::string& path, const std::string& stem);
 
     std::string& append(std::string& path,
