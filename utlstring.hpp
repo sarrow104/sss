@@ -3,6 +3,10 @@
 
 #include <sss/log.hpp>
 #include <sss/util/PostionThrow.hpp>
+#include <sss/util/StringSlice.hpp>
+
+#include <sss/algorithm.hpp>
+
 #ifndef __WIN32__
 #       include <sss/iConvpp.hpp>
 #endif
@@ -79,14 +83,109 @@ namespace sss{
     template<> inline const char * safe_str<char>(const char * s) { return (s ? s : ""); }
     template<> inline const wchar_t * safe_str<wchar_t>(const wchar_t * s) { return (s ? s : L""); }
 
-    inline bool is_has(const std::string& s, const std::string& pattern, bool ignore_case = false)
+    template<typename Iterator1, typename Iterator2>
+    inline bool is_equal(Iterator1 first1, Iterator1 last1, Iterator2 first2, Iterator2 last2, int ignore_case = false)
     {
+        if (ignore_case) {
+            return sss::equal(first1, last1, first2, last2, char_equal_casei());
+        }
+        else {
+            return sss::equal(first1, last1, first2, last2);
+        }
+    }
+
+    template<typename Iterator1, typename Container>
+    inline bool is_equal(Iterator1 first1, Iterator1 last1, const Container& pattern, int ignore_case = false)
+    {
+        return is_equal(first1, last1, pattern.begin(), pattern.end(), ignore_case);
+    }
+
+    template<typename Iterator1, typename Container>
+    inline bool is_equal(const Container& s, Iterator1 first1, Iterator1 last1, int ignore_case = false)
+    {
+        return is_equal(s.begin(), s.end(), first1, last1, ignore_case);
+    }
+
+    template<typename Iterator1, typename T, int size>
+    inline bool is_equal(const T(&s)[size], Iterator1 first1, Iterator1 last1, int ignore_case = false)
+    {
+        return is_equal(s, s + size - 1, first1, last1, ignore_case);
+    }
+
+    template<typename Iterator1, typename T, int size>
+    inline bool is_equal(Iterator1 first1, Iterator1 last1, const T(&pattern)[size], int ignore_case = false)
+    {
+        return is_equal(first1, last1, pattern, pattern + size - 1, ignore_case);
+    }
+
+    template<typename T1, int size1, typename T2, int size2>
+    inline bool is_equal(const T1(&s)[size1], const T2(&pattern)[size2], int ignore_case = false)
+    {
+        return is_equal(s, s + size1 - 1, pattern, pattern + size2 - 1, ignore_case);
+    }
+
+    inline bool is_equal(const std::string& s, const std::string& pattern, int ignore_case = false)
+    {
+        return is_equal(s.begin(), s.end(), pattern.begin(), pattern.end(), ignore_case);
+    }
+
+    template<typename Iterator1, typename Iterator2>
+    inline bool is_has(Iterator1 first1, Iterator1 last1, Iterator2 first2, Iterator2 last2, int ignore_case = false)
+    {
+        if (ignore_case) {
+            return std::search(first1, last1, first2, last2, char_equal_casei()) != last1;
+        }
+        else {
+            return std::search(first1, last1, first2, last2) != last1;
+        }
+    }
+
+    template<typename Iterator1, typename Container>
+    inline bool is_has(Iterator1 first1, Iterator1 last1, const Container& pattern, int ignore_case = false)
+    {
+        return is_has(first1, last1, pattern.begin(), pattern.end(), ignore_case);
+    }
+
+    template<typename Iterator1, typename Container>
+    inline bool is_has(const Container& s, Iterator1 first1, Iterator1 last1, int ignore_case = false)
+    {
+        return is_has(s.begin(), s.end(), first1, last1, ignore_case);
+    }
+
+    template<typename Iterator1, typename T, int size>
+    inline bool is_has(const T(&s)[size], Iterator1 first1, Iterator1 last1, int ignore_case = false)
+    {
+        return is_has(s, s + size - 1, first1, last1, ignore_case);
+    }
+
+    template<typename Iterator1, typename T, int size>
+    inline bool is_has(Iterator1 first1, Iterator1 last1, const T(&pattern)[size], int ignore_case = false)
+    {
+        return is_has(first1, last1, pattern, pattern + size - 1, ignore_case);
+    }
+
+    // NOTE is_has("str1", "str2") 这种调用，是没有多少意义的——既然都是字符常
+    // 量，那么还需要运行时去判断包含关系吗？
+    // 不过，为了完备性，以及可能的"宏"传值，还是提供一个吧！
+    // NOTE 字符串常量数组，需要排除掉末尾的"\0"
+    template<typename T1, int size1, typename T2, int size2>
+    inline bool is_has(const T1(&s)[size1], const T2(&pattern)[size2], int ignore_case = false)
+    {
+        return is_has(s, s + size1 - 1, pattern, pattern + size2 - 1, ignore_case);
+    }
+
+    inline bool is_has(const std::string& s, const std::string& pattern, int ignore_case = false)
+    {
+#if 1
+        return is_has(s.begin(), s.end(), pattern.begin(), pattern.end(), ignore_case);
+#else
         if (ignore_case) {
             return std::search(s.begin(), s.end(), pattern.begin(), pattern.end(), char_equal_casei()) != s.end();
         }
         else {
             return std::search(s.begin(), s.end(), pattern.begin(), pattern.end()) != s.end();
         }
+#endif
     }
 
     inline bool is_contain_with(const std::string& s, const std::string& pattern, bool ignore_case = false)
