@@ -118,6 +118,13 @@ namespace sss {
                 return false;
             }
 
+            void clear()
+            {
+                if (this->length()) {
+                    this->m_beg = this->m_end;
+                }
+            }
+
             char pop_back()
             {
                 char ret = '\0';
@@ -204,6 +211,12 @@ namespace sss {
         inline StringSlice<Iterator> make_slice(Iterator beg, Iterator end)
         {
             return StringSlice<Iterator>(beg, end);
+        }
+
+        template<typename Iterator>
+        inline StringSlice<Iterator> make_slice(const std::pair<Iterator, Iterator>& range)
+        {
+            return StringSlice<Iterator>(range.first, range.second);
         }
 
         template<typename Iterator>
