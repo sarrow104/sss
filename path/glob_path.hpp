@@ -128,6 +128,12 @@ public:
 
     std::string get_path() const;
 
+    time_t      get_mtime() const;
+
+    time_t      get_ctime() const;
+
+    int         get_type() const;
+
     void swap(file_descriptor& ref)
     {
 #ifdef __WIN32__

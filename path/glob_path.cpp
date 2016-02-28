@@ -38,6 +38,33 @@ namespace sss { namespace path {
         return sss::path::append_copy(this->_p_pg->basedir(), this->get_name());
     }
 
+    time_t      file_descriptor::get_mtime() const
+    {
+        struct stat info;
+        if (stat(this->get_path().c_str(), &info) == 0) {
+            return info.st_mtime;
+        }
+        return 0;
+    }
+
+    time_t      file_descriptor::get_ctime() const
+    {
+        struct stat info;
+        if (stat(this->get_path().c_str(), &info) == 0) {
+            return info.st_ctime;
+        }
+        return 0;
+    }
+
+    int  file_descriptor::get_type() const
+    {
+        struct stat info;
+        if (stat(this->get_path().c_str(), &info) == 0) {
+            return info.st_mode;
+        }
+        return 0;
+    }
+
     bool file_descriptor::is_normal_file() const
     {
 #ifdef __WIN32__
