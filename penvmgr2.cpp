@@ -10,6 +10,7 @@
 #include <sss/time.hpp>
 #include <sss/path.hpp>
 #include <sss/util/PostionThrow.hpp>
+#include <sss/utlstring.hpp>
 
 // #define SSS_POSTION_THROW(type, msg) \
 // {                       \
@@ -130,7 +131,7 @@ namespace {
             _expr.m_func_param = para;
             return true;
         }
-        
+
 
         static bool is_var_refer(const StringSlice_t& var)
         {
@@ -153,11 +154,14 @@ namespace {
         // expr ::= (char* Var?)+
         // ==>
         // expr ::= ('$$' | char)+ ....
+        //
+        // expr ::= ((char - '$$' - Var)* Var | '$$' EmptyVar)*
         bool parse_expr(iter_t & s_beg, iter_t s_end)
         {
             SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
             while (s_beg != s_end)
             {
+                bool is_end_with_escape = false;
                 {
                     Rewinder_t r(s_beg);
                     while (s_beg != s_end) {
@@ -167,14 +171,30 @@ namespace {
                             break;
                         }
                         else {
-                            s_beg++;
-                            r1.commit(true);
+                            if (sss::is_begin_with(s_beg, s_end, "$$")) {
+                                is_end_with_escape = true;
+                                s_beg += 2;
+                                r1.commit(true);
+                                break;
+                            }
+                            else {
+                                s_beg++;
+                                r1.commit(true);
+                            }
                         }
                     }
                     if (r.distance()) {
                         r.commit(true);
-                        this->_expr.push_back(r.getSlice());
-                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, r.getSlice());
+                        StringSlice_t slice = r.getSlice();
+                        if (is_end_with_escape) {
+                            slice.shrink(0, 1);
+                        }
+                        this->_expr.push_back(slice);
+                        if (is_end_with_escape) {
+                            slice.clear();
+                            this->_expr.push_back(slice);
+                        }
+                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, slice);
                     }
                 }
 
@@ -198,6 +218,7 @@ namespace {
                         this->_varlist.insert(var_name.str());
                     }
                 }
+
             }
             assert(s_beg == s_end);
             return true;
@@ -222,7 +243,7 @@ namespace {
 #ifdef PENVMGR2_SUPPORT_SHELL_CMD
                        ||
                        (r3.begin() && r3.commit(id == "t" && Parser_t::parseSequence(it_beg, it_end, ".(`") &&
-                                  Parser_t::parseAfterSequence(it_beg, it_end, "`)")))
+                                                Parser_t::parseAfterSequence(it_beg, it_end, "`)")))
 #endif
                        || true));
             return r1.is_commited();
@@ -284,8 +305,8 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
     switch (type) {
     case TYPE_SYSTEM:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a system-style var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a system-style var name; cannot modified");
         break;
 
     case TYPE_GLOBAL:
@@ -297,14 +318,14 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
 
     case TYPE_OSENV:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a OS-environment var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a OS-environment var name; cannot modified");
         break;
 
     case TYPE_SHELL:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a shell-cmmand; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a shell-cmmand; cannot modified");
         break;
 
     case TYPE_NORMAL:
@@ -312,7 +333,7 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
 
     default:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var << "` is not a valid var name");
+                          "PenvMgr2: `" << var << "` is not a valid var name");
         break;
     }
     env_t::iterator it = this->_env.find(var);
@@ -323,7 +344,7 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
     bool ret = (env_parser(this->_env[var]).parse(expr));
     if (!ret) {
         SSS_POSTION_THROW(std::runtime_error,
-                      " (`" << var << "`, `" << expr << "`) parse failed.");
+                          " (`" << var << "`, `" << expr << "`) parse failed.");
     }
     return true;
 }
@@ -338,8 +359,8 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
     switch (type) {
     case TYPE_SYSTEM:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a system-style var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a system-style var name; cannot modified");
         break;
 
     case TYPE_GLOBAL:
@@ -351,14 +372,14 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
 
     case TYPE_OSENV:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a OS-environment var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a OS-environment var name; cannot modified");
         break;
 
     case TYPE_SHELL:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a shell-cmmand; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a shell-cmmand; cannot modified");
         break;
 
     case TYPE_NORMAL:
@@ -366,8 +387,8 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
 
     default:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is not a valid var name;");
+                          "PenvMgr2: `" << var <<
+                          "` is not a valid var name;");
 
         break;
     }
@@ -379,7 +400,7 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
     bool ret = (env_parser(this->_env[var]).parseRawStr(expr));
     if (!ret) {
         SSS_POSTION_THROW(std::runtime_error,
-                      " (`" << var << "`, `" << expr << "`) parse failed.");
+                          " (`" << var << "`, `" << expr << "`) parse failed.");
     }
     return true;
 }
@@ -394,8 +415,8 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
     switch (type) {
     case TYPE_SYSTEM:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a system-style var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a system-style var name; cannot modified");
         break;
 
     case TYPE_GLOBAL:
@@ -407,14 +428,14 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
 
     case TYPE_OSENV:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a OS-environment var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a OS-environment var name; cannot modified");
         break;
 
     case TYPE_SHELL:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a shell-cmmand; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a shell-cmmand; cannot modified");
         break;
 
     case TYPE_NORMAL:
@@ -422,8 +443,8 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
 
     default:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is not a valid var name;");
+                          "PenvMgr2: `" << var <<
+                          "` is not a valid var name;");
         break;
     }
     env_t::iterator it = this->_env.find(var);
@@ -434,8 +455,8 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
     bool ret = (env_parser(this->_env[var]).parseFunc(func, param));
     if (!ret) {
         SSS_POSTION_THROW(std::runtime_error,
-                      " (`" << var << "`, `" << func
-                      << "`, `" << param << "`) parse failed.");
+                          " (`" << var << "`, `" << func
+                          << "`, `" << param << "`) parse failed.");
     }
     return true;
 }
@@ -520,6 +541,7 @@ public:
 
     void put(const std::string& var, const std::string& value)
     {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
         SSS_LOG_DEBUG("(%s, %s)\n", var.c_str(), value.c_str());
         assert(PenvMgr2::is_var(var));
         Base_t::iterator it = this->Base_t::find(var);
@@ -608,7 +630,7 @@ std::string PenvMgr2::get(std::string var)
 
     case TYPE_NORMAL:
         break;
-    
+
     default:
         break;
     }
@@ -638,9 +660,9 @@ std::string PenvMgr2::get(std::string var)
         }
         catch (ExceptionDependLoop& e) {
             SSS_POSTION_THROW(std::runtime_error,
-                          "ExceptionDependLoop "
-                          << std::string(e.what())
-                          << "; when requre " << var);
+                              "ExceptionDependLoop "
+                              << std::string(e.what())
+                              << "; when requre " << var);
         }
     }
     return ret;
@@ -712,9 +734,9 @@ std::string PenvMgr2::get_expr(const std::string& expr)
     }
     catch (ExceptionDependLoop& e) {
         SSS_POSTION_THROW(std::runtime_error,
-                      "ExceptionDependLoop " <<
-                      std::string(e.what()) <<
-                      "; when requre " << expr);
+                          "ExceptionDependLoop " <<
+                          std::string(e.what()) <<
+                          "; when requre " << expr);
     }
     return ret;
 }
@@ -812,7 +834,7 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc)
         assert(false);
         break;
     }
-    
+
     std::string ret;
 
     const var_body_t * definition = this->find_body(var);
@@ -840,6 +862,14 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc)
     return ret;
 }
 
+/**
+ * @brief 
+ *
+ * @param bd
+ * @param dc
+ *
+ * @return 
+ */
 std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & dc)
 {
     const PenvMgr2::expression_t & expr(bd.second);
@@ -849,8 +879,14 @@ std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & 
          it != expr.end();
          ++it, ++index)
     {
+        // NOTE 奇数位，变量
+        // 偶数位，raw字符串
         if (index & 1) {
-            depend_checker2_t::const_iterator it_dc = dc.find((*it).str());
+            std::string var_name = (*it).str();
+            if (var_name.empty()) {
+                continue;
+            }
+            depend_checker2_t::const_iterator it_dc = dc.find(var_name);
             assert(it_dc != dc.end() && it_dc->second._ok);
             oss << it_dc->second._value;
         }
@@ -868,32 +904,32 @@ bool        PenvMgr2::unset(std::string var)
     switch (type) {
     case TYPE_OSENV:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a OS-environment var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a OS-environment var name; cannot modified");
         break;
-    
+
     case TYPE_GLOBAL:
         var = var.substr(2);
         if (this->_parent) {
             return this->getGlobalEnv().unset(var);
         }
         break;
-    
+
     case TYPE_SYSTEM:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a system-style var name; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a system-style var name; cannot modified");
         break;
-    
+
     case TYPE_SHELL:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a shell-cmmand; cannot modified");
+                          "PenvMgr2: `" << var <<
+                          "` is a shell-cmmand; cannot modified");
         break;
-    
+
     default:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var << "` is not a valid var name");
+                          "PenvMgr2: `" << var << "` is not a valid var name");
         break;
     }
     env_t::iterator it = this->_env.find(var);
@@ -920,34 +956,34 @@ bool        PenvMgr2::has(std::string var)
             return ::getenv(var.substr(2).c_str());
         }
         break;
-    
+
     case TYPE_GLOBAL:
         var = var.substr(2);
         if (this->_parent) {
             return this->getGlobalEnv().has(var);
         }
         break;
-    
+
     case TYPE_SYSTEM:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a system-style var name;"
-                      " do not support `has` operation.");
+                          "PenvMgr2: `" << var <<
+                          "` is a system-style var name;"
+                          " do not support `has` operation.");
         break;
-    
+
     case TYPE_SHELL:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var <<
-                      "` is a shell-cmmand;"
-                      " do not support `has` operation.");
+                          "PenvMgr2: `" << var <<
+                          "` is a shell-cmmand;"
+                          " do not support `has` operation.");
         break;
-    
+
     case TYPE_NORMAL:
         break;
 
     default:
         SSS_POSTION_THROW(std::runtime_error,
-                      "PenvMgr2: `" << var << "` is not a valid var name");
+                          "PenvMgr2: `" << var << "` is not a valid var name");
         break;
     }
     return

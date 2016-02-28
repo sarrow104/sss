@@ -640,9 +640,9 @@ namespace sss{
             return this->_parent;
         }
 
-        PenvMgr2&  getGlobalEnv();
+        PenvMgr2&   getGlobalEnv();
 
-        PenvMgr2& parent() const;
+        PenvMgr2&   parent() const;
 
         void print(std::ostream& o) const;
 
