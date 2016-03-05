@@ -4,6 +4,8 @@
  *
  */
 
+#include <signal.h>
+
 #include "popenRWE.h"
 
 #ifdef __cplusplus
@@ -34,18 +36,24 @@ int popenRWE(int *rwepipe, const char *command)
     int rc;
 
     rc = ::pipe(in);
-    if (rc<0)
+    if (rc<0) {
         goto error_in;
+    }
 
     rc = ::pipe(out);
-    if (rc<0)
+    if (rc<0) {
         goto error_out;
+    }
 
     rc = ::pipe(err);
-    if (rc<0)
+    if (rc<0) {
         goto error_err;
+    }
+
+    signal(SIGCHLD, SIG_IGN);
 
     pid = ::fork();
+
     if (pid > 0) { /* parent */
         ::close(in[0]);
         ::close(out[1]);
@@ -54,7 +62,8 @@ int popenRWE(int *rwepipe, const char *command)
         rwepipe[1] = out[0];
         rwepipe[2] = err[0];
         return pid;
-    } else if (pid == 0) { /* child */
+    }
+    else if (pid == 0) { /* child */
         ::close(in[1]);
         ::close(out[0]);
         ::close(err[0]);
@@ -73,20 +82,25 @@ int popenRWE(int *rwepipe, const char *command)
 
         execl( "/bin/sh", "sh", "-c", command, NULL );
         _exit(1);
-    } else
+    }
+    else {
         goto error_fork;
+    }
 
     return pid;
 
 error_fork:
     ::close(err[0]);
     ::close(err[1]);
+
 error_err:
     ::close(out[0]);
     ::close(out[1]);
+
 error_out:
     ::close(in[0]);
     ::close(in[1]);
+
 error_in:
     return -1;
 }
