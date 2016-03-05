@@ -31,16 +31,22 @@ namespace sss {
     namespace util {
 
         template<typename Iterator>
-        class StringSlice
+        class StringSlice : public std::pair<Iterator, Iterator>
         {
+            typedef std::pair<Iterator, Iterator> BaseT;
             typedef typename std::iterator_traits<Iterator>::value_type value_type;
             // typedef std::string::const_iterator iterator;
         public:
             typedef Iterator iterator;
-            StringSlice(Iterator it_beg, Iterator it_end)
-                : m_beg(it_beg), m_end(it_end)
+            StringSlice()
             {
             }
+
+            StringSlice(Iterator it_beg, Iterator it_end)
+                : BaseT(it_beg, it_end)
+            {
+            }
+
             ~StringSlice()
             {
             }
@@ -49,16 +55,16 @@ namespace sss {
 
             bool operator == (const char* cstr)
             {
-                Iterator it = this->m_beg;
+                Iterator it = this->first;
                 for (;
-                     it != this->m_end && cstr && *cstr;
+                     it != this->second && cstr && *cstr;
                      ++it, ++cstr)
                 {
                     if (*it != *cstr) {
                         return false;
                     }
                 }
-                return it == this->m_end && (!cstr || !*cstr);
+                return it == this->second && (!cstr || !*cstr);
             }
 
             value_type operator[](int idx)
@@ -73,37 +79,37 @@ namespace sss {
 
             value_type at(int idx)
             {
-                return *(this->m_beg + idx);
+                return *(this->first + idx);
             }
 
             bool operator == (const std::string& s)
             {
-                Iterator it = this->m_beg;
+                Iterator it = this->first;
                 std::string::const_iterator it2 = s.begin();
                 for (;
-                     it != this->m_end && it2 != s.end();
+                     it != this->second && it2 != s.end();
                      ++it, ++it2)
                 {
                     if (*it != *it2) {
                         return false;
                     }
                 }
-                return it == this->m_end && (it2 == s.end());
+                return it == this->second && (it2 == s.end());
             }
 
             StringSlice& assign(Iterator it_beg, Iterator it_end)
             {
-                this->m_beg = it_beg;
-                this->m_end = it_end;
+                this->first = it_beg;
+                this->second = it_end;
             }
 
             StringSlice& assignTo(std::string& out)
             {
-                out.assign(this->m_beg, this->m_end);
+                out.assign(this->first, this->second);
             }
 
             void print(std::ostream& o) const {
-                for (Iterator it = m_beg; it != m_end; ++it) {
+                for (Iterator it = this->first; it != this->second; ++it) {
                     o << *it;
                 }
             }
@@ -111,8 +117,8 @@ namespace sss {
             bool shrink(size_t left_offset, size_t right_offset)
             {
                 if (this->length() >= left_offset + right_offset) {
-                    std::advance(this->m_beg, left_offset);
-                    std::advance(this->m_end, - right_offset);
+                    std::advance(this->first, left_offset);
+                    std::advance(this->second, - right_offset);
                     return true;
                 }
                 return false;
@@ -121,7 +127,7 @@ namespace sss {
             void clear()
             {
                 if (this->length()) {
-                    this->m_beg = this->m_end;
+                    this->first = this->second;
                 }
             }
 
@@ -129,8 +135,8 @@ namespace sss {
             {
                 char ret = '\0';
                 if (this->length()) {
-                    ret = *(this->m_end - 1);
-                    std::advance(this->m_end, -1);
+                    ret = *(this->second - 1);
+                    std::advance(this->second, -1);
                 }
                 return ret;
             }
@@ -139,47 +145,47 @@ namespace sss {
             {
                 char ret = '\0';
                 if (this->length()) {
-                    ret = *(this->m_beg);
-                    std::advance(this->m_beg, 1);
+                    ret = *(this->first);
+                    std::advance(this->first, 1);
                 }
                 return ret;
             }
 
             StringSlice substr(int start_pos)
             {
-                return StringSlice(this->m_beg + start_pos, this->m_end);
+                return StringSlice(this->first + start_pos, this->second);
             }
 
             StringSlice substr(int start_pos, int len)
             {
-                return StringSlice(this->m_beg + start_pos, this->m_beg + start_pos + len);
+                return StringSlice(this->first + start_pos, this->first + start_pos + len);
             }
 
             size_t length() const {
-                return std::distance(m_beg, m_end);
+                return std::distance(this->first, this->second);
             }
 
             std::string str() const {
-                return std::string(m_beg, m_end);
+                return std::string(this->first, this->second);
             }
 
             Iterator begin() const {
-                return m_beg;
+                return this->first;
             }
 
             Iterator end() const {
-                return m_end;
+                return this->second;
             }
 
             void rtrim() {
-                while (m_beg != m_end && std::isspace(*(m_end-1))) {
-                    m_end--;
+                while (this->first != this->second && std::isspace(*(this->second-1))) {
+                    this->second--;
                 }
             }
 
             void ltrim() {
-                while (m_beg != m_end && std::isspace(*m_beg)) {
-                    m_beg++;
+                while (this->first != this->second && std::isspace(*(this->first))) {
+                    this->first++;
                 }
             }
 
@@ -189,22 +195,18 @@ namespace sss {
             }
 
             char back() const {
-                if (m_beg != m_end) {
-                    return *(m_end - 1);
+                if (this->first != this->second) {
+                    return *(this->second - 1);
                 }
-                return '\0';
+                return value_type('\0');
             }
 
             char front() const {
-                if (m_beg != m_end) {
-                    return *m_beg;
+                if (this->first != this->second) {
+                    return *this->first;
                 }
-                return '\0';
+                return value_type('\0');
             }
-
-        private:
-            Iterator m_beg;
-            Iterator m_end;
         };
 
         template<typename Iterator>
@@ -225,7 +227,6 @@ namespace sss {
             s.print(o);
             return o;
         }
-
     }
 }
 
