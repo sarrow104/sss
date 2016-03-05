@@ -24,7 +24,7 @@ message(STATUS ${LIBRARY_OUTPUT_NAME})
 project(${target_name})                 # define cmake project name
 
 #add_definitions(-std=c++11)    		# add compiler parameter
-file(GLOB SOURCE "./*.cpp" "**/*.cpp")  # glob all source file
+file(GLOB_RECURSE SOURCE "./*.cpp")  # glob all source file
 # NOTE cmake might missing some cpp source file, if I just only use this:
 # file(GLOB SOURCE "**/*.cpp")
 #. sad
