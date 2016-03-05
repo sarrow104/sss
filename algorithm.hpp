@@ -212,6 +212,16 @@ namespace sss
             return __last;
         }
     }
+
+    template<typename _InputIterator,
+             typename _Compare>
+    inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare comp)
+    {
+        while (__first != __last && comp(*__first)) {
+            // empty
+        }
+        return __first == __last;
+    }
 }
 
 #endif  /* __ALGORITHM_HPP_1448760163__ */
