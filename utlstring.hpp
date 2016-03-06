@@ -188,6 +188,17 @@ namespace sss{
 #endif
     }
 
+    bool is_all_blank(const std::string& line)
+    {
+        return sss::is_all(line.begin(), line.end(), static_cast<int(*)(int)>(std::isspace));
+    }
+
+    template<typename IteratorT>
+    bool is_all_blank(IteratorT first, IteratorT last)
+    {
+        return sss::is_all(first, last, static_cast<int(*)(int)>(std::isspace));
+    }
+
     inline bool is_contain_with(const std::string& s, const std::string& pattern, bool ignore_case = false)
     {
         if (ignore_case) {
