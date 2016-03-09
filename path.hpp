@@ -159,7 +159,7 @@ namespace path {
 
     bool is_symlink(const std::string& path);
 
-    std::string readlink(const std::string& oldpath, const std::string& newpath);
+    std::string readlink(const std::string& path);
 
     bool symlink(const std::string& path);
 
