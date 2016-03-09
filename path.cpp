@@ -486,7 +486,7 @@ namespace path {
         return sss::path::file_exists(path.c_str());
     }
 
-    bool is_symlink(const std::string& path) // {{{1
+    size_t is_symlink(const std::string& path) // {{{1
     {
 #ifdef __WIN32__
         // TODO FIXME
@@ -494,12 +494,14 @@ namespace path {
 #else
         struct stat statbuff;
         std::string buf;
-        bool ret = false;
+        size_t path_len = 0;
         if (lstat(path.c_str(), &statbuff) < 0) {
             throw std::runtime_error(std::strerror(errno));
         }
-        ret = S_ISLNK(statbuff.st_mode);
-        return ret;
+        if (S_ISLNK(statbuff.st_mode)) {
+            path_len = statbuff.st_size;
+        }
+        return path_len;
 #endif
     }
 
@@ -509,11 +511,10 @@ namespace path {
         // TODO FIXME
         return path;
 #else
-        struct stat statbuff;
         std::string buf(path.begin(), path.end());
 
-        if (sss::path::is_symlink(path)) {
-            buf.resize(statbuff.st_size);
+        if (size_t path_len = sss::path::is_symlink(path)) {
+            buf.resize(path_len);
             if (::readlink(path.c_str(), const_cast<char*>(buf.c_str()), buf.size()) == -1) {
                 throw std::runtime_error(std::strerror(errno));
             }

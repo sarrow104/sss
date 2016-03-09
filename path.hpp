@@ -157,7 +157,7 @@ namespace path {
     bool rename(const std::string& oldpath, const std::string& newpath);
     bool rename(const char * oldpath,       const char * newpath);
 
-    bool is_symlink(const std::string& path);
+    size_t is_symlink(const std::string& path);
 
     std::string readlink(const std::string& path);
 
