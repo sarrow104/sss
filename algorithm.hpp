@@ -217,7 +217,7 @@ namespace sss
              typename _Compare>
     inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare comp)
     {
-        while (__first != __last && comp(*__first)) {
+        while (__first != __last && comp(*__first++)) {
             // empty
         }
         return __first == __last;
