@@ -218,6 +218,19 @@
 // 若干字节置0；
 // 编译不正常，则上述字节关键字节仍然为0；即，我可以通过regcomp 之后，regex_t的
 // 内存状态，来判断编译是否成功；并且，编译失败的情况，执行regfree，内存无变化！
+// ---------------------
+// NOTE 为什么没有将CRegex拆分为至少两个类，比如再有一个叫match_t的，用来保存匹
+// 配数据的类？
+//
+// 不行，因为glibc提供的这个regex库，是一个黑箱结构体；编译regex以及匹配中，状
+// 态的变化，其实都是保存在这个结构体中的。
+//
+// 而不是额外的状态变量中；
+//
+// 而分离匹配结果，作为单独的类，无非就是让regex对象，可以反复、使用。但不幸的
+// 是，不行；
+//
+// 所以，分离出匹配结果的方案，就流产了。
 
 namespace sss {
     namespace regex {
@@ -484,6 +497,8 @@ namespace sss {
             return this->submatch_end(id) - this->submatch_start(id);
         }
 
+        void print(std::ostream& o) const;
+
     public:
         CRegex& operator = (const CRegex& );
         CRegex(const CRegex& );
@@ -511,6 +526,12 @@ namespace sss {
         int                     _mode;
         mutable std::vector<regmatch_t> _submatches;
     };
+
+    inline std::ostream& operator << (std::ostream& o, const CRegex& r)
+    {
+        r.print(o);
+        return o;
+    }
 
     } // namespace regex
 } // namespace sss

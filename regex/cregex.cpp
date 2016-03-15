@@ -486,5 +486,10 @@ namespace sss {
             }
         }
 
+        void CRegex::print(std::ostream& o) const
+        {
+            o << this->_regstr;
+        }
+
     } // namespace regex
 } // namespace sss
