@@ -406,16 +406,13 @@ namespace sss {
         bool CRegex::substitute(const std::string& in_str, const std::string& fmt_str, std::string& out_str) const
         {
             bool is_match = this->match(in_str);
-#if 1
             if (is_match && !this->is_nosub()) {
                 std::ostringstream oss;
                 for (std::string::size_type i = 0; i != fmt_str.length(); ++ i) {
                     if (fmt_str[i] == '\\' && i + 1 != fmt_str.length() && std::isdigit(fmt_str[i + 1])) {
                         int index = fmt_str[i + 1] - '0';
-                        for (ssize_t j = submatch_start(index); j != submatch_end(index); ++ j)
-                        {
-                            oss << in_str[j];
-                        }
+                        oss.write(in_str.c_str() + submatch_start(index),
+                                  this->submatch_consumed(index));
                         ++i;
                     }
                     else {
@@ -424,36 +421,8 @@ namespace sss {
                 }
                 out_str = oss.str();
             }
-#else
-            if (is_match) {
-                (void)formatGenerator(fmt_str, out_str);
-            }
-#endif
             return is_match;
         }
-
-//        bool CRegex::formatGenerator(const std::string& fmt_str, std::string& out_str) const
-//        {
-//            if (!this->is_nosub()) {
-//                std::ostringstream oss;
-//                for (std::string::size_type i = 0; i != fmt_str.length(); ++ i) {
-//                    if (fmt_str[i] == '\\' && i + 1 != fmt_str.length() && std::isdigit(fmt_str[i + 1])) {
-//                        int index = fmt_str[i + 1] - '0';
-//                        for (ssize_t j = submatch_start(index); j != submatch_end(index); ++ j)
-//                        {
-//                            oss << in_str[j];
-//                        }
-//                        ++i;
-//                    }
-//                    else {
-//                        oss << fmt_str[i];
-//                    }
-//                }
-//                out_str = oss.str();
-//                return true;
-//            }
-//            return false;
-//        }
 
         void CRegex::build_errmsg() const
         {
