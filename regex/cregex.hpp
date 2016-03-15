@@ -289,9 +289,10 @@ namespace sss {
         // 然后，整个匹配的部分，被用上面的替换掉；
         //
         // 返回替换后的字符串
-        bool substitute(const std::string&,
-                        const std::string&,
-                        std::string&) const;
+        bool substitute(const std::string& in_str,
+                        const std::string& fmt_str,
+                        std::string& out_str) const;
+
 
         bool formatGenerator(const std::string& fmt_str, std::string& out_str) const;
 
