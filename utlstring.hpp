@@ -188,7 +188,7 @@ namespace sss{
 #endif
     }
 
-    bool is_all_blank(const std::string& line)
+    inline bool is_all_blank(const std::string& line)
     {
         return sss::is_all(line.begin(), line.end(), static_cast<int(*)(int)>(std::isspace));
     }
