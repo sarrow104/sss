@@ -498,6 +498,10 @@ namespace sss {
         }
 
         void print(std::ostream& o) const;
+        bool operator==(const CRegex& rhs) const
+        {
+            return this == &rhs || this->_regstr == rhs._regstr;
+        }
 
     public:
         CRegex& operator = (const CRegex& );
