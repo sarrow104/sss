@@ -124,6 +124,13 @@ namespace path {
     bool chmod(const std::string& path, char option, int mode);
     bool chmod(const char * path, char option, int mode);
 
+    int  getmod(const char * path);
+
+    inline int  getmod(const std::string& path)
+    {
+        return getmod(path.c_str());
+    }
+
     std::string  full_of_copy(const std::string& path);
     std::string& full_of(std::string& path);
 

@@ -1143,6 +1143,15 @@ namespace path {
         return sys_mode;
     }
 
+    inline int fmode_hex2dec(int mode) {
+        int sys_mode = ((mode >> 6) & 7u);
+        sys_mode *= 10;
+        sys_mode += ((mode >> 3) & 7u);
+        sys_mode *= 10;
+        sys_mode += ((mode >> 0) & 7u);
+        return sys_mode;
+    }
+
     // TODO
     // 要不，额外用'+'，'-'参数，表示增加、减去某属性？
     bool chmod(const char * path, int mode)
@@ -1188,6 +1197,17 @@ namespace path {
         }
 
         return ret;
+    }
+
+    int  getmod(const char * path)
+    {
+        struct stat statbuff;
+        std::string buf;
+        if (stat(path, &statbuff) == 0) {
+            int old_mode = statbuff.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+            return fmode_hex2dec(old_mode);
+        }
+        return 0;
     }
 
     // 返回全路径
