@@ -679,7 +679,7 @@ std::string PenvMgr2::getSystemVar(const std::string& var)
         }
         return sss::time::strftime(fmt);
     }
-    else if (var == "cwd") {
+    else if (var == "cwd" || var == "getcwd") {
         return sss::path::getcwd();
     }
     SSS_LOG_ERROR("var %s not supported!\n", var.c_str());
