@@ -1,11 +1,136 @@
 #include "ps.hpp"
 
+#include <sss/popenRWE.h>
+
 #include <sss/util/Escaper.hpp>
+
+namespace  {
+
+int runPipe(int rwepipe[3],
+            const std::string& cmd,
+            const std::string& cwd,
+            const std::map<std::string, std::string>& env)
+{
+    const char * command = cmd.c_str();
+    int in[2];
+    int out[2];
+    int err[2];
+    int pid;
+    int rc;
+
+    rc = ::pipe(in);
+    if (rc<0) {
+        goto error_in;
+    }
+
+    rc = ::pipe(out);
+    if (rc<0) {
+        goto error_out;
+    }
+
+    rc = ::pipe(err);
+    if (rc<0) {
+        goto error_err;
+    }
+
+    //! http://stackoverflow.com/questions/18437779/do-i-need-to-do-anything-with-a-sigchld-handler-if-i-am-just-using-wait-to-wai
+    // signal(SIGCHLD, SIG_IGN);
+    // 设置上句之后，子进程的退出，会导致父进程也退出？
+    // 太奇怪了
+
+    pid = ::fork();
+
+    if (pid > 0) { /* parent */
+        ::close(in[0]);
+        ::close(out[1]);
+        ::close(err[1]);
+        rwepipe[0] = in[1];
+        rwepipe[1] = out[0];
+        rwepipe[2] = err[0];
+        return pid;
+    }
+    else if (pid == 0) { /* child */
+        ::close(in[1]);
+        ::close(out[0]);
+        ::close(err[0]);
+        ::close(0);
+        if(!dup(in[0])) {
+            ;
+        }
+        ::close(1);
+        if(!dup(out[1])) {
+            ;
+        }
+        ::close(2);
+        if(!dup(err[1])) {
+            ;
+        }
+
+        for (std::map<std::string, std::string>::const_iterator it = env.begin();
+             it != env.end();
+             ++it)
+        {
+            ::setenv(it->first.c_str(), it->second.c_str(), 1);
+        }
+        (void)::chdir(cwd.c_str());
+
+        execl( "/bin/sh", "sh", "-c", command, NULL );
+        _exit(1);
+    }
+    else {
+        goto error_fork;
+    }
+
+    return pid;
+
+error_fork:
+    ::close(err[0]);
+    ::close(err[1]);
+
+error_err:
+    ::close(out[0]);
+    ::close(out[1]);
+
+error_out:
+    ::close(in[0]);
+    ::close(in[1]);
+
+error_in:
+    return -1;
+}
+    
+} // namespace 
 
 namespace sss
 {
     namespace ps
     {
+
+        std::string PipeRun(const std::string& command_line,
+                            const std::string& dir,
+                            const std::map<std::string, std::string>& env)
+        {
+            std::ostringstream oss;
+            int rwe_pipe[3];
+            int pid = ::runPipe(rwe_pipe, command_line, dir, env);
+            char buf[1024];
+            while(true) {
+                size_t cnt = ::read(rwe_pipe[1], buf, sizeof(buf));
+                if (!cnt) {
+                    break;
+                }
+                oss.write(buf, cnt);
+            }
+            int status;
+            int rc = ::waitpid(pid, &status, 0);
+            if (rc == -1) {
+                return "";
+            }
+
+            pcloseRWE(pid, rwe_pipe);
+            return oss.str();
+        }
+
         // system 在linux和windows下，都是调用自己的命令行解释器，对目录进行解释；
         // linux下，自然就是shell；
         // shell下，对参数的特殊字符，有两种处理办法；一种是用引号（单双皆可）

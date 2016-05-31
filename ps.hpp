@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 
+#include <map>
 #include <iostream>
 
 // 关于运作模式
@@ -159,6 +160,10 @@ namespace sss
             mode        _mod;
             bool        _is_faild;
         };
+
+        std::string PipeRun(const std::string& command_line,
+                            const std::string& dir = ".",
+                            const std::map<std::string, std::string>& env = std::map<std::string, std::string>());
 
         class StreamPipe
         {
