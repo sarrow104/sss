@@ -19,6 +19,11 @@
 //     throw type(oss.str()); \
 // }
 
+namespace  {
+    const char * penvmg_script_path = "_penvmg_script_path_";
+    const char * g_shellscript_workdir = "g.shellscript_workdir";
+} // namespace 
+
 namespace sss{
 
 PenvMgr2::PenvMgr2(PenvMgr2 * parent)
@@ -65,6 +70,28 @@ void PenvMgr2::print(std::ostream& o) const
         o << it->first << " = `";
         it->second.print_body(o);
         o << "`" << std::endl;
+    }
+}
+
+void PenvMgr2::dump2map(std::map<std::string, std::string>& out) const
+{
+    // NOTE 我的 PenvMgr2对象，是单根的链表形式。
+    // 需要注释的是，根据变量名，检索变量的时候，"子"会逻辑上覆盖父的变量；
+    // 因此，如果要实现"dump"动作，我需要从父到子，依次进行；
+    // 由于需要从根开始。
+    std::vector<const PenvMgr2*> ancestors;
+    const PenvMgr2* p_penvmg2 = this;
+    while (p_penvmg2) {
+        ancestors.push_back(p_penvmg2);
+        p_penvmg2 = p_penvmg2->has_parent() ? &p_penvmg2->parent() : 0;
+    }
+    for (size_t i = ancestors.size(); i != 0; --i) {
+        for (PenvMgr2::const_iterator it = ancestors[i - 1]->_env.begin();
+             it != ancestors[i - 1]->_env.end();
+             ++it)
+        {
+            out[it->first] = ancestors[i - 1]->get(it->first);
+        }
     }
 }
 
@@ -289,6 +316,15 @@ namespace {
 PenvMgr2&  PenvMgr2::getGlobalEnv()
 {
     PenvMgr2 * p = this;
+    while (p->_parent) {
+        p = p->_parent;
+    }
+    return *p;
+}
+
+const PenvMgr2&   PenvMgr2::getGlobalEnv() const
+{
+    const PenvMgr2 * p = this;
     while (p->_parent) {
         p = p->_parent;
     }
@@ -598,7 +634,7 @@ std::ostream& operator <<(std::ostream& o, const depend_checker2_t& dc)
     return o;
 }
 
-std::string PenvMgr2::get(std::string var)
+std::string PenvMgr2::get(std::string var) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -670,7 +706,7 @@ std::string PenvMgr2::get(std::string var)
 
 // TODO
 // 增加支持的 PenvMgr2系统变量
-std::string PenvMgr2::getSystemVar(const std::string& var)
+std::string PenvMgr2::getSystemVar(const std::string& var) const
 {
     if (var == "timestamp") {
         std::string fmt = this->get("timestamp_fmt");
@@ -682,32 +718,52 @@ std::string PenvMgr2::getSystemVar(const std::string& var)
     else if (var == "cwd" || var == "getcwd") {
         return sss::path::getcwd();
     }
+    else if (var == "bin" || var == "getbin") {
+        return sss::path::getbin();
+    }
     SSS_LOG_ERROR("var %s not supported!\n", var.c_str());
     return "";
 }
 
-std::string PenvMgr2::getEnvVar(const std::string& var)
+std::string PenvMgr2::getEnvVar(const std::string& var) const
 {
     const char * e = ::getenv(var.c_str());
     return e ? e : "";
 }
 
-std::string PenvMgr2::getShellComandFromVar(const std::string& var)
+std::string PenvMgr2::getShellComandFromVar(const std::string& var) const
 {
     std::string cmd(var, 4, var.length() - 6);
-    const char * err_to_null = " 2>/dev/null";
-    if (!sss::is_end_with(cmd, err_to_null)) {
-        cmd.append(err_to_null);
-    }
-    SSS_LOG_DEBUG("%s\n", cmd.c_str());
+    // static const char * err_to_null = " 2>/dev/null";
+    // if (!sss::is_end_with(cmd, err_to_null)) {
+    //     cmd.append(err_to_null);
+    // }
+    SSS_LOG_EXPRESSION(sss::log::log_DEBUG, cmd);
+#if 0
     sss::ps::StringPipe ps;
     ps << cmd;
     std::string out = ps.run();
     sss::rtrim(out);
     return out;
+#else
+    std::string script_wd = ".";
+    std::map<std::string, std::string> script_env;
+    if (this->has(g_shellscript_workdir) && this->get(g_shellscript_workdir) != "") {
+        script_wd = sss::path::full_of_copy(this->get(g_shellscript_workdir));
+    }
+    else if (this->has(penvmg_script_path)) {
+        script_wd = sss::path::dirname(this->get(penvmg_script_path));
+    }
+    if (script_wd != "." && sss::path::file_exists(script_wd) != sss::PATH_TO_DIRECTORY) {
+        script_wd = ".";
+    }
+    SSS_LOG_EXPRESSION(sss::log::log_DEBUG, script_wd);
+    this->dump2map(script_env);
+    return sss::ps::PipeRun(cmd, script_wd, script_env);
+#endif
 }
 
-std::string PenvMgr2::get_expr(const std::string& expr)
+std::string PenvMgr2::get_expr(const std::string& expr) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, expr);
@@ -739,6 +795,20 @@ std::string PenvMgr2::get_expr(const std::string& expr)
                           "; when requre " << expr);
     }
     return ret;
+}
+
+std::string PenvMgr2::get_expr_file(const std::string& file_script) const
+{
+    PenvMgr2 inner(const_cast<PenvMgr2*>(this));
+    std::string script_path = sss::path::full_of_copy(file_script);
+    std::string script_value;
+    if (sss::path::filereadable(script_path)) {
+        inner.set(penvmg_script_path, script_path);
+        std::string content;
+        sss::path::file2string(script_path, content);
+        script_value = inner.get_expr(content);
+    }
+    return script_value;
 }
 
 bool PenvMgr2::is_var_refer(const std::string & var)
@@ -798,7 +868,7 @@ const PenvMgr2::var_body_t *    PenvMgr2::find_body(const std::string& var) cons
 // 求出var的值；
 // 将var所依赖变量的值，都通过depend_checker2_t管理起来，以便在求值的过程中，找
 // 出循环依赖额情况；
-std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc)
+std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -945,7 +1015,7 @@ bool        PenvMgr2::unset(std::string var)
 }
 
 // FIXME 下面这几个函数，还得针对 type进行分解！
-bool        PenvMgr2::has(std::string var)
+bool        PenvMgr2::has(std::string var) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -1002,6 +1072,20 @@ PenvMgr2& PenvMgr2::parent() const
         SSS_POSTION_THROW(std::runtime_error, "Null PenvMgr2::_parent dereferenced!");
     }
     return * this->_parent;
+}
+
+void PenvMgr2::set_shellscript_workdir(const std::string& path)
+{
+    SSS_LOG_EXPRESSION(sss::log::log_DEBUG, path);
+    // NOTE 应该动态去full！
+    // 以免传入一个'.';
+    // 或者临时修改目录等等。
+    this->set(g_shellscript_workdir, path);
+}
+
+void PenvMgr2::unset_shellscript_workdir()
+{
+    this->unset(g_shellscript_workdir);
 }
 
 }

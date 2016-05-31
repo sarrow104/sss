@@ -634,15 +634,16 @@ namespace sss{
             this->set(var, &expression_t::AnyRefer<T>, &value);
         }
 
-        std::string get(std::string var);       // 将var字符串，理解为一个变量
+        std::string get(std::string var) const;       // 将var字符串，理解为一个变量
 
         // 将expr，理解为变量表达式，在替换之后，再返回结果；
-        std::string get_expr(const std::string& expr);
+        std::string get_expr(const std::string& expr) const;
+        std::string get_expr_file(const std::string& file_script) const;
 
         // TODO 未定义变量，是返回空串，还是抛出异常？返回空串！
         // 因为导入变量的过程，可能不是依赖排序后的顺序！
         bool        unset(std::string var);
-        bool        has(std::string var);
+        bool        has(std::string var) const;
 
         bool        has_parent() const
         {
@@ -650,10 +651,16 @@ namespace sss{
         }
 
         PenvMgr2&   getGlobalEnv();
+        const PenvMgr2&   getGlobalEnv() const;
 
         PenvMgr2&   parent() const;
 
         void print(std::ostream& o) const;
+
+        void dump2map(std::map<std::string, std::string>& out) const;
+
+        void set_shellscript_workdir(const std::string& path);
+        void unset_shellscript_workdir();
 
     public:
         // ${\w[\w\d]*}
@@ -666,14 +673,14 @@ namespace sss{
 
     protected:
 
-        std::string getSystemVar(const std::string& var);
+        std::string getSystemVar(const std::string& var) const;
 
-        std::string getEnvVar(const std::string& var);
+        std::string getEnvVar(const std::string& var) const;
 
-        std::string getShellComandFromVar(const std::string& var);
+        std::string getShellComandFromVar(const std::string& var) const;
 
         const var_body_t *   find_body(const std::string& var) const;
-        std::string evaluator_impl(std::string var, depend_checker2_t & dc);
+        std::string evaluator_impl(std::string var, depend_checker2_t & dc) const;
 
     protected:
         static std::string generate(const var_body_t & bd, const depend_checker2_t & dc);
