@@ -31,6 +31,7 @@
 #include <sss/spliter.hpp>
 #include <sss/utlstring.hpp>
 #include <sss/ps.hpp>
+#include <sss/path/glob_path.hpp>
 
 #include <sss/bit_operation/bit_operation.h>
 
@@ -768,6 +769,24 @@ namespace path {
     bool remove(const std::string& path) // {{{1
     {
         return ::remove(path.c_str());
+    }
+
+    bool is_empty_tree(const std::string& path) // {{{1
+    {
+        sss::path::file_descriptor fd;
+        sss::path::glob_path gp(path, fd);
+        while (gp.fetch()) {
+            if (fd.is_normal_file()) {
+                return false;
+            }
+            else if (fd.is_normal_dir()) {
+                bool is_inner_empty = sss::path::is_empty_tree(fd.get_path());
+                if (!is_inner_empty) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     bool copy(const std::string& src, const std::string& tar) // {{{1

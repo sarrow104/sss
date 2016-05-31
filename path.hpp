@@ -96,6 +96,18 @@ namespace path {
     bool remove(const std::string& path);
     bool copy(const std::string& src, const std::string& tar);
 
+    bool is_empty_tree(const std::string& path);
+
+    // 内部，没有文件，并且，若内部只包含文件夹，并且，也没有文件，或者只有空文件的时候，
+    // 删除当前文件夹
+    inline bool remove_empty_tree(const std::string& path)
+    {
+        if (sss::path::is_empty_tree(path)) {
+            return sss::path::rmdir(path, true);
+        }
+        return false;
+    }
+
     // 递归创建目录路径
     // 2012-06-11
     // true. succeed
