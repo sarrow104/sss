@@ -377,6 +377,7 @@ namespace jsonpp
     // JSON，只能是value！——即，JSON也相当于必须有根节点；并且，根节点必须是
     // object,array,string,...,null等其中一个。
     // 即，不存在形如："1,2,3,4,5" 这样的序列。JSON是不认的！
+    // NOTE 上述说法不确切："根"只能为object,array；
 
     // 值（value）可以是双引号括起来的字符串（string）、数值(number)、true、
     // false、 null、对象（object）或者数组（array）。这些结构可以嵌套。
