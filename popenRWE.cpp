@@ -50,7 +50,10 @@ int popenRWE(int *rwepipe, const char *command)
         goto error_err;
     }
 
-    signal(SIGCHLD, SIG_IGN);
+    //! http://stackoverflow.com/questions/18437779/do-i-need-to-do-anything-with-a-sigchld-handler-if-i-am-just-using-wait-to-wai
+    // signal(SIGCHLD, SIG_IGN);
+    // 设置上句之后，子进程的退出，会导致父进程也退出？
+    // 太奇怪了
 
     pid = ::fork();
 
