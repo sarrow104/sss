@@ -17,6 +17,15 @@ namespace {
         }
     };
 
+    void trimRange(const std::string& line, StrRange& r) {
+        while (r.left < r.right && std::isspace(line[r.left])) {
+            r.left++;
+        }
+        while (r.left < r.right && std::isspace(line[r.right - 1])) {
+            r.right--;
+        }
+    }
+
     bool parseBlock(const std::string& line, StrRange& r)
     {
         // sss::regex::simpleregex reg_ini_block("^\\s*\\[\\([^\\]]+\\)\\]\\s*$");
@@ -50,8 +59,10 @@ namespace {
         // sss::regex::simpleregex reg_ini_keyvalue("^\\s*\\(\\<[^=]+\\)=\\(.*\\)$");
         int last = -1;
         if (0 == sscanf(line.c_str(), " %n%*[^=]%n=%n", &r1.left, &r1.right, &last) && last > 0) {
+            trimRange(line, r1);
             r2.left = last;
             r2.right = line.size();
+            trimRange(line, r2);
             return true;
         }
         else {
@@ -207,6 +218,7 @@ namespace sss {
 
     dosini::value_t dosini::append_line(const std::string& line)
     {
+        // SSS_LOG_DEBUG("%s\n", line.c_str());
         this->data.push_back(line);
         int lineno = data.size() - 1;
         this->linenos.push_back(lineno);

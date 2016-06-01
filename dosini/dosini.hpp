@@ -101,6 +101,13 @@ public:
     void print_clean(std::ostream& out) const;
 
 public:
+    template<typename T> T get_defult(const std::string& block, const std::string& key, const T& default_value = T())
+    {
+        T ret = default_value;
+        this->get(block, key, ret);
+        return ret;
+    }
+
     template <typename T> bool get(const std::string& block, const std::string& key, T& val) const
     {
         blocks_t::const_iterator b_it = this->blocks.find(block);
@@ -115,6 +122,10 @@ public:
 
         return false;
     }
+
+    // NOTE TODO
+    // 对 get<bool>() 进行特化。
+    // 比如，"true" 也翻译为 true;
 
     template <typename T> T get(const std::string& block, const std::string& key) const
     {
