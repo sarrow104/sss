@@ -62,30 +62,68 @@ private:
     view_t view;
 };
 
+// http://stackoverflow.com/questions/16135285/iterate-over-ini-file-on-c-probably-using-boostproperty-treeptree
+// boost::ptree风格：
+// #include <boost/property_tree/ptree.hpp>
+// #include <boost/property_tree/ini_parser.hpp>
+// 
+// int main()
+// {
+//     using boost::property_tree::ptree;
+//     ptree pt;
+// 
+//     read_ini("input.txt", pt);
+// 
+//     for (auto& section : pt)
+//     {
+//         std::cout << '[' << section.first << "]\n";
+//         for (auto& key : section.second)
+//             std::cout << key.first << "=" << key.second.get_value<std::string>() << "\n";
+//     }
+// }
+
 class dosini
 {
 public:
     typedef std::vector<std::string> padding_file_t;
     struct value_t
     {
+        friend class dosini;
         int lineno;
         int pos;
         int len;
+
+    public:
         value_t()
-            : lineno(0), pos(0), len(0)
+            : lineno(0), pos(0), len(0), p_dosini(0)
         {
         }
-        value_t( int r, int p, int l)
-            : lineno(r), pos(p), len(l)
+        value_t( int r, int p, int l, dosini * p_dosini)
+            : lineno(r), pos(p), len(l), p_dosini(p_dosini)
         {
         }
         ~value_t()
         {
         }
+
+    public:
+        std::string get() const {
+            return p_dosini ? p_dosini->get_data_slice(*this) : "";
+        }
+
+    private:
+        dosini * p_dosini;
     };
-    typedef std::map<std::string, value_t>      block_t;
-    typedef std::map<std::string, block_t>      blocks_t;
+
+    friend struct value_t;
+
+public:
+    typedef std::map<std::string, value_t>      section_t;
+    typedef std::map<std::string, section_t>    sections_t;
     typedef std::list<int> linenos_t;
+
+public:
+    typedef sections_t::value_type value_type;
 
 public:
     explicit dosini(const std::string& fname);
@@ -100,6 +138,22 @@ public:
     void print(std::ostream& out) const;
     void print_clean(std::ostream& out) const;
 
+    // section_t& begin();
+    sections_t::const_iterator begin() const
+    {
+        return this->blocks.begin();
+    }
+    sections_t::const_iterator end() const
+    {
+        return this->blocks.end();
+    }
+
+    const section_t& section(const std::string& sec_name) const
+    {
+        sections_t::const_iterator it = this->blocks.find(sec_name);
+        return it != this->blocks.end() ? it->second : this->end_section;
+    }
+
 public:
     template<typename T> T get_defult(const std::string& block, const std::string& key, const T& default_value = T())
     {
@@ -110,10 +164,10 @@ public:
 
     template <typename T> bool get(const std::string& block, const std::string& key, T& val) const
     {
-        blocks_t::const_iterator b_it = this->blocks.find(block);
+        sections_t::const_iterator b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
-            const block_t& b = b_it->second;
-            block_t::const_iterator key_it = b.find(key);
+            const section_t& b = b_it->second;
+            section_t::const_iterator key_it = b.find(key);
             if (key_it != b.end()) {
                 val =  sss::string_cast<T>(this->get_data_slice(key_it->second));
                 return true;
@@ -130,10 +184,10 @@ public:
     template <typename T> T get(const std::string& block, const std::string& key) const
     {
         T ret;
-        blocks_t::const_iterator b_it = this->blocks.find(block);
+        sections_t::const_iterator b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
-            const block_t& b = b_it->second;
-            block_t::const_iterator key_it = b.find(key);
+            const section_t& b = b_it->second;
+            section_t::const_iterator key_it = b.find(key);
             if (key_it != b.end()) {
                 ret =  sss::string_cast<T>(this->get_data_slice(key_it->second));
             }
@@ -145,10 +199,10 @@ public:
     template <typename T> bool set(const std::string& block, const std::string& key, const T& val)
     {
         std::string str_val = sss::cast_string(val);
-        blocks_t::iterator b_it = this->blocks.find(block);
+        sections_t::iterator b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
-            block_t& b = b_it->second;
-            block_t::iterator key_it = b.find(key);
+            section_t& b = b_it->second;
+            section_t::iterator key_it = b.find(key);
             if (key_it != b.end() && this->get_data_slice(key_it->second) != str_val) {
                 linenos_t::iterator it = std::find(this->linenos.begin(), this->linenos.end(), key_it->second.lineno);
                 if (it == this->linenos.end()) {
@@ -202,7 +256,8 @@ private:
 
     std::string fname;
     padding_file_t  data;
-    blocks_t        blocks;
+    sections_t        blocks;
+    section_t         end_section;
     //std::string
 };
 

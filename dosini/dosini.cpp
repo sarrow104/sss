@@ -177,14 +177,14 @@ namespace sss {
 
     void dosini::print_clean(std::ostream& out) const
     {
-        for (blocks_t::const_iterator it = this->blocks.begin();
+        for (sections_t::const_iterator it = this->blocks.begin();
              it != this->blocks.end();
              ++it)
         {
             if (!it->first.empty()) {
                 out << "[" << it->first << "]" << std::endl;
             }
-            for (block_t::const_iterator ki = it->second.begin();
+            for (section_t::const_iterator ki = it->second.begin();
                  ki != it->second.end();
                  ++ki)
             {
@@ -222,7 +222,7 @@ namespace sss {
         this->data.push_back(line);
         int lineno = data.size() - 1;
         this->linenos.push_back(lineno);
-        return dosini::value_t(lineno, 0, line.length());
+        return dosini::value_t(lineno, 0, line.length(), this);
     }
 
     // 添加一个block；并往data_t 里面，添加一行；
@@ -238,7 +238,7 @@ namespace sss {
     {
         std::string block = line.substr(bk_start, bk_end - bk_start);
         SSS_LOG_DEBUG("\"%s\"\n", block.c_str());
-        this->blocks[block] = block_t();
+        this->blocks[block] = section_t();
         return this->append_line(line);
     }
 
@@ -250,10 +250,11 @@ namespace sss {
         if (this->blocks.find(block) == this->blocks.end()) {
             this->append_block(block);
         }
-        block_t & B(this->blocks[block]);
+        section_t & B(this->blocks[block]);
         std::string key = line.substr(key_start, key_end - key_start);
         value_t index;
         if (B.find(key) == B.end()) {
+            index.p_dosini = this;
             index.pos = val_start;
             index.len = val_end - val_start;
 
@@ -276,8 +277,9 @@ namespace sss {
         if (this->blocks.find(block) == this->blocks.end()) {
             this->append_block(block);
         }
-        block_t & B(this->blocks[block]);
+        section_t & B(this->blocks[block]);
         value_t index;
+        index.p_dosini = this;
 
         if (B.find(key) == B.end()) {
             // 不管有没有值，直接附加……
