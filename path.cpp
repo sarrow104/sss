@@ -804,6 +804,29 @@ namespace path {
         return std::system(ps.str().c_str()) == -1;
     }
 
+    // NOTE
+    // 文件夹拷贝，windows下需要使用xcopy；
+    // linux，则是cp -rf
+    // 需要注意的是 tar 是"源"将存放的路径！
+    // 如果tar表示的路径不存在，则有两种情况：
+    // 1. tar的dirname是存在的路径，那么，将会把src拷贝，并重命名为basename(tar)；
+    //    相当于，将src另存为另外一个名字；
+    // 2. 如果dirname(tar)不存在，那么就会报错了——因为，cp并不支持创建目标目录；
+    bool copy_dir(const std::string& src, const std::string& tar) // {{{1
+    {
+        sss::ps::StringPipe ps;
+
+#ifdef __WIN32__
+        ps << "xcopy";
+#else
+        ps << "cp -rf";
+#endif
+        ps.add(src);
+        ps.add(tar);
+
+        return std::system(ps.str().c_str()) == -1;
+    }
+
     // FIXME
     // 输入的有效性检查;
     // 比如：

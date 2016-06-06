@@ -95,6 +95,7 @@ namespace path {
     bool rmdir(const std::string& dir, bool is_force);
     bool remove(const std::string& path);
     bool copy(const std::string& src, const std::string& tar);
+    bool copy_dir(const std::string& src, const std::string& tar);
 
     bool is_empty_tree(const std::string& path);
 
