@@ -545,6 +545,8 @@ std::ostream& operator << (std::ostream& o, const depend_t& d)
 
 class depend_checker2_t : private std::map<std::string, depend_t>
 {
+    int m_depth;
+    static const int max_depth = 500;
 public:
     typedef std::map<std::string, depend_t> Base_t;
     typedef Base_t::const_iterator const_iterator;
@@ -555,6 +557,7 @@ public:
     using Base_t::find;
 
     depend_checker2_t()
+        : m_depth(0)
     {
     }
     ~depend_checker2_t()
@@ -562,6 +565,16 @@ public:
     }
 
 public:
+    void push() {
+        if (m_depth++ > max_depth) {
+            SSS_POSTION_THROW(std::runtime_error, "depend_checker2_t max depth > " << max_depth);
+        }
+    }
+    void pop() {
+        if (m_depth-- < 0) {
+            SSS_POSTION_THROW(std::runtime_error, "depend_checker2_t max depth < 0 ");
+        }
+    }
 
     void put(const std::string& var)
     {
@@ -625,7 +638,32 @@ public:
         o << "]";
     }
 
+    void dump2map(std::map<std::string, std::string>& var_map)
+    {
+        for (Base_t::const_iterator it = this->Base_t::begin();
+             it != this->Base_t::end();
+             ++it)
+        {
+            if (it->second._ok) {
+                var_map[it->first] = it->second._value;
+            }
+        }
+    }
+
 private:
+};
+
+class dc_depth_wrapper {
+public:
+    dc_depth_wrapper(depend_checker2_t& dc) : m_ref_dc(dc) {
+        m_ref_dc.push();
+    }
+    ~dc_depth_wrapper() {
+        m_ref_dc.pop();
+    }
+
+private:
+    depend_checker2_t & m_ref_dc;
 };
 
 std::ostream& operator <<(std::ostream& o, const depend_checker2_t& dc)
@@ -692,6 +730,7 @@ std::string PenvMgr2::get(std::string var) const
         try {
             depend_checker2_t dc;
             dc.put(var);
+            dc_depth_wrapper dcg(dc);
             ret = evaluator_impl(var, dc);
         }
         catch (ExceptionDependLoop& e) {
@@ -731,7 +770,7 @@ std::string PenvMgr2::getEnvVar(const std::string& var) const
     return e ? e : "";
 }
 
-std::string PenvMgr2::getShellComandFromVar(const std::string& var) const
+std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_checker2_t & dc) const
 {
     std::string cmd(var, 4, var.length() - 6);
     // static const char * err_to_null = " 2>/dev/null";
@@ -758,9 +797,50 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var) const
         script_wd = ".";
     }
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, script_wd);
-    this->dump2map(script_env);
+    // FIXME
+    // 如果，某变量的定义，就是shell形式。
+    // 在dump2map的时候，这个变量会导致无穷递归——会dump自己；
+    // 有两个解决方案；
+    // 1. 遇到shell变量的求值，先从env中扣除这个变量。
+    // 2. 或者， 解析这个shell命令行，它所依赖的环境变量。然后，只dump，这个命
+    // 令行，所依赖的变量即可。
+    //
+    // 如果，再出现循环依赖，就是用户的问题了——检测依赖，确实麻烦。
+    // 第一个方案可行不？
+    // 如果 env.set("var", "${t.(`echo $var2`)}${var3}")
+    // 即，var依赖于 1. 一个shell值——shell值依赖var2；2. var3；此时，就不能简
+    // 单的将var从env中扣除。
+    //
+    // 还有一个办法，是从depend_checker2_t& dc参数着手。evaluator_impl()函数，
+    // 会递归调用，并用这个dc，保存依赖关系(变量临时值)，以避免，对某一个变量，
+    // 进行重复计算。
+    //
+    // 即，可以在调用 getShellComandFromVar() 函数的时候，也传入这个dc，并避免导出重复的值？
+    //
+    // 另外，还应该假如深度控制的保险。
+    // 多提供一个深度参数，比如，就保存在 dc对象中；进出一次 evaluator_impl，就加减一次；
+    // 如果，超出"熔断"值，就抛出一个异常。
+
+    var_body_t vb;
+    if (!env_parser(vb).parse(cmd)) {
+        SSS_POSTION_THROW(std::runtime_error, " (`" << cmd << "`) parse failed.");
+    }
+    // 即， cmd 串，依赖于 变量形参列表 vb.first 
+    for (var_list_t::const_iterator it_var = vb.first.begin();
+         it_var != vb.first.end();
+         ++it_var)
+    {
+        dc_depth_wrapper dcg(dc);
+        dc.put(*it_var, this->evaluator_impl(*it_var, dc));
+    }
+    dc.dump2map(script_env);
     return sss::ps::PipeRun(cmd, script_wd, script_env);
 #endif
+}
+
+std::string PenvMgr2::getShellComandFromVar(const std::string& var) const {
+    depend_checker2_t dc;
+    return this->getShellComandFromVar(var, dc);
 }
 
 std::string PenvMgr2::get_expr(const std::string& expr) const
@@ -784,6 +864,7 @@ std::string PenvMgr2::get_expr(const std::string& expr) const
              it_var != vb.first.end();
              ++it_var)
         {
+            dc_depth_wrapper dcg(dc);
             dc.put(*it_var, this->evaluator_impl(*it_var, dc));
         }
         ret = PenvMgr2::generate(vb, dc);
@@ -922,6 +1003,7 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) co
              it_var != definition->var_list().end();
              ++it_var)
         {
+            dc_depth_wrapper dcg(dc);
             dc.put(*it_var);
             std::string val = this->evaluator_impl(*it_var, dc);
             SSS_LOG_DEBUG("put %s, %s\n", (*it_var).c_str(), val.c_str());

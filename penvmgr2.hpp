@@ -678,6 +678,7 @@ namespace sss{
         std::string getEnvVar(const std::string& var) const;
 
         std::string getShellComandFromVar(const std::string& var) const;
+        std::string getShellComandFromVar(const std::string& var, depend_checker2_t & dc) const;
 
         const var_body_t *   find_body(const std::string& var) const;
         std::string evaluator_impl(std::string var, depend_checker2_t & dc) const;
