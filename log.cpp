@@ -7,15 +7,16 @@
 #include <cassert>
 #include <map>
 
+#include <sss/util/PostionThrow.hpp>
 #include <sss/time.hpp>
 #include <sss/CMLParser.hpp>
 
 namespace sss{
     namespace log {
         // NOTE
-        // É÷ÓÃÈ«¾Ö±äÁ¿
-        // ×îºÃÓÃº¯ÊıÄÚµÄstatic¶ÔÏó°ü¹ü£»
-        // ÒÔ±ã¿ØÖÆ¹¹ÔìÊ±»ú£»
+        // æ…ç”¨å…¨å±€å˜é‡
+        // æœ€å¥½ç”¨å‡½æ•°å†…çš„staticå¯¹è±¡åŒ…è£¹ï¼›
+        // ä»¥ä¾¿æ§åˆ¶æ„é€ æ—¶æœºï¼›
         // static const char * fcall_src  = "NULL";
         // static const char * fcall_func = "NULL";
         // static int          fcall_line = 0;
@@ -44,8 +45,8 @@ namespace sss{
             inline
             static int make_mask(log_level level)
             {
-                // NOTE µ±level = log_NOMSG £¨¼´0£©µÄÊ±ºò£¬ÏÂÃæµÄËãÊ½¼ÆËã½á¹û£¬Ò²ÊÇ0£¡
-                // TODO ÁíÍâ£¬level µÄÈ¡Öµ·¶Î§Ò²Ó¦¸Ã¼ì²âÒ»ÏÂ£ºlevelÓ¦¸ÃÊÇÄÜ±»2Õû³ıµÄÊı£¡
+                // NOTE å½“level = log_NOMSG ï¼ˆå³0ï¼‰çš„æ—¶å€™ï¼Œä¸‹é¢çš„ç®—å¼è®¡ç®—ç»“æœï¼Œä¹Ÿæ˜¯0ï¼
+                // TODO å¦å¤–ï¼Œlevel çš„å–å€¼èŒƒå›´ä¹Ÿåº”è¯¥æ£€æµ‹ä¸€ä¸‹ï¼šlevelåº”è¯¥æ˜¯èƒ½è¢«2æ•´é™¤çš„æ•°ï¼
                 return (1u << sss::bit::highest_bit_pos(level)) - 1;
             }
             inline
@@ -56,8 +57,9 @@ namespace sss{
 
             int & get_last_mask()
             {
-                if (!this->_masks.size())
+                if (this->_masks.empty()) {
                     this->_masks.push_back(LogSetting::get_default_mask());
+                }
                 return *(this->_masks.rbegin());
             }
 
@@ -84,7 +86,7 @@ namespace sss{
                 this->push_mask(LogSetting::make_mask(level));
             }
 
-            // ·ÅÆúµ±Ç°ÏûÏ¢ÈÕÖ¾¼¶±ğ
+            // æ”¾å¼ƒå½“å‰æ¶ˆæ¯æ—¥å¿—çº§åˆ«
             void pop_mask()
             {
                 if (this->_masks.size() > 1)
@@ -212,7 +214,7 @@ namespace sss{
             return get_log_setting().is_level_on(level);
         }
 
-        // ÓÃÓÚ¿ØÖÆÈÕÖ¾Êä³öµÄÎ»ÖÃ
+        // ç”¨äºæ§åˆ¶æ—¥å¿—è¾“å‡ºçš„ä½ç½®
         void outto(const std::string& fname, bool append)
         {
             outto(fname.c_str(), append);
@@ -226,7 +228,7 @@ namespace sss{
             }
             get_log_setting().c_file(fopen(fname, property));
         }
-        // STDOUT ¡¢STDERR
+        // STDOUT ã€STDERR
         void outto(FILE * c_file)
         {
             get_log_setting().c_file(c_file);
@@ -266,7 +268,7 @@ namespace sss{
             }
         }
 
-        // ÉèÖÃĞÂµÄ¼¶±ğ£»²¢·µ»ØĞÂµÄ¼¶±ğ
+        // è®¾ç½®æ–°çš„çº§åˆ«ï¼›å¹¶è¿”å›æ–°çš„çº§åˆ«
         log_level level(log_level level)
         {
             return get_log_setting().level(level);
@@ -284,7 +286,7 @@ namespace sss{
             get_log_setting().push_mask(m);
         }
 
-        // ·ÅÆúµ±Ç°ÏûÏ¢ÈÕÖ¾¼¶±ğ
+        // æ”¾å¼ƒå½“å‰æ¶ˆæ¯æ—¥å¿—çº§åˆ«
         void pop_level()
         {
             get_log_setting().pop_level();
@@ -294,12 +296,12 @@ namespace sss{
             get_log_setting().pop_mask();
         }
 
-        // ÉèÖÃÏûÏ¢µÄÊ±¼ä¸ñÊ½£»²¢·µ»ØÖ®Ç°µÄ¸ñÊ½
+        // è®¾ç½®æ¶ˆæ¯çš„æ—¶é—´æ ¼å¼ï¼›å¹¶è¿”å›ä¹‹å‰çš„æ ¼å¼
         std::string timef(const std::string fmt)
         {
             return get_log_setting().timef(fmt);
         }
-        // È¡ÏûÊä³öÊ±¼ä
+        // å–æ¶ˆè¾“å‡ºæ—¶é—´
         std::string timef()
         {
             return get_log_setting().timef("");
@@ -315,31 +317,31 @@ namespace sss{
             return get_log_setting().time_stamp();
         }
 
-        // ¿ªÆôÄ³Ä£¿éÊä³ö
+        // å¼€å¯æŸæ¨¡å—è¾“å‡º
         void model_on(const std::string& model_name)
         {
             get_log_setting().model_trig(model_name, true);
         }
 
-        // ¹Ø±ÕÄ³Ä£¿éÊä³ö
+        // å…³é—­æŸæ¨¡å—è¾“å‡º
         void model_off(const std::string& model_name)
         {
             get_log_setting().model_trig(model_name, false);
         }
 
-        // ¿ª¹ØÄ³Ä£¿éÊä³ö(true:¿ª; false ¹Ø)
+        // å¼€å…³æŸæ¨¡å—è¾“å‡º(true:å¼€; false å…³)
         void model_trig(const std::string& model_name, bool trig)
         {
             get_log_setting().model_trig(model_name, trig);
         }
 
-        // Ä³Ä£¿éÊÇ·ñÒÑ¾­ÆôÓÃ£¿
+        // æŸæ¨¡å—æ˜¯å¦å·²ç»å¯ç”¨ï¼Ÿ
         bool model(const std::string& model_name)
         {
             return get_log_setting().model(model_name);
         }
 
-        // ÉèÖÃ¶ÔÓ¦Î»ÖÃµÄÏûÏ¢¼¶±ğ
+        // è®¾ç½®å¯¹åº”ä½ç½®çš„æ¶ˆæ¯çº§åˆ«
         bool warn (const char * fmt, ...)
         {
             va_list ap;
@@ -460,7 +462,7 @@ namespace sss{
             return recorder;
         }
 
-        // ±¨¸æ×´Ì¬
+        // æŠ¥å‘ŠçŠ¶æ€
         void tracer::report()
         {
             // TODO
