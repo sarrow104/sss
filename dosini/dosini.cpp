@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <sss/log.hpp>
+#include <sss/dosini/IniParser.hpp>
 
 namespace {
     struct StrRange
@@ -16,59 +17,6 @@ namespace {
         {
         }
     };
-
-    void trimRange(const std::string& line, StrRange& r) {
-        while (r.left < r.right && std::isspace(line[r.left])) {
-            r.left++;
-        }
-        while (r.left < r.right && std::isspace(line[r.right - 1])) {
-            r.right--;
-        }
-    }
-
-    bool parseBlock(const std::string& line, StrRange& r)
-    {
-        // sss::regex::simpleregex reg_ini_block("^\\s*\\[\\([^\\]]+\\)\\]\\s*$");
-        int  last = -1;
-        char ch = '\0';
-        int cnt = -1;
-        if (0 == sscanf(line.c_str(), " [%n%*[^]]%n]%n", &r.left, &r.right, &last) &&
-            last > 0 &&
-            (cnt = sscanf(line.c_str() + last, " %c", &ch), (cnt == 0 || cnt == EOF)))
-        {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    bool parseComment(const std::string& line)
-    {
-        // sss::regex::simpleregex reg_ini_linecomment("^;\\(.+\\)$");
-        if (sss::is_begin_with(line, ";")) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    bool parseKeyValuePair(const std::string& line, StrRange& r1, StrRange& r2)
-    {
-        // sss::regex::simpleregex reg_ini_keyvalue("^\\s*\\(\\<[^=]+\\)=\\(.*\\)$");
-        int last = -1;
-        if (0 == sscanf(line.c_str(), " %n%*[^=]%n=%n", &r1.left, &r1.right, &last) && last > 0) {
-            trimRange(line, r1);
-            r2.left = last;
-            r2.right = line.size();
-            trimRange(line, r2);
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
 }
 
 namespace sss {
@@ -102,41 +50,67 @@ namespace sss {
             std::string matched;
             StrRange r1;
             StrRange r2;
-            if (parseBlock(line, r1)) {
-                block.assign(line, r1.left, r1.right - r1.left);
-                this->append_block(line,
-                                   r1.left,
-                                   r1.right);
-                // std::cout << "block = \""
-                //     << line.substr(r1.left,
-                //                    r1.right - r1.left)
-                //     << "\""
-                //     << std::endl;
-            }
-            else if (parseComment(line)) {
-                // std::cout << "linecomment = \"" << line << "\"" << std::endl;
+            int pos = 0;
+
+            char none_space = sss::firstNoneSpace(line, pos);
+            if (!none_space) {
+                // 空行，仍然保留
                 this->append_line(line);
+                continue;
             }
-            else if (parseKeyValuePair(line, r1, r2)) {
-                // std::cout << "key = \""
-                //     << line.substr(r1.left,
-                //                    r1.right - r1.left)
-                //     << "\""
-                //     << std::endl;
-                // std::cout << "value = \""
-                //     << line.substr(r2.left,
-                //                    r2.right - r2.left)
-                //     << "\""
-                //     << std::endl;
-                this->append_key(block,
-                                 line,
-                                 r1.left,
-                                 r1.right,
-                                 r2.left,
-                                 r2.right);
-            }
-            else {
+
+            switch (none_space) {
+            case '[':
+                if (sss::iniParseSection(line, r1.left, r1.right, pos))
+                {
+                    block.assign(line, r1.left, r1.right - r1.left);
+                    this->append_block(line,
+                                       r1.left,
+                                       r1.right);
+                    // std::cout << "block = \""
+                    //     << line.substr(r1.left,
+                    //                    r1.right - r1.left)
+                    //     << "\""
+                    //     << std::endl;
+                }
+                else {
+                    this->append_line(line);
+                }
+                break;
+
+            case ';':
+                // NOTE 如果以';'开始则是注释；操作是append_line(line);
+                // 如果pos != 0；则无法识别；操作还是append_line(line);
                 this->append_line(line);
+                break;
+
+            default:
+                if (sss::iniParseKeyValue(line,
+                                          r1.left, r1.right,
+                                          r2.left, r2.right,
+                                          pos))
+                {
+                    // std::cout << "key = \""
+                    //     << line.substr(r1.left,
+                    //                    r1.right - r1.left)
+                    //     << "\""
+                    //     << std::endl;
+                    // std::cout << "value = \""
+                    //     << line.substr(r2.left,
+                    //                    r2.right - r2.left)
+                    //     << "\""
+                    //     << std::endl;
+                    this->append_key(block,
+                                     line,
+                                     r1.left,
+                                     r1.right,
+                                     r2.left,
+                                     r2.right);
+                }
+                else {
+                    this->append_line(line);
+                }
+                break;
             }
         }
         return true;
