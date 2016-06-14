@@ -100,7 +100,7 @@ namespace {
                 return false;
             }
             last_sp_pos += std::distance(path.c_str() + last_sp_pos,
-                                         std::strchr(path.c_str() + last_sp_pos, '\0'));
+                                         static_cast<const char*>(std::strchr(path.c_str() + last_sp_pos, '\0')));
         }
         return true;
 #endif
@@ -1194,6 +1194,8 @@ namespace path {
         return sys_mode;
     }
 
+#ifdef __WIN32__
+#else
     // TODO
     // 要不，额外用'+'，'-'参数，表示增加、减去某属性？
     bool chmod(const char * path, int mode)
@@ -1251,6 +1253,7 @@ namespace path {
         }
         return 0;
     }
+#endif
 
     // 返回全路径
     std::string full_of_copy(const std::string& path) // {{{1

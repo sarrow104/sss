@@ -1,5 +1,6 @@
 #ifndef  __GLOB_RECURSIVE_HPP_1440646821__
 #define  __GLOB_RECURSIVE_HPP_1440646821__
+// {-lib: -lshlwapi -lpsapi}
 
 #include "glob_path.hpp"
 

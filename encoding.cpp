@@ -7,6 +7,10 @@
 #include <sss/utlstring.hpp>
 #include <sss/path.hpp>
 
+#ifdef __WIN32__
+#define _USING_UCHARDET_
+#endif
+
 #ifdef _USING_UCHARDET_
 #       include <uchardet/uchardet.h>
 #else

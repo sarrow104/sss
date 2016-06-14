@@ -13,6 +13,9 @@
 #include <sss/utlstring.hpp>
 #include <sss/log.hpp>
 
+#ifdef __WIN32__
+#include <sss/os/win32/timeconvert.hpp>
+#endif
 
 // NOTE win32api FindFirstFile 必须要提供匹配串；并且，不支持多后缀选择
 // 因此，不管是 win32 还是 linux，都默认使用 regex 库，用来……
@@ -40,29 +43,67 @@ namespace sss { namespace path {
 
     time_t      file_descriptor::get_mtime() const
     {
+#ifdef __WIN32__
+        HANDLE hFile = ::CreateFile(this->get_path().c_str(),
+                                    GENERIC_READ,
+                                    FILE_SHARE_VALID_FLAGS,
+                                    NULL,
+                                    OPEN_EXISTING,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    NULL);
+        FILETIME ft;
+        ::GetFileTime(hFile, &ft, NULL, NULL);
+        ::CloseHandle(hFile);
+
+        time_t ret;
+        sss::win32::FileTimeToUnixTime(&ft, &ret);
+        return ret;
+#else
         struct stat info;
         if (stat(this->get_path().c_str(), &info) == 0) {
             return info.st_mtime;
         }
         return 0;
+#endif
     }
 
     time_t      file_descriptor::get_ctime() const
     {
+#ifdef __WIN32__
+        HANDLE hFile = ::CreateFile(this->get_path().c_str(),
+                                    GENERIC_READ,
+                                    FILE_SHARE_VALID_FLAGS,
+                                    NULL,
+                                    OPEN_EXISTING,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    NULL);
+        FILETIME ft;
+        ::GetFileTime(hFile, &ft, NULL, NULL);
+        ::CloseHandle(hFile);
+
+        time_t ret;
+        sss::win32::FileTimeToUnixTime(&ft, &ret);
+        return ret;
+#else
         struct stat info;
         if (stat(this->get_path().c_str(), &info) == 0) {
             return info.st_ctime;
         }
         return 0;
+#endif
     }
 
     int  file_descriptor::get_type() const
     {
+#ifdef __WIN32__
+        return _ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+#else
         struct stat info;
         if (stat(this->get_path().c_str(), &info) == 0) {
             return info.st_mode;
         }
         return 0;
+#endif
     }
 
     bool file_descriptor::is_normal_file() const

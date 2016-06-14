@@ -131,6 +131,8 @@ namespace path {
     std::string  modify_copy(const std::string& path, const std::string& modifier);
     std::string& modify(std::string& path, const std::string& modifier);
 
+#ifdef __WIN32__
+#else
     bool chmod(const std::string& path, int mode);
     bool chmod(const char * path, int mode);
 
@@ -143,6 +145,7 @@ namespace path {
     {
         return getmod(path.c_str());
     }
+#endif
 
     std::string  full_of_copy(const std::string& path);
     std::string& full_of(std::string& path);
@@ -161,6 +164,11 @@ namespace path {
      * ——在windows下，就是驱动器号+冒号+斜杠
      * ——在Linux下，就是/
      * 当输入的path非空的时候；则解析出根目录——如果能解析出来的话。*/
+    // 为什么不返回一个char呢？
+    // '/'表示linux根目录，'C'，'D'等表示盘符，'\0'表示；
+    // 这种策略可行，并且没有动态内存管理的问题。
+    // 问题在于，我需要额外提供一个append函数，以组合路径；
+    // 如果使用std::string接口，我则不用提供额外的函数。
     std::string getroot(const std::string& path="");
 
     /**
