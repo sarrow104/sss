@@ -1,8 +1,12 @@
 #include "ps.hpp"
 
-#include <sss/popenRWE.h>
 
 #include <sss/util/Escaper.hpp>
+
+#ifdef __WIN32__
+#include <sss/process.hpp>
+#else
+#include <sss/popenRWE.h>
 
 namespace  {
 
@@ -98,8 +102,9 @@ error_out:
 error_in:
     return -1;
 }
-    
-} // namespace 
+
+} // namespace
+#endif
 
 namespace sss
 {
@@ -110,6 +115,12 @@ namespace sss
                             const std::string& dir,
                             const std::map<std::string, std::string>& env)
         {
+#ifdef __WIN32__
+            // TODO FIXME
+            std::string ret;
+            sss::runPipeCmdLine(command_line, ret);
+            return ret;
+#else
             std::ostringstream oss;
             int rwe_pipe[3];
             int pid = ::runPipe(rwe_pipe, command_line, dir, env);
@@ -129,6 +140,7 @@ namespace sss
 
             pcloseRWE(pid, rwe_pipe);
             return oss.str();
+#endif
         }
 
         // system 在linux和windows下，都是调用自己的命令行解释器，对目录进行解释；
