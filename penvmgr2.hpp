@@ -405,8 +405,14 @@ namespace sss{
             void push_back(std::string::const_iterator it_beg,
                            std::string::const_iterator it_end)
             {
+#ifdef __WIN32__
+                std::string::const_iterator it_beg_o = m_data.begin();
+                this->m_slice.push_back(std::make_pair(std::distance(it_beg_o, it_beg),
+                                                       std::distance(it_beg_o, it_end)));
+#else
                 this->m_slice.push_back(std::make_pair(std::distance(m_data.cbegin(), it_beg),
                                                        std::distance(m_data.cbegin(), it_end)));
+#endif
             }
 
             void push_back(const sss::util::StringSlice<std::string::const_iterator>& slice)
