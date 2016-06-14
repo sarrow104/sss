@@ -12,23 +12,71 @@ extern char ** environ;
 
 namespace sss {
     namespace env {
-        size_t count(char ** environ);
+        size_t count(char ** env);
         inline size_t count()
         {
             return sss::env::count(environ);
         }
+
         template<typename Container>
-            size_t dump(Container& out, char ** env = environ)
+            size_t dump(Container& out, char ** env)
             {
                 char ** p_env = env;
+                size_t cnt = 0;
                 while (p_env && p_env[0]) {
                     int eq_pos = std::strchr(p_env[0], '=') - p_env[0];
                     out[std::string(p_env[0], eq_pos)] = p_env[0] + eq_pos + 1;
                     p_env++;
+                    cnt++;
                 }
+                return cnt;
             }
-        bool contain(const std::string& name, char ** env = environ);
-        char * get(const std::string& name, char ** env = environ);
+
+        template<typename Container>
+            size_t dump(Container& out)
+            {
+                return sss::env::dump(out, environ);
+            }
+
+        size_t dump(std::string& out, char ** env);
+
+        // 将代表环境变量的char**对象，dump到字符串中；环境变量之间，用'\0'做间隔；
+        // 同时最后一个，附加一个'\0'，表示终结；
+        size_t dump(std::string& out)
+        {
+            return sss::env::dump(out, environ);
+        }
+
+        // NOTE std::string 会自动附加末尾的'\0'
+        template<typename C>
+            size_t dump(std::string& out, const C& c)
+            {
+                size_t buflen = 0;
+                std::string tmp_out;
+                for (typename C::const_iterator it = c.begin(); it != c.end(); ++it) {
+                    buflen += it->first.length() + 1 + it->second.length() + 1;
+                }
+                tmp_out.reserve(buflen);
+                for (typename C::const_iterator it = c.begin(); it != c.end(); ++it) {
+                    tmp_out += it->first;
+                    tmp_out += '=';
+                    tmp_out += it->second;
+                    tmp_out += '\0';
+                }
+                std::swap(out, tmp_out);
+                return c.size();
+            }
+
+        bool contain(const std::string& name, char ** env);
+        inline bool contain(const std::string& name)
+        {
+            return sss::env::contain(name, environ);
+        }
+        char * get(const std::string& name, char ** env);
+        char * get(const std::string& name)
+        {
+            return sss::env::get(name, environ);
+        }
 
         // NOTE
         // 貌似 new [] 和 malloc() 并不兼容；

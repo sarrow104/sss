@@ -4,9 +4,9 @@
 
 namespace sss {
     namespace env {
-        size_t count(char ** environ)
+        size_t count(char ** env)
         {
-            char ** p_env = environ;
+            char ** p_env = env;
             int ret = 0;
 
             while (p_env && p_env[0]) {
@@ -18,7 +18,7 @@ namespace sss {
         }
 
         bool contain(const std::string& name, char ** env) {
-            if (env == ::environ) {
+            if (env == environ) {
                 return ::getenv(name.c_str());
             }
             else {
@@ -34,7 +34,7 @@ namespace sss {
             }
         }
         char * get(const std::string& name, char ** env) {
-            if (env == ::environ) {
+            if (env == environ) {
                 return ::getenv(name.c_str());
             }
             else {
@@ -49,6 +49,28 @@ namespace sss {
                 return 0;
             }
         }
+
+        size_t dump(std::string& out, char ** env)
+        {
+            std::string tmp_out;
+            size_t size = 0;
+            size_t env_cnt = 0;
+            for (char ** p_env = env; p_env && p_env[0]; p_env++)
+            {
+                size += std::strlen(p_env[0]) + 1;
+                env_cnt ++;
+            }
+            tmp_out.reserve(size);
+            for (char ** p_env = env; p_env && p_env[0]; p_env++)
+            {
+                tmp_out += p_env[0];
+                tmp_out += '\0';
+            }
+            std::swap(out, tmp_out);
+
+            return env_cnt;
+        }
+
         char ** dup_c_str(char ** env) {
             size_t size = sizeof(char *);
             size_t env_cnt = 0;
