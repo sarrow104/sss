@@ -22,7 +22,7 @@
 namespace  {
     const char * penvmg_script_path = "_penvmg_script_path_";
     const char * g_shellscript_workdir = "g.shellscript_workdir";
-} // namespace 
+} // namespace
 
 namespace sss{
 
@@ -144,7 +144,13 @@ namespace {
             _varlist.clear();
             _expr.clear();
             _expr.m_data.assign(expr);
+#ifdef  __WIN32__
+            std::string::const_iterator e_beg = expr.begin();
+            std::string::const_iterator e_end = expr.end();
+            _expr.push_back(e_beg, e_end);
+#else
             _expr.push_back(expr.cbegin(), expr.cend());
+#endif
             return true;
         }
 
@@ -825,7 +831,7 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
     if (!env_parser(vb).parse(cmd)) {
         SSS_POSTION_THROW(std::runtime_error, " (`" << cmd << "`) parse failed.");
     }
-    // 即， cmd 串，依赖于 变量形参列表 vb.first 
+    // 即， cmd 串，依赖于 变量形参列表 vb.first
     for (var_list_t::const_iterator it_var = vb.first.begin();
          it_var != vb.first.end();
          ++it_var)
@@ -1015,12 +1021,12 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) co
 }
 
 /**
- * @brief 
+ * @brief
  *
  * @param bd
  * @param dc
  *
- * @return 
+ * @return
  */
 std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & dc)
 {
