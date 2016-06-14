@@ -202,10 +202,18 @@ namespace sss {
                 std::string::const_iterator u8_end = s.end();
                 uint32_t u8_tar = 0u;
                 if (parseUtf8Any(u8_beg, u8_end, u8_tar)) {
+#ifdef __WIN32__
+                    std::string::const_iterator s_beg = s.begin();
+                    if (sss::is_begin_with(it_beg, it_end, s_beg, u8_beg)) {
+                        std::advance(it_beg, std::distance(s_beg, u8_beg));
+                        ret = true;
+                    }
+#else
                     if (sss::is_begin_with(it_beg, it_end, s.cbegin(), u8_beg)) {
                         std::advance(it_beg, std::distance(s.cbegin(), u8_beg));
                         ret = true;
                     }
+#endif
                 }
                 return ret;
             }

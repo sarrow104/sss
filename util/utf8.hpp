@@ -619,7 +619,7 @@ namespace sss {
                 if (!s) {
                     return 0;
                 }
-                return text_width(s, std::strchr(s, '\0'), tabsize);
+                return text_width(s, static_cast<const char*>(std::strchr(s, '\0')), tabsize);
             }
 
             inline int text_width_nocheck(const char * s, int tabsize = 8)
@@ -627,7 +627,7 @@ namespace sss {
                 if (!s) {
                     return 0;
                 }
-                return text_width_nocheck(s, std::strchr(s, '\0'), tabsize);
+                return text_width_nocheck(s, static_cast<const char*>(std::strchr(s, '\0')), tabsize);
             }
         }
     }
