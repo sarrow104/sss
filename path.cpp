@@ -1364,13 +1364,7 @@ namespace path {
 
         int sp_cnt = std::count(mainDir.begin(), mainDir.end(), path::sp_char);
 
-        static const char parent_s[] = {'.', '.', sss::path::sp_char};
-
-// #ifdef __WIN32__
-//         const char * parent_s = "..\\";
-// #else
-//         const char * parent_s = "../";
-// #endif
+        static const char parent_s[] = {'.', '.', sss::path::sp_char, '\0'};
 
         std::string ret;
 
