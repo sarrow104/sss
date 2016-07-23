@@ -8,7 +8,9 @@
 #include <sss/utlstring.hpp>
 #include <memory>
 
-extern char ** environ;
+extern "C" {
+    extern char ** environ;
+}
 
 namespace sss {
     namespace env {
@@ -42,7 +44,7 @@ namespace sss {
 
         // 将代表环境变量的char**对象，dump到字符串中；环境变量之间，用'\0'做间隔；
         // 同时最后一个，附加一个'\0'，表示终结；
-        size_t dump(std::string& out)
+        inline size_t dump(std::string& out)
         {
             return sss::env::dump(out, environ);
         }
@@ -73,7 +75,7 @@ namespace sss {
             return sss::env::contain(name, environ);
         }
         char * get(const std::string& name, char ** env);
-        char * get(const std::string& name)
+        inline char * get(const std::string& name)
         {
             return sss::env::get(name, environ);
         }
@@ -114,6 +116,19 @@ namespace sss {
             return ret;
         }
         char ** dup_c_str(char ** env);
+
+        template<typename C>
+        void set_by_line(C& c, const std::string& key_value) {
+            sss::env::set_by_line(c, key_value.c_str());
+        }
+        template<typename C>
+        void set_by_line(C& c, const char * key_value) {
+            const char * eq_ptr = std::strchr(key_value, '=');
+            if (!eq_ptr) {
+                return;
+            }
+            c[std::string(key_value, eq_ptr - key_value)] = eq_ptr + 1;
+        }
         // set(const std::string& name)
         // NOTE 这个函数，还是交给系统的好。
         // 修改传入的environ，始终是不好的事情。
