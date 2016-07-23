@@ -303,86 +303,289 @@ static int month_day[12] = {
 
 namespace sss{
     namespace time {
-int weekday_of(const std::string& date)
-{
-    int year, month, day;
-    char s1, s2;
-    //puts("Please give me a date(yyyy.mm.dd)?");
-    sscanf(date.c_str(), "%d%c%d%c%d", &year, &s1, &month, &s2, &day);
-    assert(s1 == s2);
-    return weekday_of(year, month, day);
-}
 
-int weekday_of(int year, int month, int day)
-{
-    long total_days = (year - 1900)*365 + (year-1900)/4 + month_day[month - 1] + day - 1;
-    if ((year - 1900) % 4 == 0 && month < 3 && year != 1900)
-       --total_days;
-    return total_days % 7;
-}
+        std::string strftime(const std::string& fmt_s, const tm & current_tm)
+        {
+            const char * fmt = fmt_s.c_str();
+            const struct tm * c_tm = &current_tm;
+            std::ostringstream oss;
+            char buf[48];
+            size_t sp = sizeof(buf);
+            while (fmt[0]) {
+                size_t cur_write = 0;
+                size_t fmt_offset = 2;
+                if (fmt[0] == '%') {
+                    switch(fmt[1]) {
+                    case 'a':
+                        cur_write = std::strftime(buf, sp, "%a", c_tm);
+                        break;
 
-const char * weekday_name(int d)
-{
-    assert(d >= 0 && d < 7);
-    return ::week_full_name[d];
-}
+                    case 'A':
+                        cur_write = std::strftime(buf, sp, "%A", c_tm);
+                        break;
 
-//----------------------------------------------------------------------
-//date.cpp
+                    case 'b':
+                        cur_write = std::strftime(buf, sp, "%b", c_tm);
+                        break;
 
-Date::Date( create_method cm )
-{
-    std::time_t t;
-    std::time(&t);
+                    case 'c':
+                        cur_write = std::strftime(buf, sp, "%c", c_tm);
+                        break;
 
-    this->set_time_t(t);
+                    case 'C':
+                        // NOTE check sp ！length
+                        // std::cout << __func__ << ":" << __LINE__ << " " << c_tm->tm_year << std::endl;
+                        cur_write = std::sprintf(buf, "%02d", ((c_tm->tm_year + 1900)/ 100) % 100);
+                        break;
 
-    this->create_filter(cm);
-}
+                    case 'd':
+                        cur_write = std::strftime(buf, sp, "%d", c_tm);
+                        break;
 
-void Date::create_filter( create_method cm )
-{
-    switch (cm)
-    {
-    case DATE_PART:
-        this->hour(0);
-        this->minute(0);
-        this->seconds(0);
-        break;
+                    case 'D':
+                        cur_write = std::strftime(buf, sp, "%m/%d/%y", c_tm);
+                        break;
 
-    case TIME_PART:
-        this->year(0);
-        this->month(0);
-        this->day(0);
-        break;
+                    case 'e':
+                        cur_write = std::sprintf(buf, "%02d", c_tm->tm_mday);
+                        break;
 
-    case WHOLE_PART:
-        break;
+                    case 'F':
+                        cur_write = std::strftime(buf, sp, "%Y-%m-%d", c_tm);
+                        break;
 
-    default:
-        break;
-    }
-}
+                    case 'g':
+                        cur_write = std::sprintf(buf, "%02d", ((c_tm->tm_year + 1900) % 100));
+                        break;
 
-Date::Date( std::time_t t)
-{
-    this->set_time_t(t);
-}
+                    case 'G':
+                        cur_write = std::sprintf(buf, "%04d", (c_tm->tm_year + 1900));
+                        break;
 
-// 如何从字符串读取时间？
-// 需要解析！
-// 当然，有默认的解析模式
-// {4Y}-{2M}-{2D}
-// 也可以自定义；
-// {2h}:{2m}:{2s}
-//
-// 这样，系统会根据长度，截取对应位置的字符串，并解析为int供程序构建时间
-//
-// 即，上述相当于 记名的正则字符串
-// \(\d\{4}:year\)-\(\d\{2}:month\)-\(\d\{2}:day\)
-// \(\d\{2}:hour\)-\(\d\{2}:minute\)-\(\d\{2}:seconds\)
-//
-// 解析结果，可以用预定义的名字 "year" 等来获取。
+                    case 'h':
+                        cur_write = std::strftime(buf, sp, "%b", c_tm);
+                        break;
+
+                    case 'H':
+                        cur_write = std::strftime(buf, sp, "%H", c_tm);
+                        break;
+
+                    case 'I':
+                        cur_write = std::strftime(buf, sp, "%I", c_tm);
+                        break;
+
+                    case 'j':
+                        cur_write = std::strftime(buf, sp, "%j", c_tm);
+                        break;
+
+                    case 'm':
+                        cur_write = std::strftime(buf, sp, "%m", c_tm);
+                        break;
+
+                    case 'M':
+                        cur_write = std::strftime(buf, sp, "%M", c_tm);
+                        break;
+
+                    case 'n':
+                        cur_write = std::sprintf(buf, "%s", "\n");
+                        break;
+
+                    case 'p':
+                        cur_write = std::strftime(buf, sp, "%p", c_tm);
+                        break;
+
+                    case 'P':
+                        cur_write = std::strftime(buf, sp, "%p", c_tm);
+                        buf[0] = std::tolower(buf[0]);
+                        buf[1] = std::tolower(buf[1]);
+                        break;
+
+                    case 'r':
+                        cur_write = std::strftime(buf, sp, "%H:%M:%S %p", c_tm);
+                        break;
+
+                    case 'R':
+                        cur_write = std::strftime(buf, sp, "%H:%M", c_tm);
+                        break;
+
+                    case 'S':
+                        cur_write = std::strftime(buf, sp, "%S", c_tm);
+                        break;
+
+                    case 't':
+                        cur_write = std::sprintf(buf, "%s", "\t");
+                        break;
+
+                    case 'T':
+                        cur_write = std::strftime(buf, sp, "%H:%M:%S", c_tm);
+                        break;
+
+                    case 'u':
+                        // TODO check sp
+                        cur_write = std::sprintf(buf, "%d", c_tm->tm_wday);
+                        break;
+
+                    case 'U':
+                        cur_write = std::strftime(buf, sp, "%U", c_tm);
+                        break;
+
+                    case 'V':
+                        // TODO 每年的第几周，使用基于周的年
+                        cur_write = std::strftime(buf, sp, "%U", c_tm);
+                        break;
+
+                    case 'w':
+                        cur_write = std::strftime(buf, sp, "%w", c_tm);
+                        break;
+
+                    case 'W':
+                        cur_write = std::strftime(buf, sp, "%W", c_tm);
+                        break;
+
+                    case 'x':
+                        cur_write = std::strftime(buf, sp, "%x", c_tm);
+                        break;
+
+                    case 'X':
+                        cur_write = std::strftime(buf, sp, "%X", c_tm);
+                        break;
+
+                    case 'y':
+                        cur_write = std::strftime(buf, sp, "%y", c_tm);
+                        break;
+
+                    case 'Y':
+                        cur_write = std::strftime(buf, sp, "%Y", c_tm);
+                        break;
+
+                    case 'z':
+                        cur_write = std::strftime(buf, sp, "%z", c_tm);
+                        break;
+
+                    case 'Z':
+                        cur_write = std::strftime(buf, sp, "%Z", c_tm);
+                        break;
+
+                    case '+':
+                        buf[0] = '%';
+                        buf[1] = '+';
+                        buf[2] = '\0';
+                        cur_write = 2;
+                        break;
+
+                    case '%':
+                        buf[0] = '%';
+                        buf[2] = '\0';
+                        cur_write = 1;
+                        break;
+
+                    default:
+                        cur_write = 1;
+                        buf[0] = fmt[0];
+                        if (fmt[1]) {
+                            buf[1] = fmt[1];
+                            cur_write++;
+                        }
+                        buf[cur_write] = '\0';
+                        fmt_offset = cur_write;
+                        break;
+                    }
+                }
+                else {
+                    // while (fmt[] != '%') {
+                    // }
+                    cur_write = 1;
+                    buf[0] = fmt[0];
+                    buf[1] = '\0';
+                    fmt_offset = 1;
+                }
+
+                oss << buf;
+                fmt += fmt_offset;
+            }
+            return oss.str();
+        }
+
+        int weekday_of(const std::string& date)
+        {
+            int year, month, day;
+            char s1, s2;
+            //puts("Please give me a date(yyyy.mm.dd)?");
+            sscanf(date.c_str(), "%d%c%d%c%d", &year, &s1, &month, &s2, &day);
+            assert(s1 == s2);
+            return weekday_of(year, month, day);
+        }
+
+        int weekday_of(int year, int month, int day)
+        {
+            long total_days = (year - 1900)*365 + (year-1900)/4 + month_day[month - 1] + day - 1;
+            if ((year - 1900) % 4 == 0 && month < 3 && year != 1900)
+                --total_days;
+            return total_days % 7;
+        }
+
+        const char * weekday_name(int d)
+        {
+            assert(d >= 0 && d < 7);
+            return ::week_full_name[d];
+        }
+
+        //----------------------------------------------------------------------
+        //date.cpp
+
+        Date::Date( create_method cm )
+        {
+            std::time_t t;
+            std::time(&t);
+
+            this->set_time_t(t);
+
+            this->create_filter(cm);
+        }
+
+        void Date::create_filter( create_method cm )
+        {
+            switch (cm)
+            {
+            case DATE_PART:
+                this->hour(0);
+                this->minute(0);
+                this->seconds(0);
+                break;
+
+            case TIME_PART:
+                this->year(0);
+                this->month(0);
+                this->day(0);
+                break;
+
+            case WHOLE_PART:
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        Date::Date( std::time_t t)
+        {
+            this->set_time_t(t);
+        }
+
+        // 如何从字符串读取时间？
+        // 需要解析！
+        // 当然，有默认的解析模式
+        // {4Y}-{2M}-{2D}
+        // 也可以自定义；
+        // {2h}:{2m}:{2s}
+        //
+        // 这样，系统会根据长度，截取对应位置的字符串，并解析为int供程序构建时间
+        //
+        // 即，上述相当于 记名的正则字符串
+        // \(\d\{4}:year\)-\(\d\{2}:month\)-\(\d\{2}:day\)
+        // \(\d\{2}:hour\)-\(\d\{2}:minute\)-\(\d\{2}:seconds\)
+        //
+        // 解析结果，可以用预定义的名字 "year" 等来获取。
 
 typedef std::string::const_iterator iterator;
 typedef sss::util::Parser<iterator> Parser_t;
@@ -637,7 +840,7 @@ std::string Date::format(const std::string& fmt) const
     //char buf[256];
     //std::strftime(buf, sizeof(buf), fmt.c_str(), &this->_t);
     //return std::string(buf);
-    return strftime(fmt, this->_t);
+    return sss::time::strftime(fmt, this->_t);
 }
 
 int Date::interval_days(const Date& d) const
