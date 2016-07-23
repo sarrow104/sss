@@ -462,26 +462,31 @@ namespace sss{
         return ret;
     }
 
+    inline char lower_hex2char(uint8_t ch, bool is_lower_case = false)
+    {
+        uint8_t hex = ch & 0x0Fu;
+        hex += hex >= 10u ? (is_lower_case ? 'a' : 'A') - 10u : '0';
+        return hex;
+    }
+
     // 2012-01-01
     // 按16进制输出内存
     template <typename T>
-        std::string to_hex(T begin, T end)
+        std::string to_hex(T begin, T end, bool is_lower_case = false)
         {
             std::string ret;
-            char buffer[3] = {'\0', '\0', '\0'};
             for (T it = begin; it != end; ++it)
             {
-                char buffer2[sizeof(*it)];
-                std::memcpy(buffer2, reinterpret_cast<void*>(&(*it)), sizeof(*it));
-                for (size_t i = 0; i < sizeof(*it); ++i)
-                {
-                    std::sprintf(buffer, "%.02X", (unsigned char)buffer2[i]);
-                    ret += buffer[0];
-                    ret += buffer[1];
-                }
+                ret += lower_hex2char(uint8_t(*it) >> 4, is_lower_case);
+                ret += lower_hex2char(uint8_t(*it) >> 0, is_lower_case);
             }
             return ret;
         }
+
+    inline std::string to_hex(const std::string& s, bool is_lower_case = false)
+    {
+        return to_hex(s.begin(), s.end(), is_lower_case);
+    }
 // 2012-01-01
 // http://cboard.cprogramming.com/cplusplus-programming/118266-strings-find-replace.html
 // NOTE tar 指连续的字符串，搜索然后匹配、替换。
