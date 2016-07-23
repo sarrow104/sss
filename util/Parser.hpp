@@ -25,6 +25,21 @@ namespace sss {
         public:
             typedef typename std::iterator_traits<Iterator>::value_type value_type;
 
+            inline static int hexchar2number(char hex)
+            {
+                if (std::isdigit(hex)) {
+                    return hex - '0';
+                }
+                else {
+                    return (hex & 0x0F) + 9;
+                }
+            }
+
+            inline static char hexstr2frontchar(const char * buf)
+            {
+                return hexchar2number(buf[0]) << 4 | (hexchar2number(buf[1]));
+            }
+
             // 最开始，我的想法是让函数生成一个Rewinder对象，使得在判断式失败的
             // 时候，这个对象，会返回创建的时刻，Iterator开始的位置——
             // 但，这在C、C++语言中，是不可能的！
@@ -102,6 +117,9 @@ namespace sss {
                 }
 
                 sss::util::StringSlice<Iterator> getSlice() const {
+                    return sss::util::StringSlice<Iterator>(m_beg_sv, this->m_beg);
+                }
+                sss::util::StringSlice<Iterator> getCommitSlice() const {
                     return sss::util::StringSlice<Iterator>(m_beg_sv, m_succeed ? m_end : m_beg_sv);
                 }
 
@@ -390,7 +408,9 @@ namespace sss {
                 }
                 Iterator it_beg_bak = it_beg;
                 size_t offset = std::strlen(seq);
-                if (std::distance(it_beg, it_end) < offset) {
+                int    dist = std::distance(it_beg, it_end);
+
+                if (dist >= 0 && size_t(dist) < offset) {
                     SSS_LOG_DEBUG("%s with %s failed\n", std::string(it_beg, it_end).c_str(), seq);
                     return false;
                 }
