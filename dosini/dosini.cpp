@@ -183,11 +183,12 @@ namespace sss {
 
     bool dosini::getline(std::istream& ifs, std::string& line)
     {
-        bool ret = std::getline(ifs, line);
-        if (ret) {
+        // NOTE C++14 中，std::getline() 返回 std::istream& ；并不能直接转换为bool。
+        if (std::getline(ifs, line)) {
             sss::trim(line, "\r");
+            return true;
         }
-        return ret;
+        return false;
     }
 
     dosini::value_t dosini::append_line(const std::string& line)
