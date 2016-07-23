@@ -175,6 +175,16 @@ public:
 
     bool is_symlink() const {
 #ifdef __WIN32__
+        // http://www.howtogeek.com/howto/16226/complete-guide-to-symbolic-links-symlinks-on-windows-or-linux/
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363866(v=vs.85).aspx
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363878(v=vs.85).aspx
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365006(v=vs.85).aspx
+        //
+        // windows 下，自从2000+ntfs文件系统后，就支持hardlink和junction；
+        // 前者类似linux的硬链接；
+        // 后者部分等于linux的软件链接——它只支持文件夹，多名字；
+        //
+        // 而完全等效于 软连接的 函数 CreateSymbolicLink，则要到windows vista【桌面版】，之后才支持！
         // TODO FIXME
         return false;
 #else
