@@ -132,12 +132,16 @@ inline time_t time()
 // %% 百分号
 // }}}
 
-inline std::string strftime(const std::string& fmt, const tm & c_tm)
-{
-    char buf[256];
-    std::strftime(buf, sizeof(buf), fmt.c_str(), &c_tm);
-    return std::string(buf);
-}
+// #ifdef __WIN32__
+std::string strftime(const std::string& fmt, const tm & c_tm);
+//#else
+//inline std::string strftime(const std::string& fmt, const tm & c_tm)
+//{
+//    char buf[256];
+//    std::strftime(buf, sizeof(buf), fmt.c_str(), &c_tm);
+//    return std::string(buf);
+//}
+//#endif
 
 inline std::string strftime(const std::string& fmt)
 {
@@ -145,7 +149,7 @@ inline std::string strftime(const std::string& fmt)
     // localtime 返回的tm结构，是从1900年开始算起。
     struct tm c_tm = *std::localtime(&lt);
 
-    return strftime(fmt, c_tm);
+    return sss::time::strftime(fmt, c_tm);
 }
 
 // 如何对日期进行运算？
