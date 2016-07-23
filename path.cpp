@@ -1,4 +1,5 @@
 #include <sss/path.hpp>
+#include <sss/util/Escaper.hpp>
 
 #ifdef __WIN32__
 #       include <windows.h>
@@ -726,6 +727,34 @@ namespace path {
         }
 #endif
         return ret;
+    }
+
+    std::string& escape(std::string& path)
+    {
+        static sss::util::Escaper esp("\\ \"'[](){}?*$&");
+        std::ostringstream oss;
+        esp.escapeToStream(oss, path);
+        path = oss.str();
+        return path;
+    }
+
+    std::string& unescape(std::string& path)
+    {
+        static sss::util::Escaper esp("\\ \"'[](){}?*$&");
+        std::ostringstream oss;
+        esp.unescapeToStream(oss, path);
+        path = oss.str();
+        return path;
+    }
+
+    std::string& en_dquote(std::string& path)
+    {
+        return sss::util::dquote(path);
+    }
+
+    std::string& un_dquote(std::string& path)
+    {
+        return sss::util::unquote(path);
     }
 
     std::string getcwd() // {{{1

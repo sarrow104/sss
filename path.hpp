@@ -62,10 +62,21 @@ namespace path {
 #endif
     }
 
+    bool is_end_with_spchar(const std::string& path);
+    bool is_end_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
+    bool is_begin_with_spchar(const std::string& path);
+    bool is_begin_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
+
     bool is_path_under_dir(const std::string& path, const std::string& dir);
 
     bool is_home_dir(std::string::const_iterator ini, std::string::const_iterator fin);
     bool is_home_dir(const std::string& path, int pos = 0);
+
+    bool is_current_dir(std::string::const_iterator ini, std::string::const_iterator fin);
+    bool is_current_dir(const std::string& path, int pos = 0);
+    bool is_parent_dir(std::string::const_iterator ini, std::string::const_iterator fin);
+    bool is_parent_dir(std::string& ini, int pos = 0);
+
     void replace_home(std::string& path);
     // NOTE 或许应该假如类似 vim 中的 expand() 函数，以替换路径中的环境变量
     // 不过，我已经有了Penvmgr2；
@@ -75,14 +86,6 @@ namespace path {
     inline std::string get_home() {
         return std::getenv("HOME");
     }
-    bool is_current_dir(std::string::const_iterator ini, std::string::const_iterator fin);
-    bool is_current_dir(const std::string& path, int pos = 0);
-    bool is_parent_dir(std::string::const_iterator ini, std::string::const_iterator fin);
-    bool is_parent_dir(std::string& ini, int pos = 0);
-    bool is_end_with_spchar(const std::string& path);
-    bool is_end_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
-    bool is_begin_with_spchar(const std::string& path);
-    bool is_begin_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
 
     void to_upper_dir(std::string& path);
 
@@ -109,6 +112,68 @@ namespace path {
 
     /* 返回二进制工作文件路径(在很多时候，相当于argv[0]) */
     std::string getbin();
+
+    /**
+     * @brief escape 将路径，按照命令行参数规则要求，进行转义
+     * 注意，windows系统下，只是cygwin类似系统，才需要这种转义；
+     * windows的cmd下，常用的是双引号转义；
+     *
+     * @param path
+     *
+     * @return 
+     */
+    std::string& escape(std::string& path);
+    inline std::string escape_copy(const std::string& path)
+    {
+        std::string path_cp = path;
+        (void)escape(path_cp);
+        return path_cp;
+    }
+
+    /**
+     * @brief unescape 反 escape
+     *
+     * @param path
+     *
+     * @return 
+     */
+    std::string& unescape(std::string& path);
+    inline std::string unescape_copy(const std::string& path)
+    {
+        std::string path_cp = path;
+        (void)unescape(path_cp);
+        return path_cp;
+    }
+
+    /**
+     * @brief en_dquote 为路径添加双引号；并转义内部特殊字符
+     *
+     * @param path
+     *
+     * @return 
+     */
+    std::string& en_dquote(std::string& path);
+    inline std::string en_dquote_copy(std::string& path)
+    {
+        std::string path_cp = path;
+        (void)en_dquote(path_cp);
+        return path_cp;
+    }
+
+    /**
+     * @brief un_dquote 取消路径双引号——注意，双引号的配对性
+     *
+     * @param path
+     *
+     * @return 
+     */
+    std::string& un_dquote(std::string& path);
+    inline std::string un_dquote_copy(std::string& path)
+    {
+        std::string path_cp = path;
+        (void)un_dquote(path_cp);
+        return path_cp;
+    }
 
     // 2012-06-11
     // true. succeed
