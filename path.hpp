@@ -45,21 +45,44 @@ namespace path {
     // pop_front，就需要，也能够处理"根目录"这个概念；就到了这个问题，前导的
     // sp_char 到底去掉还是保留的讨论了。这会有大不同！
 
+    const char sp_char_win = '\\';
+    const char sp_char_linux = '/';
+
 #ifdef __WIN32__
-    const char sp_char = '\\';
+    const char sp_char = sp_char_win;
 #else
-    const char sp_char = '/';
+    const char sp_char = sp_char_linux;
 #endif
+
+    inline bool is_sp_char(char ch) {
+#ifndef __WIN32__
+        return ch == sss::path::sp_char;
+#else
+        return ch == sss::path::sp_char_linux || ch == sss::path::sp_char_win;
+#endif
+    }
+
     bool is_path_under_dir(const std::string& path, const std::string& dir);
 
     bool is_home_dir(std::string::const_iterator ini, std::string::const_iterator fin);
     bool is_home_dir(const std::string& path, int pos = 0);
     void replace_home(std::string& path);
+    // NOTE 或许应该假如类似 vim 中的 expand() 函数，以替换路径中的环境变量
+    // 不过，我已经有了Penvmgr2；
+    // 但是，对于windows中，习惯的%xxx%变量，是不支持的……
+    void replace_home(std::string& path);
+
+    inline std::string get_home() {
+        return std::getenv("HOME");
+    }
     bool is_current_dir(std::string::const_iterator ini, std::string::const_iterator fin);
     bool is_current_dir(const std::string& path, int pos = 0);
     bool is_parent_dir(std::string::const_iterator ini, std::string::const_iterator fin);
     bool is_parent_dir(std::string& ini, int pos = 0);
     bool is_end_with_spchar(const std::string& path);
+    bool is_end_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
+    bool is_begin_with_spchar(const std::string& path);
+    bool is_begin_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin);
 
     void to_upper_dir(std::string& path);
 

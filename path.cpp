@@ -38,7 +38,7 @@
 namespace {
     void sub_dir_after(std::string& path, size_t pos)
     {
-        if (path.length() > pos && path[pos] == sss::path::sp_char) {
+        if (path.length() > pos && sss::path::is_sp_char(path[pos])) {
             path = path.substr(pos + 1);
         }
         else {
@@ -79,14 +79,14 @@ namespace {
 #else
         int last_sp_pos = path.length() - 1;
         while (!sss::path::file_exists(path.c_str())) {
-            while (last_sp_pos >= 0 && path[last_sp_pos] == sss::path::sp_char) {
+            while (last_sp_pos >= 0 && sss::path::is_sp_char(path[last_sp_pos])) {
                 last_sp_pos --;
             }
-            while (last_sp_pos > 0 && path[last_sp_pos] != sss::path::sp_char) {
+            while (last_sp_pos > 0 && !sss::path::is_sp_char(path[last_sp_pos])) {
                 last_sp_pos --;
             }
 
-            if (path[last_sp_pos] == sss::path::sp_char) {
+            if (sss::path::is_sp_char(path[last_sp_pos])) {
                 path[last_sp_pos] = '\0';
             }
         }
@@ -144,7 +144,7 @@ namespace path {
     {
         return
             ini != fin && *ini == '~' &&
-            (std::distance(ini, fin) == 1 || *(ini + 1) == path::sp_char);
+            (std::distance(ini, fin) == 1 || sss::path::is_sp_char(*(ini + 1)));
     }
 
     bool is_home_dir(const std::string& path, int pos)
@@ -163,7 +163,7 @@ namespace path {
             // SSS_LOG_EXPRESSION(sss::log::log_ERROR, home);
 
             // 去掉home末尾的path::sp_char，如果有的话
-            if (home.length() && *home.rbegin() == sss::path::sp_char)
+            if (home.length() && sss::path::is_sp_char(*home.rbegin()))
                 home.resize(home.length() - 1);
 
             std::string::const_iterator cbeg = path.begin() + 1;
@@ -178,7 +178,7 @@ namespace path {
     {
         return
             ini != fin && *ini == '.' &&
-            (std::distance(ini, fin) == 1 || *(ini + 1) == path::sp_char);
+            (std::distance(ini, fin) == 1 || sss::path::is_sp_char(*(ini + 1)));
     }
 
     bool is_current_dir(const std::string& path, int pos)
@@ -191,7 +191,7 @@ namespace path {
         return
             std::distance(ini, fin) >= 2 &&
             *ini == '.' && *(ini + 1) == '.' &&
-            (std::distance(ini, fin) == 2 || *(ini + 2) == path::sp_char);
+            (std::distance(ini, fin) == 2 || sss::path::is_sp_char(*(ini + 2)));
     }
 
     bool is_parent_dir(std::string& path, int pos)
@@ -200,7 +200,18 @@ namespace path {
     }
 
     bool is_end_with_spchar(const std::string& path) {
-        return !path.empty() && *path.rbegin() == path::sp_char;
+        return !path.empty() && sss::path::is_sp_char(*path.rbegin());
+    }
+    bool is_end_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin)
+    {
+        return ini != fin && sss::path::is_sp_char(*(fin - 1));
+    }
+    bool is_begin_with_spchar(const std::string& path) {
+        return !path.empty() && sss::path::is_sp_char(path[0]);
+    }
+    bool is_begin_with_spchar(std::string::const_iterator ini, std::string::const_iterator fin)
+    {
+        return ini != fin && sss::path::is_sp_char(*ini);
     }
 
     // 'abc/' -> ''
@@ -209,10 +220,10 @@ namespace path {
         sss::path::simplify(path);
         if (path.length()) {
             int last_sp_pos = path.length() - 1;
-            while (last_sp_pos >= 0 && path[last_sp_pos] == sss::path::sp_char) {
+            while (last_sp_pos >= 0 && sss::path::is_sp_char(path[last_sp_pos])) {
                 last_sp_pos --;
             }
-            while (last_sp_pos > 0 && path[last_sp_pos] != sss::path::sp_char) {
+            while (last_sp_pos > 0 && !sss::path::is_sp_char(path[last_sp_pos])) {
                 last_sp_pos --;
             }
 
@@ -227,7 +238,7 @@ namespace path {
     std::string::const_iterator next_stem(std::string::const_iterator stem_beg,
                                           std::string::const_iterator stem_end)
     {
-        while (stem_beg < stem_end && *stem_beg == sss::path::sp_char) {
+        while (stem_beg < stem_end && sss::path::is_sp_char(*stem_beg)) {
             stem_beg++;
         }
         return stem_beg;
@@ -236,10 +247,10 @@ namespace path {
     std::string::const_iterator end_of_stem(std::string::const_iterator stem_beg,
                                             std::string::const_iterator stem_end)
     {
-        while (stem_beg < stem_end && *stem_beg == sss::path::sp_char) {
+        while (stem_beg < stem_end && sss::path::is_sp_char(*stem_beg)) {
             stem_beg++;
         }
-        while (stem_beg < stem_end && *stem_beg != sss::path::sp_char) {
+        while (stem_beg < stem_end && !sss::path::is_sp_char(*stem_beg)) {
             stem_beg++;
         }
         return stem_beg;
@@ -251,6 +262,12 @@ namespace path {
     // append(".", "..") == ".."  // 当前目录的父目录，还是父目录
     // append("..", ".") == ".."  // 类似
     // append("/", "..") == "/"   // 根目录不能在往上；于是还得自己；
+    //
+    // append("xxx", "/xxx") == "/xxx"   // 如果是右边是根目录，则用右边代替左边，并简化路径
+    // NOTE
+    // 需要注意的是，对于windows路径，"/path/to/some" 虽然也是相对路径("相对"是针对盘符而言的);
+    // 因此，如果在windows下，lhs 是绝对路径，而 rhs 是根路径("/")，那么，这意味着，append后，
+    // 盘符不变，后面的附属路径，完全变成rhs的！
     std::string& append(std::string& path,
                         std::string::const_iterator stem_beg,
                         std::string::const_iterator stem_end)
@@ -262,12 +279,24 @@ namespace path {
                 path.resize(0);
                 while (stem_beg < stem_end) {
                     path += *stem_beg;
-                    if (*++stem_beg == sss::path::sp_char) {
+                    if (sss::path::is_sp_char(*++stem_beg)) {
                         break;
                     }
                 }
                 sss::path::append(path, next_stem(stem_beg, stem_end), stem_end);
             }
+#ifdef __WIN32__
+            else if (sss::path::is_absolute(path) &&
+                     sss::path::is_begin_with_spchar(stem_beg, stem_end))
+            {
+                path.resize(2); // D:/path/to... -> D:
+                while (stem_beg < stem_end && sss::path::is_sp_char(*stem_beg)) {
+                    stem_beg++;
+                }
+                path += sss::path::sp_char;
+                sss::path::append(path, stem_beg, stem_end);
+            }
+#endif
             else {
                 if (sss::path::is_current_dir(stem_beg, stem_end)) {
                     if (std::distance(stem_beg, stem_end) >= 3) {
@@ -281,7 +310,7 @@ namespace path {
                     }
                 }
                 else {
-                    if (!path.empty() && *path.rbegin() != path::sp_char) {
+                    if (!path.empty() && !sss::path::is_sp_char(*path.rbegin())) {
                         path += path::sp_char;
                     }
                     std::string::const_iterator cur_end = end_of_stem(stem_beg, stem_end);
@@ -320,7 +349,7 @@ namespace path {
                 break;
             }
 
-            if (*first1 == path::sp_char) {
+            if (sss::path::is_sp_char(*first1)) {
                 last_sp_pos = first1 - lhs.begin();
             }
 
@@ -375,13 +404,13 @@ namespace path {
             // nothing
         }
         else if (first1 != last1) {
-            if (*first1 == path::sp_char) {
+            if (sss::path::is_sp_char(*first1)) {
                 last_sp_pos = first1 - lhs.begin() - 1;
             }
         }
         else if (first2 != last2) {
             // std::cout << "rhs not end; " << first2 - rhs.begin() << std::endl;
-            if (*first2 == path::sp_char) {
+            if (sss::path::is_sp_char(*first2)) {
                 last_sp_pos = first2 - rhs.begin() - 1;
             }
         }
@@ -541,11 +570,11 @@ namespace path {
         sss::path::simplify(full_path1);
         sss::path::simplify(full_path2);
 
-        if (!full_path1.empty() && *full_path1.rbegin() == sss::path::sp_char) {
+        if (!full_path1.empty() && sss::path::is_sp_char(*full_path1.rbegin())) {
             full_path1.resize(full_path1.length() - 1);
         }
 
-        if (!full_path2.empty() && *full_path2.rbegin() == sss::path::sp_char) {
+        if (!full_path2.empty() && sss::path::is_sp_char(*full_path2.rbegin())) {
             full_path2.resize(full_path2.length() - 1);
         }
 
@@ -585,7 +614,7 @@ namespace path {
         // 文件名允许开始的字符是空格，所以，不能有什么trim的预处理动作！切记！
         return (std::distance(path_beg, path_end) >= 2 && *(path_beg + 1) == ':' && std::isalpha(*path_beg));
 #else
-        return (path_beg < path_end && *path_beg == path::sp_char);
+        return (path_beg < path_end && sss::path::is_sp_char(*path_beg));
 #endif
     }
 
@@ -866,12 +895,12 @@ namespace path {
          * x.txt
          */
         int tail_pos = path.length() - 1;
-        if (tail_pos >= 0 && path[tail_pos] == path::sp_char) {
+        if (tail_pos >= 0 && sss::path::is_sp_char(path[tail_pos])) {
             --tail_pos;
         }
         int before_head_pos = tail_pos;
         for (; before_head_pos > -1; --before_head_pos) {
-            if (path[before_head_pos] == path::sp_char) {
+            if (sss::path::is_sp_char(path[before_head_pos])) {
                 break;
             }
         }
@@ -880,7 +909,7 @@ namespace path {
             return path.substr(before_head_pos + 1, len);
         }
         else {
-            char root[2] = {path::sp_char, '\0'};
+            char root[2] = {sss::path::sp_char, '\0'};
             return root;
         }
     }
@@ -901,12 +930,12 @@ namespace path {
         // case x.txt
         //  返回.
         int tail_pos = path.length() - 1;
-        if (path.length() && *path.rbegin() == path::sp_char) {
+        if (path.length() && sss::path::is_sp_char(*path.rbegin())) {
             --tail_pos;
         }
         int last_sp_pos = tail_pos;
         for (; last_sp_pos > -1; --last_sp_pos) {
-            if (path[last_sp_pos] == path::sp_char) {
+            if (sss::path::is_sp_char(path[last_sp_pos])) {
                 break;
             }
         }
@@ -928,7 +957,7 @@ namespace path {
     std::string no_suffix(const std::string& path) // {{{1
     {
         size_t last_dot_pos = -1;
-        for (int i = path.length() - 1; i >= 0 &&  path[i] != path::sp_char; --i)
+        for (int i = path.length() - 1; i >= 0 && !sss::path::is_sp_char(path[i]); --i)
         {
             if (path[i] == '.')
             {
@@ -945,7 +974,7 @@ namespace path {
     std::string suffix(const std::string& path) // {{{1
     {
         int last_dot_pos = -1;
-        for (int i = path.length() - 1; i >= 0 && path[i] != path::sp_char; --i)
+        for (int i = path.length() - 1; i >= 0 && !sss::path::is_sp_char(path[i]); --i)
         {
             if (path[i] == '.')
             {
@@ -957,7 +986,7 @@ namespace path {
         // 没找到last_dot_pos或者第一个遇到的是 path::sp_char
         if (last_dot_pos == -1)
             return "";
-        else if (last_dot_pos > 0 && path[last_dot_pos - 1] == path::sp_char)
+        else if (last_dot_pos > 0 && sss::path::is_sp_char(path[last_dot_pos - 1]))
             return "";
         else
             return path.substr(last_dot_pos);
@@ -1266,7 +1295,7 @@ namespace path {
     {
 #ifdef __WIN32__
         // 这在win32下，是一种特殊的'相对路径'，需要单独处理：
-        if (path.length() && path[0] == path::sp_char)
+        if (path.length() && sss::path::is_sp_char(path[0]))
             path = sss::path::getroot(sss::path::getcwd()) + path.substr(1);
 #endif
         if (sss::path::is_relative(path))
@@ -1314,7 +1343,7 @@ namespace path {
             sss::path::full_of(mainDir);
         }
 
-        if (mainDir.empty() || *mainDir.rbegin() != path::sp_char)
+        if (mainDir.empty() || !sss::path::is_sp_char(*mainDir.rbegin()))
         {
             mainDir += path::sp_char;
         }
@@ -1352,7 +1381,7 @@ namespace path {
 
         // mainDir一开始是附加了 path::sp_char 的
         // 所以，……
-        if (mainDir.empty() || mainDir == std::string(1, path::sp_char))
+        if (mainDir.empty() || (mainDir.length() == 1 && sss::path::is_sp_char(mainDir[0])))
         {
             if (fullFilePath == "") {
                 return ".";
@@ -1363,6 +1392,9 @@ namespace path {
         }
 
         int sp_cnt = std::count(mainDir.begin(), mainDir.end(), path::sp_char);
+#ifdef __WIN32__
+        sp_cnt += std::count(mainDir.begin(), mainDir.end(), sss::path::sp_char_linux);
+#endif
 
         static const char parent_s[] = {'.', '.', sss::path::sp_char, '\0'};
 
