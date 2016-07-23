@@ -347,6 +347,7 @@ std::string PenvMgr::get(const std::string& var)
         try {
             depend_checker_t dc;
             dc.put(var);
+            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
             ret = evaluator_impl(var, dc);
         }
         catch (ExceptionDependLoop& e) {
