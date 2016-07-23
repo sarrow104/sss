@@ -12,12 +12,9 @@
 #include <sss/util/PostionThrow.hpp>
 #include <sss/utlstring.hpp>
 
-// #define SSS_POSTION_THROW(type, msg) \
-// {                       \
-//     std::ostringstream oss;       \
-//     oss << __FILE__ << "|" << __LINE__ << "|" << __func__ << ": " << msg; \
-//     throw type(oss.str()); \
-// }
+#ifdef __WIN32__
+#    include <sss/environ.hpp>
+#endif
 
 namespace  {
     const char * penvmg_script_path = "_penvmg_script_path_";
@@ -35,11 +32,6 @@ PenvMgr2::PenvMgr2(PenvMgr2 * parent)
 PenvMgr2::~PenvMgr2()
 {
 }
-
-// PenvMgr2::PenvMgr2(const PenvMgr2& ref)
-//     : _env(ref._env), _parent(ref._parent)
-// {
-// }
 
 PenvMgr2::iterator PenvMgr2::begin()
 {
@@ -73,6 +65,15 @@ void PenvMgr2::print(std::ostream& o) const
     }
 }
 
+/**
+ * @brief dump 所有变量；本质就是对所有变量进行求值；
+ *        "可能的优化"
+ *           应该复用 depend_checker2_t；因为在对某一个变量求值的过程中，已经对
+ *           它所依赖的其他值，进行了求值；
+ *        另外，此种行为，可能导致循环
+ *
+ * @param[out] out
+ */
 void PenvMgr2::dump2map(std::map<std::string, std::string>& out) const
 {
     // NOTE 我的 PenvMgr2对象，是单根的链表形式。
@@ -116,10 +117,15 @@ typedef sss::util::Parser<iter_t> Parser_t;
 typedef Parser_t::Rewinder Rewinder_t;
 
 namespace {
+    /**
+     * @brief 变量定义体，解析器；
+     *      将字符串形式的"变量定义体"，解析重组为
+     *      expression_t 和 var_list_t 量部分；
+     */
     class env_parser{
     public:
         env_parser(PenvMgr2::var_body_t& vb)
-            : _varlist(vb.first), _expr(vb.second)
+            : _varlist(vb.first), _expr(vb.second), _p_str(0)
         {
         }
         ~env_parser()
@@ -131,9 +137,10 @@ namespace {
         bool parse(const std::string& expr)
         {
             SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            _varlist.clear();
-            _expr.clear();
-            _expr.m_data.assign(expr);
+            this->_varlist.clear();
+            this->_expr.clear();
+            this->_expr.m_data.assign(expr);
+            this->_p_str = &expr;
             iter_t s_beg = expr.begin();
             return parse_expr(s_beg, expr.end());
         }
@@ -144,13 +151,7 @@ namespace {
             _varlist.clear();
             _expr.clear();
             _expr.m_data.assign(expr);
-#ifdef  __WIN32__
-            std::string::const_iterator e_beg = expr.begin();
-            std::string::const_iterator e_end = expr.end();
-            _expr.push_back(e_beg, e_end);
-#else
-            _expr.push_back(expr.cbegin(), expr.cend());
-#endif
+            _expr.push_back(0, expr.length());
             return true;
         }
 
@@ -164,7 +165,6 @@ namespace {
             _expr.m_func_param = para;
             return true;
         }
-
 
         static bool is_var_refer(const StringSlice_t& var)
         {
@@ -192,66 +192,77 @@ namespace {
         bool parse_expr(iter_t & s_beg, iter_t s_end)
         {
             SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            while (s_beg != s_end)
-            {
-                bool is_end_with_escape = false;
+            if (s_beg == s_end) {
+                this->_expr.push_back(*this->_p_str, s_beg, s_end);
+            }
+            else {
+                while (s_beg != s_end)
                 {
-                    Rewinder_t r(s_beg);
-                    while (s_beg != s_end) {
-                        Rewinder_t r1(s_beg);
-                        if (parse_Var(s_beg, s_end)) {
-                            r1.commit(false);
-                            break;
-                        }
-                        else {
-                            if (sss::is_begin_with(s_beg, s_end, "$$")) {
-                                is_end_with_escape = true;
-                                s_beg += 2;
-                                r1.commit(true);
+                    bool is_end_with_escape = false;
+                    size_t var_name_length = 0u;
+                    {
+                        Rewinder_t r(s_beg);
+                        while (s_beg != s_end) {
+                            Rewinder_t r1(s_beg);
+                            if (parse_Var(s_beg, s_end)) {
+                                var_name_length = r1.distance();
+                                // TODO 这里应该记录 var_name 长度；以避免重复解析；
+                                r1.commit(false);
                                 break;
                             }
                             else {
-                                s_beg++;
-                                r1.commit(true);
+                                if (sss::is_begin_with(s_beg, s_end, "$$")) {
+                                    is_end_with_escape = true;
+                                    s_beg += 2;
+                                    r1.commit(true);
+                                    break;
+                                }
+                                else {
+                                    s_beg++;
+                                    r1.commit(true);
+                                }
                             }
                         }
+                        // NOTE 空串 ""，有没有问题？
+                        if (r.distance()) {
+                            r.commit(true);
+                            StringSlice_t slice = r.getSlice();
+                            if (is_end_with_escape) {
+                                slice.shrink(0, 1); // "$$" -> "$";
+                            }
+                            this->_expr.push_back(*this->_p_str, slice); //  1st
+                            if (is_end_with_escape) {
+                                slice.clear();      // ""
+                                this->_expr.push_back(*this->_p_str, slice); // 2nd
+                            }
+                            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, slice);
+                        }
                     }
-                    if (r.distance()) {
-                        r.commit(true);
-                        StringSlice_t slice = r.getSlice();
-                        if (is_end_with_escape) {
-                            slice.shrink(0, 1);
+
+                    {
+                        Rewinder_t r2(s_beg);
+                        std::advance(s_beg, var_name_length);
+                        // r2.commit(parse_Var(s_beg, s_end));
+                        if (r2.distance()) {
+                            r2.commit(true);
+                            StringSlice_t var_name = r2.getSlice();
+                            if (var_name[1] == '{') {
+                                var_name.shrink(2, 1); // strip "${" and "}"
+                            }
+                            else {
+                                var_name.shrink(1, 0); // strip "$"
+                            }
+                            // NOTE 确保 满足 [串 变量]... 的形式; 0-based
+                            if (!(this->_expr.size() & 1u)) {
+                                this->_expr.push_back(*this->_p_str, s_beg, s_beg);
+                            }
+                            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var_name);
+                            // std::string var_name = PenvMgr2::refer2name(.str());
+                            this->_expr.push_back(*this->_p_str, var_name);
+                            this->_varlist.insert(var_name.str());
                         }
-                        this->_expr.push_back(slice);
-                        if (is_end_with_escape) {
-                            slice.clear();
-                            this->_expr.push_back(slice);
-                        }
-                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, slice);
                     }
                 }
-
-                {
-                    Rewinder_t r2(s_beg);
-                    r2.commit(parse_Var(s_beg, s_end));
-                    if (r2.distance()) {
-                        StringSlice_t var_name = r2.getSlice();
-                        if (var_name[1] == '{') {
-                            var_name.shrink(2, 1); // strip "${" and "}"
-                        }
-                        else {
-                            var_name.shrink(1, 0); // strip "$"
-                        }
-                        if (!(this->_expr.size() & 1u)) {
-                            this->_expr.push_back(s_beg, s_beg);
-                        }
-                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var_name);
-                        // std::string var_name = PenvMgr2::refer2name(.str());
-                        this->_expr.push_back(var_name);
-                        this->_varlist.insert(var_name.str());
-                    }
-                }
-
             }
             assert(s_beg == s_end);
             return true;
@@ -315,9 +326,9 @@ namespace {
     private:
         PenvMgr2::var_list_t      & _varlist;
         PenvMgr2::expression_t    & _expr;
+        const std::string         * _p_str;
     };
 }
-
 
 PenvMgr2&  PenvMgr2::getGlobalEnv()
 {
@@ -503,6 +514,9 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
     return true;
 }
 
+/**
+ * @brief 循环依赖异常
+ */
 class ExceptionDependLoop : public std::runtime_error
 {
 public:
@@ -515,6 +529,9 @@ public:
     }
 };
 
+/**
+ * @brief 依赖状态变量类型；用来记录所依赖变量的求值状态；
+ */
 struct depend_t
 {
     depend_t()
@@ -549,6 +566,24 @@ std::ostream& operator << (std::ostream& o, const depend_t& d)
     return o;
 }
 
+/**
+ * @brief 依赖检查器；
+ *        在对 "$环境变量" 求值的过程中，不可避免会遇到变量之间的相互依赖问题；
+ *        比如 a->b; b->c; a->c；
+ *        如果没有一个中间的机制，我在对a求值的过程中，可能会需要两次对c求值；
+ *        类似，还有如何避免循环依赖的问题；
+ *        对此，我引入了 这个检查器类；
+ *        在递归求值过程中，它可以记录中间计算过程，以避免重复求值；并且，在递
+ *        归前后，对所依赖的变量，都会进行记录；如果发现出现了 a->b->a 的循环，
+ *        会立即抛出异常。
+ *
+ *        后来，我引入了 ${t.(`echo $my_var`)} shell脚本类型变量；此时的循环依
+ *        赖检查，就变得复杂了。此时，我额外引入了一个循环深度控制的概念，同样
+ *        放进这个"检查类"里面。
+ *
+ *        当这个依赖检查器，检测到递归深度，超过某一个深度(比如500)，的时候，同
+ *        样会抛出异常。
+ */
 class depend_checker2_t : private std::map<std::string, depend_t>
 {
     int m_depth;
@@ -659,6 +694,9 @@ public:
 private:
 };
 
+/**
+ * @brief helper class for depend_checker2_t::depth_check
+ */
 class dc_depth_wrapper {
 public:
     dc_depth_wrapper(depend_checker2_t& dc) : m_ref_dc(dc) {
@@ -758,6 +796,7 @@ std::string PenvMgr2::getSystemVar(const std::string& var) const
         if (fmt.empty()) {
             fmt.assign("%FT%T");
         }
+        // std::cout << __FILE__ << ':' << __func__ << sss::time::strftime(fmt) << std::endl;
         return sss::time::strftime(fmt);
     }
     else if (var == "cwd" || var == "getcwd") {
@@ -783,7 +822,14 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
     // if (!sss::is_end_with(cmd, err_to_null)) {
     //     cmd.append(err_to_null);
     // }
+#ifdef __WIN32__
+    const char * shell_path = sss::env::get("SHELL");
+    if (shell_path) {
+        cmd = shell_path + std::string(" -c ") + cmd;
+    }
+#endif
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, cmd);
+
 #if 0
     sss::ps::StringPipe ps;
     ps << cmd;
@@ -1037,18 +1083,21 @@ std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & 
          it != expr.end();
          ++it, ++index)
     {
+        // std::cout << __LINE__ << ":" << __func__ << " index = " << index << std::endl;
         // NOTE 奇数位，变量
         // 偶数位，raw字符串
         if (index & 1) {
-            std::string var_name = (*it).str();
+            const std::string& var_name = (*it).str();
             if (var_name.empty()) {
                 continue;
             }
             depend_checker2_t::const_iterator it_dc = dc.find(var_name);
             assert(it_dc != dc.end() && it_dc->second._ok);
             oss << it_dc->second._value;
+            // std::cout << __LINE__ << ":" << __func__ << " var_name = " << var_name << std::endl;
         }
         else {
+            // std::cout << __LINE__ << ":" << __func__ << " raw_str = " << *it << std::endl;
             oss << *it;
         }
     }
@@ -1154,12 +1203,20 @@ bool        PenvMgr2::has(std::string var) const
 //
 // 需要用双重指针来定位具体的var！
 
-PenvMgr2& PenvMgr2::parent() const
+const PenvMgr2& PenvMgr2::parent() const
 {
     if (!this->has_parent()) {
-        SSS_POSTION_THROW(std::runtime_error, "Null PenvMgr2::_parent dereferenced!");
+        return *this;
     }
-    return * this->_parent;
+    return *this->_parent;
+}
+
+PenvMgr2& PenvMgr2::parent()
+{
+    if (!this->has_parent()) {
+        return *this;
+    }
+    return *this->_parent;
 }
 
 void PenvMgr2::set_shellscript_workdir(const std::string& path)
