@@ -1,10 +1,10 @@
 #include "ps.hpp"
 
-
 #include <sss/util/Escaper.hpp>
 
 #ifdef __WIN32__
 #include <sss/process.hpp>
+#include <sss/environ.hpp>
 #else
 #include <sss/popenRWE.h>
 
@@ -118,7 +118,10 @@ namespace sss
 #ifdef __WIN32__
             // TODO FIXME
             std::string ret;
-            sss::runPipeCmdLine(command_line, ret);
+            std::string env_str;
+            sss::env::dump(env_str, env);
+            sss::runPipeCmdLine(command_line, dir, env_str, ret);
+
             return ret;
 #else
             std::ostringstream oss;
