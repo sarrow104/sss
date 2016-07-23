@@ -731,7 +731,15 @@ namespace path {
 
     std::string& escape(std::string& path)
     {
+        // NOTE linux下，文件(夹)名字可以包含 backslash '\\'
+        // 此时，需要对它进行转义；
+        // 而windows下，路径分隔符是 backslash(以及 slash!)，即，文件名中不能包
+        // 含 slash '/'
+#ifdef __WIN32__
+        static sss::util::Escaper esp(" \"'[](){}?*$&");
+#else
         static sss::util::Escaper esp("\\ \"'[](){}?*$&");
+#endif
         std::ostringstream oss;
         esp.escapeToStream(oss, path);
         path = oss.str();
@@ -740,7 +748,11 @@ namespace path {
 
     std::string& unescape(std::string& path)
     {
+#ifdef __WIN32__
+        static sss::util::Escaper esp(" \"'[](){}?*$&");
+#else
         static sss::util::Escaper esp("\\ \"'[](){}?*$&");
+#endif
         std::ostringstream oss;
         esp.unescapeToStream(oss, path);
         path = oss.str();
