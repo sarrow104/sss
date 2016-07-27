@@ -235,7 +235,7 @@ public:
 
 public:
     friend std::ostream& operator<<(std::ostream& os, const Date& d);
-    std::string format(const std::string& fmt) const;
+    std::string format(const std::string& fmt = "%FT%T") const;
 
 protected:
     void initFinal();
