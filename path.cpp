@@ -320,6 +320,9 @@ namespace path {
                 }
             }
         }
+        // if (path.empty()) {
+        //     path = ".";
+        // }
         return path;
     }
 
@@ -1384,7 +1387,7 @@ namespace path {
             sss::path::full_of(mainDir);
         }
 
-        if (mainDir.empty() || !sss::path::is_sp_char(*mainDir.rbegin()))
+        if (!mainDir.empty() && !sss::path::is_sp_char(*mainDir.rbegin()))
         {
             mainDir += path::sp_char;
         }
@@ -1397,13 +1400,7 @@ namespace path {
         // NOTE 对于windows路径来说，如果连盘符都不一样，那么说明，没有必要再计
         // 算相对路径了，直接返回path即可；
 
-        // std::cout << "fullFilePath: " << fullFilePath << std::endl;
-        // std::cout << "mainDir: " << mainDir << std::endl;
-
         size_t mdlength = path::max_dirname_length(fullFilePath, mainDir);
-
-        // std::cout << "fullFilePath<: " << fullFilePath.substr(0, mdlength) << std::endl;
-        // std::cout << "mainDir<: " << mainDir.substr(0, mdlength) << std::endl;
 
         // 都是绝对路径，但是没有相同的地方，那么，取fullFilePath即可；
         if (sss::path::is_absolute(mainDir) && sss::path::is_absolute(fullFilePath) && !mdlength) {
@@ -1413,12 +1410,6 @@ namespace path {
         sub_dir_after(fullFilePath, mdlength);
 
         sub_dir_after(mainDir, mdlength);
-
-        // fullFilePath = fullFilePath.substr(mdlength);
-        // mainDir      = mainDir.substr(mdlength);
-
-        // std::cout << "fullFilePath-left: " << fullFilePath << std::endl;
-        // std::cout << "mainDir-left: " << mainDir << std::endl;
 
         // mainDir一开始是附加了 path::sp_char 的
         // 所以，……
