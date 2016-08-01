@@ -320,9 +320,6 @@ namespace path {
                 }
             }
         }
-        // if (path.empty()) {
-        //     path = ".";
-        // }
         return path;
     }
 
