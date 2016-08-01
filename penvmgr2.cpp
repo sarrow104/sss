@@ -14,6 +14,7 @@
 
 #ifdef __WIN32__
 #    include <sss/environ.hpp>
+#    include <sss/util/Escaper.hpp>
 #endif
 
 namespace  {
@@ -825,7 +826,8 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
 #ifdef __WIN32__
     const char * shell_path = sss::env::get("SHELL");
     if (shell_path) {
-        cmd = shell_path + std::string(" -c ") + cmd;
+        // FIXME escape or quote
+        cmd = shell_path + std::string(" -c ") + sss::util::dquote_copy(cmd);
     }
 #endif
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, cmd);
@@ -886,7 +888,20 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
         dc.put(*it_var, this->evaluator_impl(*it_var, dc));
     }
     dc.dump2map(script_env);
-    return sss::ps::PipeRun(cmd, script_wd, script_env);
+    std::string ret = sss::ps::PipeRun(cmd, script_wd, script_env);
+
+    // NOTE
+    // 就执行shell脚本而言；获得的输出，一般是多行；并且末尾会附带一个换行符。
+    // 而这个换行符，一般情况下，是不需要的；
+    if (!ret.empty()) {
+        if (sss::is_end_with(ret, "\n")) {
+            ret.resize(ret.length() - 1);
+        }
+        else if (sss::is_end_with(ret, "\r\n")) {
+            ret.resize(ret.length() - 2);
+        }
+    }
+    return ret;
 #endif
 }
 
