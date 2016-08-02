@@ -791,10 +791,10 @@ namespace path {
 #endif
     }
 
-    bool chgcwd(const std::string& dir) // {{{1
+    bool chgcwd_nothrow(const std::string& dir) // {{{1
     {
-        if (chdir (dir.c_str()) != 0) {
-            throw std::runtime_error("::chdir error!");
+        if (sss::path::chgcwd(dir) != 0) {
+            return false;
         }
         return true;
     }

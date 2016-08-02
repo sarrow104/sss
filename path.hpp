@@ -19,6 +19,8 @@
 #include <string>
 #include <iostream>
 
+#include <sss/util/PostionThrow.hpp>
+
 namespace sss {
 
 enum path_type{PATH_NOT_EXIST = 0, PATH_TO_DIRECTORY = 1, PATH_TO_FILE = 2};
@@ -246,7 +248,15 @@ namespace path {
     bool dirClear(const std::string& dir);
 
     std::string getcwd();
-    bool chgcwd(const std::string& dir);
+    bool chgcwd_nothrow(const std::string& dir);
+
+    inline bool chgcwd(const std::string& dir)
+    {
+        if (!sss::path::chgcwd_nothrow(dir)) {
+            SSS_POSTION_THROW(std::runtime_error, "unable to chdir(" << dir << ")");
+        }
+        return true;
+    }
 
     /* 当输入的path是一个空白字符串的时候，返回当前工作目录的根目录
      * ——在windows下，就是驱动器号+冒号+斜杠
