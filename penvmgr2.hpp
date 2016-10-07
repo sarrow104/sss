@@ -6,7 +6,8 @@
 //
 // 如果，如果能把原始的类型信息，按字符保存，有用吗？
 //
-// 如果能将该信息，和具体的构造函数对应起来，就可以动态构造对象了；先分配合适大小的内存，然后用placement new；
+// 如果能将该信息，和具体的构造函数对应起来，就可以动态构造对象了；先分配合适大小的内存，然后用placement
+// new；
 // 下面是关于类型到字符串的文章
 // http://www.2cto.com/kf/201405/301319.html
 // http://blog.csdn.net/lnwaycool/article/details/6960350
@@ -75,7 +76,7 @@
 // 另外，可以参考
 // ~/extra/sss/include/sss/tdspp2/sql_var_replacer.hpp|23
 //============================================================================
-// TODO 
+// TODO
 // 2016-03-19 支持"函数调用"；形如：
 //
 //  ${varname:substr(0,5):toupper()}
@@ -83,6 +84,33 @@
 // 的话，还可以支持占位符，以完成多参数的调用；
 //
 // 比如，用{}，表示上一个指令的结果，替换此处；
+//
+// 或者，启用管道符号；另外&&,||逻辑操作符号，也可以使用。
+// 总之，有两种风格，一种是lisp嵌套；一种是管道；lisp嵌套优点是表达能力够强，缺
+// 点是需要嵌套处理，不方便通过程序，自动化构建操作序列。后者，的话，是基于数据
+// 流形式，方便构建操作序列。缺点在于，对于多参数函数的参数传递、调用，需要额外
+// 处理。
+//
+// 另外，对于参数处理，还可以附加一些字符处理操作函数；比如截取、拼接、正则表达
+// 式，等等。这部分操作的写法，可以参考bash语法。
+//
+// 不过，需要支持数组、字典，甚至json吗？
+// 链式处理
+//
+//     需要处理，如何退出；如何，从深层调用中，退出。
+//
+// 链式处理对于多结果的控制；
+//
+//     正则表达式，可以通过子匹配，以获取多个输出；
+//     css-selector，其实，也可以附加上捕获器——不过，需要注意的是，前者输出的
+//     是字符串；后者选择到的是元素列表。
+//
+// bash字符串处理相关的${var..}方式其实，规则蛮复杂。其实是简单的搜索、截取等等
+//，完全可以用正则表达式来统一处理，以提供规则的一致性。
+//
+// ${var//ge|func1|func2};注意，
+//
+// 或许，可以借鉴sed的语法
 //
 // TODO 还可以参考多级求值；即，env可以设置一个链表；找不到的变量可以往上级求索
 // ——相当于作用域；
@@ -292,14 +320,14 @@
 //! 内存使用的问题
 //
 // PenvMgr用作模板引擎的时候，内存使用的问题；大文件模板？流输出，还是……
-// 
+//
 // 我觉得，可以在解析过程中，保存中间结果；遇到重复的变量引用，可以马上输出……
 //
 // 假设，模板文件是大文件；那么，在替换的变量的时候，也保存一个完整的串，显然是不智的；
 // 最好是一边解析，一边输出……
 //
 //! 我这个工具的可以看做支持函数的子语言吗
-// 
+//
 // 内嵌脚本的一个特点是支持自定义函数。我这个东西，更像是自动求值的环境变量——
 // 说实话，其特性，特别像makefile里面的变量。
 //
@@ -308,617 +336,576 @@
 // 也不支持调用形式……
 // env.setFunction(funcName, funcBody);
 
+#include <sss/log.hpp>
 #include <sss/util/StringSlice.hpp>
 #include <sss/utlstring.hpp>
-#include <sss/log.hpp>
 
-#include <iterator>
 #include <algorithm>
+#include <iterator>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
 
 #define PENVMGR2_SUPPORT_SHELL_CMD
 
-namespace sss{
+namespace sss {
 
-    class depend_checker2_t;
+class depend_checker2_t;
 
-    class PenvMgr2
-    {
-    public:
-        /**
-         * @brief PenvMgr2 PenvMgr2环境变量管理器；变量类型
-         */
-        enum var_type_t {
-            TYPE_UNKNOWN = '\0',
-            TYPE_OSENV  = 'e', // 'e' '.' Identifier
-            TYPE_GLOBAL = 'g', // 'g' '.' Identifier
-            TYPE_NORMAL = 'n', // ('n' '.' Identifier) |  Identifier
-            TYPE_SYSTEM = 's', // 's' '.' Identifier
-            TYPE_SHELL  = 't'  // 't' '.' "(`" Scripts "`)"
-        };
+class PenvMgr2 {
+public:
+    /**
+     * @brief PenvMgr2 PenvMgr2环境变量管理器；变量类型
+     */
+    enum var_type_t {
+        TYPE_UNKNOWN = '\0',
+        TYPE_OSENV = 'e',   // 'e' '.' Identifier
+        TYPE_GLOBAL = 'g',  // 'g' '.' Identifier
+        TYPE_NORMAL = 'n',  // ('n' '.' Identifier) |  Identifier
+        TYPE_SYSTEM = 's',  // 's' '.' Identifier
+        TYPE_SHELL = 't'    // 't' '.' "(`" Scripts "`)"
+    };
 
-        typedef std::string::const_iterator iter_t;
-        typedef sss::util::StringSlice<iter_t> StringSlice_t;
+    typedef std::string::const_iterator iter_t;
+    typedef sss::util::StringSlice<iter_t> StringSlice_t;
 
-        // 改进：
-        // 用奇偶区分字符串和变量；
-        // 然后变量，取-去掉{}后的位置；
-        // expression_t，可以增加std::function<std::string(*)()>这样的成员；
-        // 但是，再额外套上 template<typename T>的引用成员，就不太合适了。
-        //
-        // 会导致类型碎片；
-        //
-        // 然后一个expression_t对应一个std::string;
-        //
-        // is_var_refer(),is_var()这些接口，也需要增加重载，以支持类StringSlice接口；
-        // std::ostream&的输出，可能需要使用write()函数。
-        /**
-         * @brief 具名变量对应的定义式结构体；
-         *
-         *        NOTE 当前，可以容纳两种类型：
-         *        1. 一个外部对象的指针引用；以及转换为std::string 的自定义函数；
-         *        2. linux环境变量风格的字符串变量；可嵌套定义；
-         *
-         *        "字符串形式字符串环境变量内部数据结构说明"
-         *      m_data->std::string;
-         *          原始定义串
-         *
-         *      m_slice->Slice_T;
-         *          parser后，对原始字符串切片后的，上下界，组成的数组
-         *          注意，该数组，由 [rawstring, var-name]... 这样间隔排列；
-         *          为了确保这个间隔顺序；必要的时候 rawstring 和 var-name 都可以是空串！
-         *          其中 var-name 为"环境变量"，去掉 '$' 以及 '{','}'对 之后的形式；
-         */
-        struct expression_t
+    // 改进：
+    // 用奇偶区分字符串和变量；
+    // 然后变量，取-去掉{}后的位置；
+    // expression_t，可以增加std::function<std::string(*)()>这样的成员；
+    // 但是，再额外套上 template<typename T>的引用成员，就不太合适了。
+    //
+    // 会导致类型碎片；
+    //
+    // 然后一个expression_t对应一个std::string;
+    //
+    // is_var_refer(),is_var()这些接口，也需要增加重载，以支持类StringSlice接口；
+    // std::ostream&的输出，可能需要使用write()函数。
+    /**
+     * @brief 具名变量对应的定义式结构体；
+     *
+     *        NOTE 当前，可以容纳两种类型：
+     *        1. 一个外部对象的指针引用；以及转换为std::string 的自定义函数；
+     *        2. linux环境变量风格的字符串变量；可嵌套定义；
+     *
+     *        "字符串形式字符串环境变量内部数据结构说明"
+     *      m_data->std::string;
+     *          原始定义串
+     *
+     *      m_slice->Slice_T;
+     *          parser后，对原始字符串切片后的，上下界，组成的数组
+     *          注意，该数组，由 [rawstring, var-name]... 这样间隔排列；
+     *          为了确保这个间隔顺序；必要的时候 rawstring 和 var-name
+     * 都可以是空串！
+     *          其中 var-name 为"环境变量"，去掉 '$' 以及 '{','}'对 之后的形式；
+     */
+    struct expression_t {
+        template <typename T>
+        static std::string AnyRefer(void* p)
         {
+            return sss::cast_string(*reinterpret_cast<T*>(p));
+        }
 
-            template<typename T>
-                static std::string AnyRefer(void * p)
-                {
-                    return sss::cast_string(*reinterpret_cast<T*>(p));
+        typedef std::vector<std::pair<int, int>> Slice_T;
+        typedef void* FuncParamT;
+        typedef std::string (*FuncT)(FuncParamT);
+
+        expression_t() : m_func(0), m_func_param(0) {}
+        expression_t(const expression_t& rhs)
+            : m_slice(rhs.m_slice),
+              m_data(rhs.m_data),
+              m_func(rhs.m_func),
+              m_func_param(rhs.m_func_param)
+        {
+        }
+
+        ~expression_t() {}
+        expression_t& operator=(const expression_t& rhs)
+        {
+            if (this != &rhs) {
+                this->m_slice = rhs.m_slice;
+                this->m_data.assign(rhs.m_data);
+                this->m_func = rhs.m_func;
+                this->m_func_param = rhs.m_func_param;
+            }
+            return *this;
+        }
+
+        void clear()
+        {
+            this->m_slice.clear();
+            this->m_data.clear();
+            this->m_func = 0;
+            this->m_func_param = 0;
+        }
+
+        void push_back(int beg, int end)
+        {
+            this->m_slice.push_back(std::make_pair(beg, end));
+        }
+
+        // FIXME 这里貌似不对！
+        // 传入的迭代器，可不一定指向 this->m_data ！
+        void push_back(const std::string& str,
+                       std::string::const_iterator it_beg,
+                       std::string::const_iterator it_end)
+        {
+            std::string::const_iterator it_beg_o = str.begin();
+            this->m_slice.push_back(
+                std::make_pair(std::distance(it_beg_o, it_beg),
+                               std::distance(it_beg_o, it_end)));
+        }
+
+        void push_back(
+            const std::string& str,
+            const sss::util::StringSlice<std::string::const_iterator>& slice)
+        {
+            this->push_back(str, slice.begin(), slice.end());
+        }
+
+        StringSlice_t operator[](int idx) const
+        {
+            return StringSlice_t(
+                this->m_data.begin() + this->m_slice[idx].first,
+                this->m_data.begin() + this->m_slice[idx].second);
+        }
+
+        size_t size() const { return this->m_slice.size(); }
+        void print(std::ostream& o) const
+        {
+            o << &this->m_data << std::endl;
+            for (size_t i = 0; i != this->size(); ++i) {
+                if (i & 1) {
+                    o << "\t${" << this->operator[](i) << "}";
                 }
-
-            typedef  std::vector<std::pair<int, int> >  Slice_T;
-            typedef  void * FuncParamT;
-            typedef  std::string(*FuncT) (FuncParamT);
-
-            expression_t()
-                : m_func(0), m_func_param(0)
-            {
-            }
-
-            expression_t(const expression_t& rhs)
-                : m_slice(rhs.m_slice), m_data(rhs.m_data),
-                  m_func(rhs.m_func), m_func_param(rhs.m_func_param)
-            {
-            }
-
-            ~expression_t()
-            {
-            }
-
-            expression_t& operator = (const expression_t& rhs)
-            {
-                if (this != &rhs) {
-                    this->m_slice = rhs.m_slice;
-                    this->m_data.assign(rhs.m_data);
-                    this->m_func = rhs.m_func;
-                    this->m_func_param = rhs.m_func_param;
+                else {
+                    o << "\t" << this->operator[](i);
                 }
+                o << " [" << this->m_slice[i].first << ", "
+                  << this->m_slice[i].second << ']' << std::endl;
+            }
+        }
+
+        class const_iterator;
+
+        class iterator {
+            friend class const_iterator;
+
+        public:
+            iterator(const iterator& i) : m_e(i.m_e), m_s(i.m_s) {}
+            explicit iterator(expression_t& e,
+                              expression_t::Slice_T::iterator it)
+                : m_e(e), m_s(it)
+            {
+            }
+            ~iterator() {}
+        public:
+            iterator& operator++()
+            {
+                m_s++;
                 return *this;
             }
 
-            void clear()
+            iterator operator++(int)
             {
-                this->m_slice.clear();
-                this->m_data.clear();
-                this->m_func = 0;
-                this->m_func_param = 0;
+                iterator tmp(*this);
+                m_s++;
+                return tmp;
             }
 
-            void push_back(int beg, int end)
+            bool operator==(const iterator& rhs) const
             {
-                this->m_slice.push_back(std::make_pair(beg, end));
+                return this->m_s == rhs.m_s;
             }
 
-            // FIXME 这里貌似不对！
-            // 传入的迭代器，可不一定指向 this->m_data ！
-            void push_back(const std::string& str,
-                           std::string::const_iterator it_beg,
-                           std::string::const_iterator it_end)
+            bool operator!=(const iterator& rhs) const
             {
-                std::string::const_iterator it_beg_o = str.begin();
-                this->m_slice.push_back(std::make_pair(std::distance(it_beg_o, it_beg),
-                                                       std::distance(it_beg_o, it_end)));
+                return !operator==(rhs);
             }
 
-            void push_back(const std::string& str, const sss::util::StringSlice<std::string::const_iterator>& slice)
+            StringSlice_t operator*()
             {
-                this->push_back(str, slice.begin(), slice.end());
+                return StringSlice_t(m_e.m_data.begin() + m_s->first,
+                                     m_e.m_data.begin() + m_s->second);
             }
 
-            StringSlice_t operator[] (int idx) const
-            {
-                return StringSlice_t(this->m_data.begin() + this->m_slice[idx].first,
-                                     this->m_data.begin() + this->m_slice[idx].second);
-            }
-
-            size_t size() const {
-                return this->m_slice.size();
-            }
-
-            void print(std::ostream& o) const {
-                o << &this->m_data << std::endl;
-                for (size_t i = 0; i != this->size(); ++i) {
-                    if (i & 1) {
-                        o << "\t${" << this->operator[](i) << "}";
-                    }
-                    else {
-                        o << "\t" << this->operator[](i);
-                    }
-                    o << " [" << this->m_slice[i].first << ", " << this->m_slice[i].second << ']' << std::endl;
-                }
-            }
-
-            class const_iterator;
-
-            class iterator
-            {
-                friend class const_iterator;
-            public:
-                iterator(const iterator& i)
-                    : m_e(i.m_e), m_s(i.m_s)
-                {
-                }
-                explicit iterator(expression_t& e, expression_t::Slice_T::iterator it)
-                    : m_e(e), m_s(it)
-                {
-                }
-                ~iterator()
-                {
-                }
-
-            public:
-                iterator& operator++()
-                {
-                    m_s++;
-                    return *this;
-                }
-
-                iterator operator++(int)
-                {
-                    iterator tmp(*this);
-                    m_s++;
-                    return tmp;
-                }
-
-                bool operator == (const iterator& rhs) const
-                {
-                    return this->m_s == rhs.m_s;
-                }
-
-                bool operator != (const iterator& rhs) const
-                {
-                    return !operator == (rhs);
-                }
-
-                StringSlice_t operator *()
-                {
-                    return StringSlice_t(m_e.m_data.begin() + m_s->first,
-                                         m_e.m_data.begin() + m_s->second);
-                }
-
-            private:
-                expression_t& m_e;
-                expression_t::Slice_T::iterator m_s;
-            };
-
-            class const_iterator
-            {
-            public:
-                const_iterator(const const_iterator& i)
-                    : m_e(i.m_e), m_s(i.m_s)
-                {
-                }
-                explicit const_iterator(const expression_t& e, expression_t::Slice_T::const_iterator it)
-                    : m_e(e), m_s(it)
-                {
-                }
-                ~const_iterator()
-                {
-                }
-
-            public:
-                const_iterator& operator++()
-                {
-                    m_s++;
-                    return *this;
-                }
-
-                const_iterator operator++(int)
-                {
-                    const_iterator tmp(*this);
-                    m_s++;
-                    return tmp;
-                }
-
-                bool operator == (const const_iterator& rhs) const
-                {
-                    return this->m_s == rhs.m_s;
-                }
-
-                bool operator != (const const_iterator& rhs) const
-                {
-                    return !operator == (rhs);
-                }
-
-                StringSlice_t operator *()
-                {
-                    return StringSlice_t(m_e.m_data.begin() + m_s->first,
-                                         m_e.m_data.begin() + m_s->second);
-                }
-
-            private:
-                const expression_t& m_e;
-                expression_t::Slice_T::const_iterator m_s;
-            };
-
-            iterator begin()
-            {
-                return iterator(*this, this->m_slice.begin());
-            }
-
-            const_iterator begin() const
-            {
-                return const_iterator(*this, this->m_slice.begin());
-            }
-
-            iterator end()
-            {
-                return iterator(*this, this->m_slice.end());
-            }
-
-            const_iterator end() const
-            {
-                return const_iterator(*this, this->m_slice.end());
-            }
-
-            Slice_T         m_slice;
-            std::string     m_data;
-            FuncT           m_func;
-            FuncParamT      m_func_param;
+        private:
+            expression_t& m_e;
+            expression_t::Slice_T::iterator m_s;
         };
 
-        typedef std::set<std::string>                       var_list_t;
-
-        /**
-         * @brief
-         *          "环境变量"的定义体，可以切分为：变量结合，和列表定义式，两部分
-         */
-        struct var_body_t
-        {
-            var_list_t      first;
-            expression_t    second;
-
-            bool isFunction() const {
-                return this->second.m_func;
-            }
-
-            std::string evalFunction() const {
-                if (this->isFunction()) {
-                    return this->second.m_func(this->second.m_func_param);
-                }
-                return "";
-            }
-
-            var_list_t& var_list()
+        class const_iterator {
+        public:
+            const_iterator(const const_iterator& i) : m_e(i.m_e), m_s(i.m_s) {}
+            explicit const_iterator(const expression_t& e,
+                                    expression_t::Slice_T::const_iterator it)
+                : m_e(e), m_s(it)
             {
-                return first;
             }
-
-            expression_t& def_body()
+            ~const_iterator() {}
+        public:
+            const_iterator& operator++()
             {
-                return second;
+                m_s++;
+                return *this;
             }
 
-            const var_list_t& var_list() const
+            const_iterator operator++(int)
             {
-                return first;
+                const_iterator tmp(*this);
+                m_s++;
+                return tmp;
             }
 
-            const expression_t& def_body() const
+            bool operator==(const const_iterator& rhs) const
             {
-                return second;
+                return this->m_s == rhs.m_s;
             }
 
-            void print_body(std::ostream& o) const;
+            bool operator!=(const const_iterator& rhs) const
+            {
+                return !operator==(rhs);
+            }
+
+            StringSlice_t operator*()
+            {
+                return StringSlice_t(m_e.m_data.begin() + m_s->first,
+                                     m_e.m_data.begin() + m_s->second);
+            }
+
+        private:
+            const expression_t& m_e;
+            expression_t::Slice_T::const_iterator m_s;
         };
 
-        typedef std::map<std::string, var_body_t>           env_t;
-        typedef env_t::iterator                             iterator;
-        typedef env_t::const_iterator                       const_iterator;
-
-    public:
-        /**
-         * @brief 默认构造函数；
-         *
-         * @param[in] parent 父环境指针；
-         */
-        explicit PenvMgr2(PenvMgr2 * parent = 0);
-
-        ~PenvMgr2();
-
-    private:
-        // 禁用拷贝构造
-        PenvMgr2(const PenvMgr2& ref);
-
-    public:
-        iterator begin();
-        iterator end();
-
-        const_iterator begin() const;
-        const_iterator end() const;
-
-    public:
-        bool        set(std::string var, const std::string& expr);
-        /**
-         * @brief 对必须解析的定义式的补充形式；提供次函数的原因，参考 C++11 raw-string
-         *        将"变量"的定义体，原样设置为其值
-         *
-         * @param[in] var  变量名；
-         * @param[in] expr 定义体；
-         *
-         * @return 总是返回true——表示成功；失败，抛出异常；
-         */
-        bool        setRawStr(std::string var, const std::string& expr);
-
-        /**
-         * @brief 变量 引用到一个全局函数，和一个外部变量上；
-         *
-         * @param[in] var   变量名
-         * @param[in] func  可返回 std::string 的 全局函数名；
-         * @param[in] param 提供给，该全局函数的一个指针；可指向一个外部变量；
-         *
-         * @return 总是返回 true；否则，抛出异常
-         */
-        bool        set(std::string var, expression_t::FuncT func, expression_t::FuncParamT param = 0);
-
-        /**
-         * @brief 将变量，引用到一个外部变量上；语法糖函数。
-         *
-         * @tparam[in] T
-         * @param[in] var
-         * @param[in] value
-         *
-         * @return 总是返回 true；否则，抛出异常；
-         */
-        template<typename T> bool setRefer(std::string var, T & value)
+        iterator begin() { return iterator(*this, this->m_slice.begin()); }
+        const_iterator begin() const
         {
-            this->set(var, &expression_t::AnyRefer<T>, &value);
+            return const_iterator(*this, this->m_slice.begin());
         }
 
-        /**
-         * @brief 返回以 var 为变量名，的变量的值；
-         *
-         * @param[in] var 变量名(去掉$,{}的形式)
-         *
-         * @return 该变量的值；如果该变量不存在，则抛出异常
-         */
-        std::string get(std::string var) const;       
-
-        /**
-         * @brief 将expr，理解为"环境变量"表达式，在替换之后，再返回结果；
-         *        如果表达式所引用的变量，当前还未找到定义，则该部分替换为空(删除)。
-         *        为什么返回空串，而不是抛出异常？是为了避免定义的时候，就产生依赖问题。
-         *
-         * @param[in] expr 包含"环境变量"的表达式字符串；
-         *
-         * @return 替换、重新组装之后的结果字符串
-         */
-        std::string get_expr(const std::string& expr) const;
-        /**
-         * @brief 从外部文件读取文本，并理解为"环境变量"表达式；替换，并返回结果。
-         *
-         * @param[in] file_script 表达式脚本路径
-         *
-         * @return 替换、重新组装之后的结果字符串
-         */
-        std::string get_expr_file(const std::string& file_script) const;
-
-        /**
-         * @brief 从环境中，删除某变量。
-         *
-         * @param[in] var 变量名
-         *
-         * @return 返回true：删除成功；返回false，删除失败|该变量不存在；
-         */
-        bool        unset(std::string var);
-        /**
-         * @brief 检测环境中是否含有某变量定义式子
-         *
-         * @param[in] var 变量名；
-         *
-         * @return true：变量存在；false：该变量不存在；
-         */
-        bool        has(std::string var) const;
-
-        /**
-         * @brief 检测环境是否含有父环境；
-         *
-         * @return true：变量存在；false：该变量不存在；
-         */
-        bool        has_parent() const
+        iterator end() { return iterator(*this, this->m_slice.end()); }
+        const_iterator end() const
         {
-            return this->_parent;
+            return const_iterator(*this, this->m_slice.end());
         }
 
-        /**
-         * @brief 返回最顶层的环境引用；或者返回自己；
-         *
-         * @return 环境引用
-         */
-        PenvMgr2&   getGlobalEnv();
-        /**
-         * @brief 返回最顶层的环境引用；或者返回自己；
-         *
-         * @return 环境引用
-         */
-        const PenvMgr2&  getGlobalEnv() const;
-
-        /**
-         * @brief 返回父环境引用；或者返回自己；
-         *
-         * @return 环境引用
-         */
-        const PenvMgr2&  parent() const;
-        /**
-         * @brief 返回父环境引用；或者返回自己；
-         *
-         * @return 环境引用
-         */
-        PenvMgr2&  parent();
-
-        void print(std::ostream& o) const;
-
-        /**
-         * @brief 将内部环境变量(包括祖先环境)，统统导入到一个 std::map 结构中
-         *        父(祖先)环境中，变量，会被子环境中同名变量覆盖；
-         *
-         * @param[out] out 携带所有变量的结构体
-         */
-        void dump2map(std::map<std::string, std::string>& out) const;
-
-        /**
-         * @brief 设置 shell 脚本类型变量执行时候的工作目录；
-         *
-         * @param[in] path 工作目录
-         */
-        void set_shellscript_workdir(const std::string& path);
-        /**
-         * @brief 取消 shell 脚本类型变量执行时候的工作目录设置；
-         */
-        void unset_shellscript_workdir();
-
-    public:
-        /**
-         * @brief 测试某变量名 var 是否满足"环境变量"定义式(含${})
-         *
-         * @param[in] var 待测试变量名
-         *
-         * @return ture: 满足；false： 不满足
-         */
-        static bool is_var_refer(const std::string & var);
-        static bool is_var_refer(const StringSlice_t& var);
-
-        /**
-         * @brief 测试某变量名 var 是否满足"环境变量"定义式(不含${})
-         *
-         * @param[in] var 待测试变量名
-         *
-         * @return ture: 满足；false： 不满足
-         */
-        static bool is_var(const std::string & var);
-
-        /**
-         * @brief 变量名风格调整——去掉 '$','{','}'
-         *
-         * @param[in] var 变量名
-         *
-         * @return 去掉 '$','{','}' 后的变量名
-         */
-        static std::string refer2name(const std::string & var);
-
-    protected:
-
-        /**
-         * @brief 获取 PenvMgr2 系统本身提供的变量"值"
-         *
-         * @param[in] var 变量名
-         *
-         * @return 变量值
-         */
-        std::string getSystemVar(const std::string& var) const;
-
-        /**
-         * @brief 获取 OS环境变量"值"
-         *
-         * @param[in] var OS环境变量名
-         *
-         * @return 变量值
-         */
-        std::string getEnvVar(const std::string& var) const;
-
-        /**
-         * @brief 执行 shell 脚本并获取输出作为值返回；
-         *        脚本中，如果引用到某些变量；这些变量的值，会在运行前，作为 OS环境变量，传递给 bash。
-         *
-         * @param[in] var shell脚本定义式
-         *
-         * @return 脚本输出；
-         */
-        std::string getShellComandFromVar(const std::string& var) const;
-        /**
-         * @brief getShellComandFromVar(const std::string& var) const 的携带依赖检查版；
-         *
-         * @param[in] var shell脚本定义式
-         * @param[in] dc 依赖检查器
-         *
-         * @return 脚本输出
-         */
-        std::string getShellComandFromVar(const std::string& var, depend_checker2_t & dc) const;
-
-        /**
-         * @brief 查找变量(去'$'形式)定义体——当前环境优先；父环境次之；
-         *
-         * @param[in] var 变量名
-         *
-         * @return 定义体指针；0：该名变量，不存在；
-         */
-        const var_body_t *  find_body(const std::string& var) const;
-
-        /**
-         * @brief 对某变量名进行求值；implement (实现)函数
-         *
-         * @param[in] var 变量名
-         * @param[in] dc  依赖检查器
-         *
-         * @return 生成的变量名；
-         */
-        std::string evaluator_impl(std::string var, depend_checker2_t & dc) const;
-
-    protected:
-        /**
-         * @brief 通过变量的定义体，和"依赖检查器"搜集到的，被求值变量，所依赖变量的值；组装为具体的变量值
-         *
-         * @param[in] bd 变量定义体
-         * @param[in] dc 依赖检查器
-         *
-         * @return 组装后的变量值；
-         */
-        static std::string generate(const var_body_t & bd, const depend_checker2_t & dc);
-
-    private:
-        env_t       _env;
-        PenvMgr2    *_parent;
+        Slice_T m_slice;
+        std::string m_data;
+        FuncT m_func;
+        FuncParamT m_func_param;
     };
 
-    inline std::ostream& operator << (std::ostream& o, const PenvMgr2::expression_t& e)
+    typedef std::set<std::string> var_list_t;
+
+    /**
+     * @brief
+     *          "环境变量"的定义体，可以切分为：变量结合，和列表定义式，两部分
+     */
+    struct var_body_t {
+        var_list_t first;
+        expression_t second;
+
+        bool isFunction() const { return this->second.m_func; }
+        std::string evalFunction() const
+        {
+            if (this->isFunction()) {
+                return this->second.m_func(this->second.m_func_param);
+            }
+            return "";
+        }
+
+        var_list_t& var_list() { return first; }
+        expression_t& def_body() { return second; }
+        const var_list_t& var_list() const { return first; }
+        const expression_t& def_body() const { return second; }
+        void print_body(std::ostream& o) const;
+    };
+
+    typedef std::map<std::string, var_body_t> env_t;
+    typedef env_t::iterator iterator;
+    typedef env_t::const_iterator const_iterator;
+
+public:
+    /**
+     * @brief 默认构造函数；
+     *
+     * @param[in] parent 父环境指针；
+     */
+    explicit PenvMgr2(PenvMgr2* parent = 0);
+
+    ~PenvMgr2();
+
+private:
+    // 禁用拷贝构造
+    PenvMgr2(const PenvMgr2& ref);
+
+public:
+    iterator begin();
+    iterator end();
+
+    const_iterator begin() const;
+    const_iterator end() const;
+
+public:
+    bool set(std::string var, const std::string& expr);
+    /**
+     * @brief 对必须解析的定义式的补充形式；提供次函数的原因，参考 C++11
+     * raw-string
+     *        将"变量"的定义体，原样设置为其值
+     *
+     * @param[in] var  变量名；
+     * @param[in] expr 定义体；
+     *
+     * @return 总是返回true——表示成功；失败，抛出异常；
+     */
+    bool setRawStr(std::string var, const std::string& expr);
+
+    /**
+     * @brief 变量 引用到一个全局函数，和一个外部变量上；
+     *
+     * @param[in] var   变量名
+     * @param[in] func  可返回 std::string 的 全局函数名；
+     * @param[in] param 提供给，该全局函数的一个指针；可指向一个外部变量；
+     *
+     * @return 总是返回 true；否则，抛出异常
+     */
+    bool set(std::string var, expression_t::FuncT func,
+             expression_t::FuncParamT param = 0);
+
+    /**
+     * @brief 将变量，引用到一个外部变量上；语法糖函数。
+     *
+     * @tparam[in] T
+     * @param[in] var
+     * @param[in] value
+     *
+     * @return 总是返回 true；否则，抛出异常；
+     */
+    template <typename T>
+    bool setRefer(std::string var, T& value)
     {
-        e.print(o);
-        return o;
+        this->set(var, &expression_t::AnyRefer<T>, &value);
     }
 
-    inline std::ostream& operator << (std::ostream& o, const PenvMgr2& env)
-    {
-        env.print(o);
-        return o;
-    }
+    /**
+     * @brief 返回以 var 为变量名，的变量的值；
+     *
+     * @param[in] var 变量名(去掉$,{}的形式)
+     *
+     * @return 该变量的值；如果该变量不存在，则抛出异常
+     */
+    std::string get(std::string var) const;
 
+    /**
+     * @brief 将expr，理解为"环境变量"表达式，在替换之后，再返回结果；
+     *        如果表达式所引用的变量，当前还未找到定义，则该部分替换为空(删除)。
+     *        为什么返回空串，而不是抛出异常？是为了避免定义的时候，就产生依赖问题。
+     *
+     * @param[in] expr 包含"环境变量"的表达式字符串；
+     *
+     * @return 替换、重新组装之后的结果字符串
+     */
+    std::string get_expr(const std::string& expr) const;
+    /**
+     * @brief 从外部文件读取文本，并理解为"环境变量"表达式；替换，并返回结果。
+     *
+     * @param[in] file_script 表达式脚本路径
+     *
+     * @return 替换、重新组装之后的结果字符串
+     */
+    std::string get_expr_file(const std::string& file_script) const;
+
+    /**
+     * @brief 从环境中，删除某变量。
+     *
+     * @param[in] var 变量名
+     *
+     * @return 返回true：删除成功；返回false，删除失败|该变量不存在；
+     */
+    bool unset(std::string var);
+    /**
+     * @brief 检测环境中是否含有某变量定义式子
+     *
+     * @param[in] var 变量名；
+     *
+     * @return true：变量存在；false：该变量不存在；
+     */
+    bool has(std::string var) const;
+
+    /**
+     * @brief 检测环境是否含有父环境；
+     *
+     * @return true：变量存在；false：该变量不存在；
+     */
+    bool has_parent() const { return this->_parent; }
+    /**
+     * @brief 返回最顶层的环境引用；或者返回自己；
+     *
+     * @return 环境引用
+     */
+    PenvMgr2& getGlobalEnv();
+    /**
+     * @brief 返回最顶层的环境引用；或者返回自己；
+     *
+     * @return 环境引用
+     */
+    const PenvMgr2& getGlobalEnv() const;
+
+    /**
+     * @brief 返回父环境引用；或者返回自己；
+     *
+     * @return 环境引用
+     */
+    const PenvMgr2& parent() const;
+    /**
+     * @brief 返回父环境引用；或者返回自己；
+     *
+     * @return 环境引用
+     */
+    PenvMgr2& parent();
+
+    void print(std::ostream& o) const;
+
+    /**
+     * @brief 将内部环境变量(包括祖先环境)，统统导入到一个 std::map 结构中
+     *        父(祖先)环境中，变量，会被子环境中同名变量覆盖；
+     *
+     * @param[out] out 携带所有变量的结构体
+     */
+    void dump2map(std::map<std::string, std::string>& out) const;
+
+    /**
+     * @brief 设置 shell 脚本类型变量执行时候的工作目录；
+     *
+     * @param[in] path 工作目录
+     */
+    void set_shellscript_workdir(const std::string& path);
+    /**
+     * @brief 取消 shell 脚本类型变量执行时候的工作目录设置；
+     */
+    void unset_shellscript_workdir();
+
+public:
+    /**
+     * @brief 测试某变量名 var 是否满足"环境变量"定义式(含${})
+     *
+     * @param[in] var 待测试变量名
+     *
+     * @return ture: 满足；false： 不满足
+     */
+    static bool is_var_refer(const std::string& var);
+    static bool is_var_refer(const StringSlice_t& var);
+
+    /**
+     * @brief 测试某变量名 var 是否满足"环境变量"定义式(不含${})
+     *
+     * @param[in] var 待测试变量名
+     *
+     * @return ture: 满足；false： 不满足
+     */
+    static bool is_var(const std::string& var);
+
+    /**
+     * @brief 变量名风格调整——去掉 '$','{','}'
+     *
+     * @param[in] var 变量名
+     *
+     * @return 去掉 '$','{','}' 后的变量名
+     */
+    static std::string refer2name(const std::string& var);
+
+protected:
+    /**
+     * @brief 获取 PenvMgr2 系统本身提供的变量"值"
+     *
+     * @param[in] var 变量名
+     *
+     * @return 变量值
+     */
+    std::string getSystemVar(const std::string& var) const;
+
+    /**
+     * @brief 获取 OS环境变量"值"
+     *
+     * @param[in] var OS环境变量名
+     *
+     * @return 变量值
+     */
+    std::string getEnvVar(const std::string& var) const;
+
+    /**
+     * @brief 执行 shell 脚本并获取输出作为值返回；
+     *        脚本中，如果引用到某些变量；这些变量的值，会在运行前，作为
+     * OS环境变量，传递给 bash。
+     *
+     * @param[in] var shell脚本定义式
+     *
+     * @return 脚本输出；
+     */
+    std::string getShellComandFromVar(const std::string& var) const;
+    /**
+     * @brief getShellComandFromVar(const std::string& var) const
+     * 的携带依赖检查版；
+     *
+     * @param[in] var shell脚本定义式
+     * @param[in] dc 依赖检查器
+     *
+     * @return 脚本输出
+     */
+    std::string getShellComandFromVar(const std::string& var,
+                                      depend_checker2_t& dc) const;
+
+    /**
+     * @brief 查找变量(去'$'形式)定义体——当前环境优先；父环境次之；
+     *
+     * @param[in] var 变量名
+     *
+     * @return 定义体指针；0：该名变量，不存在；
+     */
+    const var_body_t* find_body(const std::string& var) const;
+
+    /**
+     * @brief 对某变量名进行求值；implement (实现)函数
+     *
+     * @param[in] var 变量名
+     * @param[in] dc  依赖检查器
+     *
+     * @return 生成的变量名；
+     */
+    std::string evaluator_impl(std::string var, depend_checker2_t& dc) const;
+
+protected:
+    /**
+     * @brief
+     * 通过变量的定义体，和"依赖检查器"搜集到的，被求值变量，所依赖变量的值；组装为具体的变量值
+     *
+     * @param[in] bd 变量定义体
+     * @param[in] dc 依赖检查器
+     *
+     * @return 组装后的变量值；
+     */
+    static std::string generate(const var_body_t& bd,
+                                const depend_checker2_t& dc);
+
+private:
+    env_t _env;
+    PenvMgr2* _parent;
+};
+
+inline std::ostream& operator<<(std::ostream& o,
+                                const PenvMgr2::expression_t& e)
+{
+    e.print(o);
+    return o;
 }
 
+inline std::ostream& operator<<(std::ostream& o, const PenvMgr2& env)
+{
+    env.print(o);
+    return o;
+}
+}
 
 #endif
-
