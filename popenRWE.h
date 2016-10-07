@@ -8,6 +8,7 @@
  * execution it can then write to element 0 (stdin of exe), and read from
  * element 1 (stdout) and 2 (stderr).
  */
+// reference: https://github.com/sni/mod_gearman/blob/master/common/popenRWE.c
 #ifdef __cplusplus
 extern "C" {
 #endif

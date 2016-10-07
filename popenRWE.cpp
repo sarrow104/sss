@@ -114,12 +114,12 @@ int pcloseRWE(int pid, int *rwepipe)
         return -1;
     }
 
-    int rc, status;
-
     ::close(rwepipe[0]);
     ::close(rwepipe[1]);
     ::close(rwepipe[2]);
-    rc = ::waitpid(pid, &status, 0);
+
+    int status;
+    int rc = ::waitpid(pid, &status, 0);
 
     if (rc == -1) {
         status = -1;
