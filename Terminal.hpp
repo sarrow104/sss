@@ -98,6 +98,8 @@ namespace sss {
         int getTextDefaultAttr();
 #endif
 
+        bool isatty(std::ostream& o);
+
         namespace style {
 
             enum font_mode_t {
@@ -173,6 +175,7 @@ namespace sss {
 
             public:
                 const char * data() const;
+                int          data_len() const;
 
                 void print(std::ostream& o) const;
 
@@ -184,6 +187,7 @@ namespace sss {
                 int     _attr;
 #endif
                 char    _data[12];
+                int     _data_len;
             };
 
             template<typename T>

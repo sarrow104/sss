@@ -426,6 +426,7 @@ namespace sss { // {{{
 #endif
                 }
                 *prender++ = 'm';
+                this->_data_len = prender - this->_data;
 
 #ifdef __WIN32__
                 if (mode == sss::Terminal::style::FONT_RESET) {
@@ -444,6 +445,10 @@ namespace sss { // {{{
 
             const char * begin::data() const {
                 return sss::Terminal::is_tty_mode() ? this->_data : "";
+            }
+
+            int   begin::data_len() const {
+                return sss::Terminal::is_tty_mode() ? this->_data_len : 0;
             }
 
             void begin::print(std::ostream& o) const
