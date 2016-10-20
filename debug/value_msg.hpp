@@ -41,39 +41,7 @@ class value_msg_t {
     struct PrintHelper<TChar, TCharTraits, char> {
         static void print_to(std::basic_ostream<TChar, TCharTraits>& o, char u)
         {
-            o.put('\'');
-            switch (u) {
-                case '\0':
-                    o.write("\\0", 2);
-                    break;
-                case '\a':
-                    o.write("\\a", 2);
-                    break;
-                case '\b':
-                    o.write("\\b", 2);
-                    break;
-                case '\f':
-                    o.write("\\f", 2);
-                    break;
-                case '\n':
-                    o.write("\\n", 2);
-                    break;
-                case '\r':
-                    o.write("\\r", 2);
-                    break;
-                case '\t':
-                    o.write("\\t", 2);
-                    break;
-                case '\v':
-                    o.write("\\v", 2);
-                    break;
-                case '"':
-                    o.write("\\\"", 2);
-                    break;
-                default:
-                    o.put(u);
-            }
-            o.put('\'');
+            o << sss::raw_char(u);
         }
     };
 
