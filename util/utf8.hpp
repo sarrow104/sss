@@ -149,21 +149,39 @@ namespace sss {
                         break;
 
                     case utf8::tail:
+#if defined(__cplusplus) && __cplusplus >= 201103L
+                        SSS_POSTION_THROW(std::runtime_error,
+                                          "require head byte but tail `",
+                                          ext::binary, uint32_t(lead), "`");
+#else
                         SSS_POSTION_THROW(std::runtime_error,
                                           "require head byte but tail `" << ext::binary << uint32_t(lead) << "`");
+#endif
                         break;
 
                     case utf8::bad_byte:
+#if defined(__cplusplus) && __cplusplus >= 201103L
+                        SSS_POSTION_THROW(std::runtime_error, "bad byte `",
+                                          ext::binary, lead, "`");
+#else
                         SSS_POSTION_THROW(std::runtime_error,
                                           "bad byte `" << ext::binary << lead << "`");
+#endif
                         break;
 
                     default:
                         {
                             if (std::distance(it_beg, it_end) < lead_type) {
+#if defined(__cplusplus) && __cplusplus >= 201103L
+                                SSS_POSTION_THROW(std::runtime_error,
+                                                  "not enough spaces for tail "
+                                                  "bytes; with lead `",
+                                                  std::hex, int(lead), "`");
+#else
                                 SSS_POSTION_THROW(std::runtime_error,
                                                   "not enough spaces for tail bytes; with lead `"
                                                   << std::hex << int(lead) << "`");
+#endif
                             }
 
                             int tail_len = lead_type - 1;
@@ -171,13 +189,26 @@ namespace sss {
                             uint8_t tail_byte = 0u;
 
                             switch (lead_type) {
-#define UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, idx)                       \
-                                tail_byte = *(it_beg + idx);                    \
-                                if (utf8::tail != utf8::to_value_type(tail_byte)) {     \
-                                    SSS_POSTION_THROW(std::runtime_error,       \
-                                                      "require tail byte but `" << ext::binary << tail_byte << "`");       \
-                                }                                               \
-                                cp |= (tail_byte & ~utf8::UTF8_table[0].MASK & 0xFF) << (6 * (tail_len - idx));
+#if defined(__cplusplus) && __cplusplus >= 201103L
+#define UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, idx)                \
+    tail_byte = *(it_beg + idx);                                         \
+    if (utf8::tail != utf8::to_value_type(tail_byte)) {                  \
+        SSS_POSTION_THROW(std::runtime_error, "require tail byte but `", \
+                          ext::binary, tail_byte, "`");                  \
+    }                                                                    \
+    cp |= (tail_byte & ~utf8::UTF8_table[0].MASK & 0xFF)                 \
+          << (6 * (tail_len - idx));
+#else
+#define UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, idx)                     \
+    tail_byte = *(it_beg + idx);                                              \
+    if (utf8::tail != utf8::to_value_type(tail_byte)) {                       \
+        SSS_POSTION_THROW(std::runtime_error, "require tail byte but `"       \
+                                                  << ext::binary << tail_byte \
+                                                  << "`");                    \
+    }                                                                         \
+    cp |= (tail_byte & ~utf8::UTF8_table[0].MASK & 0xFF)                      \
+          << (6 * (tail_len - idx));
+#endif
 
                             case utf8::h6:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 5);
