@@ -71,14 +71,14 @@ ConfigFile::ConfigFile(const ConfigFile& ref)
     SSS_LOG_ERROR("ConfigFile::ConfigFile(const ConfigFile& ref) at %p\n", this);
     SSS_LOG_ERROR("ref at %p\n", &ref);
     if (ref.is_open())
-        throw ConfigFile::Exception("ConfigFile ²»ÔÊÐí£¬´ò¿ª¹¹Ôì");
+        throw ConfigFile::Exception("ConfigFile ä¸å…è®¸ï¼Œæ‰“å¼€æž„é€ ");
 }
 
 ConfigFile::~ConfigFile()
 {
 }
 
-// ½»»»Êý¾Ý¿Õ¼ä£»Ö÷ÒªÊÇÓÃÓÚÈÝÆ÷µÄÊ¹ÓÃ£»
+// äº¤æ¢æ•°æ®ç©ºé—´ï¼›ä¸»è¦æ˜¯ç”¨äºŽå®¹å™¨çš„ä½¿ç”¨ï¼›
 // 2012-06-10
 void ConfigFile::swap(sss::ConfigFile& cf)
 {
@@ -119,11 +119,11 @@ bool ConfigFile::read(const std::string& configFile)
             // trim white spaces
             sss::trim(line);
 
-            // ¿ÕÐÐ
+            // ç©ºè¡Œ
             if (! line.length())
                 continue;
 
-            // ×¢ÊÍÐÐ
+            // æ³¨é‡Šè¡Œ
             if (line[0] == '#')
                 continue;
             if (line[0] == ';')
@@ -135,13 +135,13 @@ bool ConfigFile::read(const std::string& configFile)
                 continue;
             }
 
-            // ÕâÀïÃ»ÓÐ×ö'='´æÔÚÓë·ñµÄ¼ì²é
+            // è¿™é‡Œæ²¡æœ‰åš'='å­˜åœ¨ä¸Žå¦çš„æ£€æŸ¥
             posEqual = line.find('=');
             name  = sss::trim_copy(line.substr(0, posEqual));
-            // 2013-02-14 ÓÃ»§×ÔÐÐ¾ö¶¨ÊÇ·ñ sss::trim_copy()
+            // 2013-02-14 ç”¨æˆ·è‡ªè¡Œå†³å®šæ˜¯å¦ sss::trim_copy()
             value = line.substr(posEqual + 1);
             SSS_LOG_EXPRESSION(sss::log::log_DEBUG, value);
-            {   // »ñÈ¡"¶àÐÐ"Öµ£º
+            {   // èŽ·å–"å¤šè¡Œ"å€¼ï¼š
                 std::string mulline_mk = sss::trim_copy(value);
                 SSS_LOG_EXPRESSION(sss::log::log_DEBUG, mulline_mk);
                 if (mulline_mk.length() == 3 && mulline_mk[0] != '=' && ispunct(mulline_mk[0]) &&
@@ -158,12 +158,12 @@ bool ConfigFile::read(const std::string& configFile)
                             is_fin_mk_found = true;
                             break;
                         }
-                        // ÕâÀï×îºÃ²»Òª sss::trim(); ÒòÎªÈç¹ûÕâÀï±£´æµÄÊÇÃ»ÓÐÓï
-                        // ¾ä½áÊø·ûºÅµÄ½Å±¾£¬±ÈÈç python µÈ£¬»á·¢Éú´íÎó£¡
+                        // è¿™é‡Œæœ€å¥½ä¸è¦ sss::trim(); å› ä¸ºå¦‚æžœè¿™é‡Œä¿å­˜çš„æ˜¯æ²¡æœ‰è¯­
+                        // å¥ç»“æŸç¬¦å·çš„è„šæœ¬ï¼Œæ¯”å¦‚ python ç­‰ï¼Œä¼šå‘ç”Ÿé”™è¯¯ï¼
                         if (tmp_value.length())
                             tmp_value += INI_FILE_NEW_LINE_MARKER;
-                        // ÓÃ std::ios::binary ·½Ê½¶ÁÈ¡Êý¾ÝµÄÊ±ºò£¬std::getline
-                        // ²»»á°Ñ "\r" µ±×÷"»Ø³µ»»ÐÐ"µÄÒ»²¿·Ö£¬¶ø»á±£Áô¡£
+                        // ç”¨ std::ios::binary æ–¹å¼è¯»å–æ•°æ®çš„æ—¶å€™ï¼Œstd::getline
+                        // ä¸ä¼šæŠŠ "\r" å½“ä½œ"å›žè½¦æ¢è¡Œ"çš„ä¸€éƒ¨åˆ†ï¼Œè€Œä¼šä¿ç•™ã€‚
                         if (line.length() && *line.rbegin() == '\r')
                         {
                             tmp_value.append(line, 0, line.length() - 1);
@@ -186,8 +186,8 @@ bool ConfigFile::read(const std::string& configFile)
                 }
             }
 
-            // Õâ²»ÊÇÒ»¸öºÃ·½·¨¡ª¡ªÒòÎª£¬ÕâÏÞÖÆÁË²»ÄÜÓÃ'/'×÷ÎªÃû×Ö¡£
-            // ÕâÀï£¬Ó¦¸ÃÊ¹ÓÃ£¬¾ø¶Ô²»»á³öÏÖ ÊôÐÔÃû ÀïÃæµÄ '\t' »òÕß '\n' µÈµÈ
+            // è¿™ä¸æ˜¯ä¸€ä¸ªå¥½æ–¹æ³•â€•â€•å› ä¸ºï¼Œè¿™é™åˆ¶äº†ä¸èƒ½ç”¨'/'ä½œä¸ºåå­—ã€‚
+            // è¿™é‡Œï¼Œåº”è¯¥ä½¿ç”¨ï¼Œç»å¯¹ä¸ä¼šå‡ºçŽ° å±žæ€§å é‡Œé¢çš„ '\t' æˆ–è€… '\n' ç­‰ç­‰
             //content_[inSection+'/'+name]=Chameleon(value);
             // Sarrow: 2011-11-04
             this->content_[inSection + INI_FILE_SEC_OPT_SEP + name] = value;
@@ -207,20 +207,20 @@ bool ConfigFile::write(const std::string& configFile) const
     if (file.is_open())
     {
         // FIXME
-        // dosiniÅäÖÃÎÄ¼þ£¬·ÖÎª¿éÃûºÍµ±Ç°'¿é'¶ÔÓ¦µÄ¸÷ÖÖÊôÐÔÖµ¡£
-        // Ä¬ÈÏ£¬ÓÐÒ»¸öÈ«¾Ö'¿é'£»Êµ¼ÊÈË¹¤ÊéÐ´iniÅäÖÃÎÄ¼þµÄÊ±ºò£¬È«¾Ö'¿é'£¬ÆäÊµ
-        // ¾ÍÊÇ¿ÕµÄ'¿é'Ãû¡£
+        // dosinié…ç½®æ–‡ä»¶ï¼Œåˆ†ä¸ºå—åå’Œå½“å‰'å—'å¯¹åº”çš„å„ç§å±žæ€§å€¼ã€‚
+        // é»˜è®¤ï¼Œæœ‰ä¸€ä¸ªå…¨å±€'å—'ï¼›å®žé™…äººå·¥ä¹¦å†™inié…ç½®æ–‡ä»¶çš„æ—¶å€™ï¼Œå…¨å±€'å—'ï¼Œå…¶å®ž
+        // å°±æ˜¯ç©ºçš„'å—'åã€‚
         //
-        // ¶øµ±Ç°¹¦ÄÜ¿âÀïÃæ£¬È«¾Ö'¿é'£¬Ð´×÷"[]"¡£Õâ¸öÐÐÎª£¬Ðè²»ÐèÒªÐÞ¸ÄÄØ£¿Èç¹û
-        // ÒªÐÞ¸ÄµÄ»°£¬È«¾Ö'¿é'£¬Ö»ÄÜ³öÏÖÔÚÅäÖÃÎÄ¼þµÄ¿ªÍ·¡£¶øÒ»ÏÂµÄ·½Ê½£¬Ôò¿ÉÒÔ
-        // ³öÏÖÔÚÈÎºÎÎ»ÖÃ¡£
+        // è€Œå½“å‰åŠŸèƒ½åº“é‡Œé¢ï¼Œå…¨å±€'å—'ï¼Œå†™ä½œ"[]"ã€‚è¿™ä¸ªè¡Œä¸ºï¼Œéœ€ä¸éœ€è¦ä¿®æ”¹å‘¢ï¼Ÿå¦‚æžœ
+        // è¦ä¿®æ”¹çš„è¯ï¼Œå…¨å±€'å—'ï¼Œåªèƒ½å‡ºçŽ°åœ¨é…ç½®æ–‡ä»¶çš„å¼€å¤´ã€‚è€Œä¸€ä¸‹çš„æ–¹å¼ï¼Œåˆ™å¯ä»¥
+        // å‡ºçŽ°åœ¨ä»»ä½•ä½ç½®ã€‚
         //
-        // ÎÊÌâÊÇ£º
-        // 1. ÐèÒªÐÞ¸ÄÕâ¸öÐÐÎªÂð£¿
-        // 2. Èç¹ûÐÞ¸Ä£¬¸ÃÈçºÎÊµÏÖ£¿µ±Ç°ÊÇÓÃµÄÅÅÐòµÄ·½Ê½£¬ÄÇÃ´¾Í±ØÐëÒª¿¼ÂÇ
-        // 'INI_FILE_SEC_OPT_SEP'ÔÚÅÅÐòÖÐµÄ"´óÐ¡±È½Ï"ÎÊÌâ¡£µ±Ç°²ÉÓÃµÄÊÇ²»¿ÉÄÜ³öÏÖÔÚ¼üÖµ¶ÔµÄ"\n"×Ö·û¡£
-        //  ÓÐ±ÈËû¸üÐ¡µÄ¿É´òÓ¡×Ö·ûÂð£¿Èç¹ûÃ»ÓÐµÄ»°£¬¾Í¿ÉÒÔ±£Ö¤Õâ¸ö³öÏÖÔÚÅÅÐòµÄµÚÒ»¸öÎ»ÖÃ£¡
-        //  µ±È»£¬ÓÐÒ»¸ö¸üºÃµÄ·½°¸¾ÍÊÇ£¬½«INI_FILE_SEC_OPT_SEP ¶¨ÒåÎª "\0"¡ª¡ªÕâ¾ÍÄÜ±£Ö¤Ëü×îÐ¡ÁË£¡
+        // é—®é¢˜æ˜¯ï¼š
+        // 1. éœ€è¦ä¿®æ”¹è¿™ä¸ªè¡Œä¸ºå—ï¼Ÿ
+        // 2. å¦‚æžœä¿®æ”¹ï¼Œè¯¥å¦‚ä½•å®žçŽ°ï¼Ÿå½“å‰æ˜¯ç”¨çš„æŽ’åºçš„æ–¹å¼ï¼Œé‚£ä¹ˆå°±å¿…é¡»è¦è€ƒè™‘
+        // 'INI_FILE_SEC_OPT_SEP'åœ¨æŽ’åºä¸­çš„"å¤§å°æ¯”è¾ƒ"é—®é¢˜ã€‚å½“å‰é‡‡ç”¨çš„æ˜¯ä¸å¯èƒ½å‡ºçŽ°åœ¨é”®å€¼å¯¹çš„"\n"å­—ç¬¦ã€‚
+        //  æœ‰æ¯”ä»–æ›´å°çš„å¯æ‰“å°å­—ç¬¦å—ï¼Ÿå¦‚æžœæ²¡æœ‰çš„è¯ï¼Œå°±å¯ä»¥ä¿è¯è¿™ä¸ªå‡ºçŽ°åœ¨æŽ’åºçš„ç¬¬ä¸€ä¸ªä½ç½®ï¼
+        //  å½“ç„¶ï¼Œæœ‰ä¸€ä¸ªæ›´å¥½çš„æ–¹æ¡ˆå°±æ˜¯ï¼Œå°†INI_FILE_SEC_OPT_SEP å®šä¹‰ä¸º "\0"â€•â€•è¿™å°±èƒ½ä¿è¯å®ƒæœ€å°äº†ï¼
         //
         std::string section(1, INI_FILE_SEC_OPT_SEP);// impossible section value
         bool is_first_line = true;
@@ -380,7 +380,7 @@ std::string const& ConfigFile::value(std::string const& section, std::string con
     return value;
 }
 
-// TODO É¾³ýÖµ£»
+// TODO åˆ é™¤å€¼ï¼›
 void ConfigFile::del_entry(std::string const& section, std::string const& entry)
 {
     container_t::iterator ci = this->content_.find(section + INI_FILE_SEC_OPT_SEP + entry);
@@ -391,7 +391,7 @@ void ConfigFile::del_entry(std::string const& section, std::string const& entry)
     }
 }
 
-// TODO É¾³ýÇø£»
+// TODO åˆ é™¤åŒºï¼›
 void ConfigFile::del_section(std::string const& section)
 {
     container_t::iterator ini = this->block_begin(section).operator container_t::iterator();
@@ -425,11 +425,11 @@ std::string ConfigEncValued::get_value(const std::string& block,
     std::string value = this->cfg.value(block, name);
     if (value.length())
     {
-        // ¸üÐÂ¼ÓÃÜºóµÄÃÜÂë
+        // æ›´æ–°åŠ å¯†åŽçš„å¯†ç 
         this->cfg.value(block_alias, name_alias, enc.encode(value));
-        // É¾³ýÃ÷ÎÄÃÜÂë
+        // åˆ é™¤æ˜Žæ–‡å¯†ç 
         this->cfg.value(block, name, "");
-        // ¸üÐÂÅäÖÃÎÄ¼þ
+        // æ›´æ–°é…ç½®æ–‡ä»¶
         this->cfg.update();
     }
     else
