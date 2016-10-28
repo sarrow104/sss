@@ -2,36 +2,36 @@
 #ifndef  __FS_HPP_1339764273__
 #define  __FS_HPP_1339764273__
 
-//! linux��C��ȡ�ļ���Ϣ
+//! linux下C获取文件信息
 //! http://blog.csdn.net/gdujian0119/article/details/6363574
 //
-// �ļ��޸�ʱ��ʹ���ʱ��Ļ�ȡ����ȡ���ڲ���ϵͳ�ġ���׼C��û���ṩ�����ĺ���
-// ��
+// 文件修改时间和创建时间的获取，是取决于操作系统的。标准C是没有提供这样的函数
+// 。
 //
-// ��׼C��ȡϵͳʱ�䣬ʹ��std::time(std::time_t *)��������ע�⣬time_tֻ��һ
-// ��long��typdef���ѣ�������׼C����struct tm������date��
+// 标准C获取系统时间，使用std::time(std::time_t *)函数――注意，time_t只是一
+// 个long的typdef而已！；而标准C又用struct tm来保存date！
 //
-// ����win32��˵���ֱַ�������struct SYSTEMTIME��FILETIME ����ʾϵͳʱ����ļ�ʱ�䡣
-// SYSTEMTIME ��ʵ��һ������std::tm�Ľṹ�壬�ֱ𱣴��������գ�ʱ�������Ϣ��
+// 对于win32来说，又分别用两个struct SYSTEMTIME和FILETIME 来表示系统时间和文件时间。
+// SYSTEMTIME 其实是一个类似std::tm的结构体，分别保存了年月日，时分秒等信息。
 //
-// ���ԣ��������ṹ�壬����һ��ȱ�㣺
+// 所以，这两个结构体，都有一个缺点：
 //
-// ��Ӧ��ֱ�����Ӽ��������ʱ�䣨���ڣ������
+// 不应该直接做加减，以求得时间（日期）间隔。
 //
-// ��Ӧ�ã��ֱ�ת���ɸ��Ե�������ʾ��ʽ����FILETIME����time_t����NOTE FILETIME
-// �����Ͽ��Կ�����һ��64λ�� long long ���ͣ�
+// 而应该，分别转化成各自的整数表示形式――FILETIME或者time_t；（NOTE FILETIME
+// 本质上可以看作是一个64位的 long long 类型）
 //
-// ��FILETIME��time_t��Ϊ�м������������ṩ��׼C��win32ʱ��ĸ�ʽת���ˡ�
+// 以FILETIME和time_t作为中间桥梁，就能提供标准C和win32时间的格式转换了。
 //
-// �ڴˣ���һ������������
+// 在此，有一个必须条件：
 //
-// �� UNIX ƽ̨����Ϊ time_t����ʾ����ҹ UTC ��Э��ͨ��ʱ�䣩 1970 �� 1 �� 1 ��
-// ������������ ANSI C ����ʱ�������͵Ĵ�����ά���ļ���ʱ�䡣
+// 在 UNIX 平台下名为 time_t，表示自午夜 UTC （协调通用时间） 1970 年 1 月 1 日
+// 以来的秒数的 ANSI C 运行时算术类型的窗体中维护文件的时间。
 //
-// �� Win32 ƽ̨����Ҫ�� 64 λ FILETIME �ṹ������ʾ�� UTC 1601 �� 1 �� 1 ����
-// ���� 100 ����Ϊ����� ������ͨ��ʱ�䣩 �Ĵ�����ά���ļ���ʱ�䡣
+// 在 Win32 平台下主要在 64 位 FILETIME 结构，它表示的 UTC 1601 年 1 月 1 日以
+// 来的 100 纳秒为间隔数 （坐标通用时间） 的窗体中维护文件的时间。
 //
-// NOTE �ο�:
+// NOTE 参考:
 // http://support.microsoft.com/kb/167296/zh-cn
 #ifdef __WIN32__
 #       include <windows.h>
@@ -85,9 +85,9 @@ namespace sss { namespace fs {
 
 
 // TODO
-// ��װ
-// std::map<std::string, NODE> �������ļ��ṹ��Ȼ����Ը�����Ҫ���л��ָ�����('/'����"\\")��
-// �ο�
+// 封装
+// std::map<std::string, NODE> 创建，文件结构。然后可以根据需要，切换分隔符：('/'或者"\\")。
+// 参考
 // e:\project\myproject\sss_root\include\sss\filesystem\filesystem.h|9
 
 inline FILETIME longlong2filetime(long long t)
@@ -129,14 +129,14 @@ inline SYSTEMTIME filetime2systemtime(const FILETIME& ft)
     return st;
 }
 
-// SYSTEMTIME ֮���ʱ�������׼��㣻���Խ�SYSTEMTIME ת��Ϊlonglong��FILETIME��Ȼ����ת��ΪΪ��
+// SYSTEMTIME 之间的时间差，不容易计算；可以将SYSTEMTIME 转化为longlong的FILETIME；然后，再转化为为秒差；
 inline long long systemtime_diff_in_milliseconds(const SYSTEMTIME &t1, const SYSTEMTIME &t2)
 {
     FILETIME f1 = sss::fs::systemtime2filetime(t1);
     FILETIME f2 = sss::fs::systemtime2filetime(t2);
 
-    // NOTE��FILETIME �ĵ�λ�� 100 ����; ��ô 100 ���� �� ��ı�����7��0����������4��0��
-    // 10^10 ���� = 1 ��
+    // NOTE，FILETIME 的单位是 100 纳秒; 那么 100 纳秒 到 秒的比率是7个0！到毫秒是4个0；
+    // 10^10 纳秒 = 1 秒
     return (sss::fs::filetime2longlong(f2) - sss::fs::filetime2longlong(f1)) / 10000;
 }
 
@@ -151,8 +151,8 @@ inline long long time_t2longlong(time_t t)
     return filetime2longlong(time_t2filetime(t));
 }
 
-//һ�� UNIX ʱ��ת��Ϊ FILETIME �ṹ������ Win32 ʱ���ʽ�������ɵػ��ͨ��ʹ��
-//Win32 ���� ���� FileTimeToSystemTime() �� FileTimeToDosDateTime()��
+//一旦 UNIX 时间转换为 FILETIME 结构，其他 Win32 时间格式可以轻松地获得通过使用
+//Win32 函数 （如 FileTimeToSystemTime() 和 FileTimeToDosDateTime()。
 inline SYSTEMTIME time_t2systemtime(time_t t)
 {
     return filetime2systemtime(time_t2filetime(t));
@@ -177,13 +177,13 @@ inline std::string systemtime_format(const std::string& fmt, const SYSTEMTIME& s
 }
 
 // 2012-06-15
-// �޸��Ѿ����ڵ�Ŀ�꣨�ļ����ļ��У����޸�ʱ�䣬Ϊ��ǰϵͳʱ�䣻
-// ���ߴ���һ���յ��ļ����ļ��С�����ǰ���½����ļ������ļ��У����޸�ʱ�䣬���ǵ�ǰϵͳʱ��
-// ��������Ҫ�޸ĵ�Ŀ�����ļ��У�����·�����ɵ�ǰ�ļ�ϵͳ���Լ�����ĩβ�Ƿ����"\\"����'/'����
+// 修改已经存在的目标（文件或文件夹）的修改时间，为当前系统时间；
+// 或者创建一个空的文件或文件夹――当前，新建的文件（或文件夹）的修改时间，就是当前系统时间
+// 决定具体要修改的目标是文件夹，还是路径，由当前文件系统，以及参数末尾是否带有"\\"或者'/'决定
 bool touch(const std::string& path);
 
 // 2012-06-15
-// �ļ���·���Ƿ����
+// 文件、路径是否存在
 bool is_path_exists(const std::string& path);
 
 inline int  get_file_size(const std::string& path)
@@ -215,11 +215,11 @@ inline int  get_file_size(const std::string& path)
 }
 
 // 2012-06-15
-// ��ȡ�ļ�������޸�ʱ��
+// 获取文件的最后修改时间
 long long last_modify_time(const std::string& path);
 
 // 2012-06-15
-// ��ȡ�ļ������޸�ʱ��
+// 获取文件创建修改时间
 long long construct_time(const std::string& path);
 
 } // end-of namespace fs

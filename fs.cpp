@@ -27,9 +27,9 @@ namespace sss { namespace fs {
 //}
 
 // 2012-06-15
-// ³ÌĞòÂß¼­£º
-// Èç¹ûÖÆ¶¨µÄpath²»´æÔÚ£¬Ôò´´½¨Ò»¸ö¸ÃÂ·¾¶µÄÎÄ¼ş¡ª¡ªÄÚÈİÎª¿Õ£»
-// Èç¹ûÒÑ¾­´æÔÚ£¬Ôò½«Æä"×îºó¸ü¸ÄÊ±¼ä"ĞŞ¸ÄÎªµ±Ç°Ê±¼ä£»
+// ç¨‹åºé€»è¾‘ï¼š
+// å¦‚æœåˆ¶å®šçš„pathä¸å­˜åœ¨ï¼Œåˆ™åˆ›å»ºä¸€ä¸ªè¯¥è·¯å¾„çš„æ–‡ä»¶â€•â€•å†…å®¹ä¸ºç©ºï¼›
+// å¦‚æœå·²ç»å­˜åœ¨ï¼Œåˆ™å°†å…¶"æœ€åæ›´æ”¹æ—¶é—´"ä¿®æ”¹ä¸ºå½“å‰æ—¶é—´ï¼›
 bool touch(const std::string& path)
 {
     bool ret = false;
@@ -44,7 +44,7 @@ bool touch(const std::string& path)
     else {
 #ifdef  __WIN32__
         // NOTE
-        // ĞŞ¸ÄÎÄ¼ş¼ĞµÄ×îºóĞŞ¸ÄÊ±¼ä£¬ºÍĞŞ¸ÄÎÄ¼şµÄĞÅÏ¢£¬´¦Àí·½Ê½Ò»Ñù¡£
+        // ä¿®æ”¹æ–‡ä»¶å¤¹çš„æœ€åä¿®æ”¹æ—¶é—´ï¼Œå’Œä¿®æ”¹æ–‡ä»¶çš„ä¿¡æ¯ï¼Œå¤„ç†æ–¹å¼ä¸€æ ·ã€‚
         HANDLE hFile = ::CreateFile(path.c_str(),
                                     FILE_WRITE_ATTRIBUTES,
                                     FILE_SHARE_READ,
@@ -60,7 +60,7 @@ bool touch(const std::string& path)
             ret = ::SetFileTime(hFile, // sets last-write time for file
                                 (LPFILETIME)NULL, (LPFILETIME)NULL, &ft);
 
-            // TODO ´íÎó´¦Àí
+            // TODO é”™è¯¯å¤„ç†
             ::CloseHandle(hFile);
         }
         else {
