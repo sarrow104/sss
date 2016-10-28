@@ -15,7 +15,7 @@ class DBLink;
 namespace sss {
 namespace tdspp2 {
 
-// Êı¾İ¿â»·¾³
+// æ•°æ®åº“ç¯å¢ƒ
 class Environment
 {
 private:
@@ -26,10 +26,10 @@ private:
         dbmsghandle(sss::tdspp2::msg_handler);
 
         // FIXME
-        // ¾²Ì¬³ÉÔ±±äÁ¿µÄÔö¼ÓºÍ¼õÉÙ£¬Èç¹ûÄÚ²¿»¹Å×³öÁËÒì³££»ÄÇÃ´±¾Ó¦¸Ã³É¶Ô³öÏÖ
-        // µÄdbinit ºÍ dbexit ¾Í»á³ö´í¡£
+        // é™æ€æˆå‘˜å˜é‡çš„å¢åŠ å’Œå‡å°‘ï¼Œå¦‚æœå†…éƒ¨è¿˜æŠ›å‡ºäº†å¼‚å¸¸ï¼›é‚£ä¹ˆæœ¬åº”è¯¥æˆå¯¹å‡ºç°
+        // çš„dbinit å’Œ dbexit å°±ä¼šå‡ºé”™ã€‚
         //
-        // ÕâÀï£¬Ó¦¸ÃÓÃ"Àà"°ü¹üÆğÀ´¡£
+        // è¿™é‡Œï¼Œåº”è¯¥ç”¨"ç±»"åŒ…è£¹èµ·æ¥ã€‚
         SSS_LOG_DEBUG("dbinit();\n");
         if (dbinit() != SUCCEED)
         {
@@ -50,10 +50,10 @@ public:
     bool insert_dblink(DBPROCESS *, DBLink*);
     bool remove_dblink(DBPROCESS *);
 
-    // Í¨¹ı DBPROCESS Ö¸Õë£¬µÃµ½ Query ¶ÔÏóÒıÓÃ¡£
+    // é€šè¿‡ DBPROCESS æŒ‡é’ˆï¼Œå¾—åˆ° Query å¯¹è±¡å¼•ç”¨ã€‚
     Query& refer_query(DBPROCESS*);
 
-    // Í¨¹ı DBPROCESS Ö¸Õë£¬µÃµ½ DBLink ¶ÔÏóÒıÓÃ¡£
+    // é€šè¿‡ DBPROCESS æŒ‡é’ˆï¼Œå¾—åˆ° DBLink å¯¹è±¡å¼•ç”¨ã€‚
     DBLink& refer_dblink(DBPROCESS*);
 
 public:

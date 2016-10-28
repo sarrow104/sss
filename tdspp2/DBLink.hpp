@@ -8,22 +8,22 @@
 namespace sss {
 namespace tdspp2 {
 
-class Login;    // ÎªÊ²Ã´class µÄÇ°ÖÃÉùÃ÷£¬ºÍfriend class²»ÄÜºÏ²¢ÔÚÒ»ÆðÄØ£¿
-                // Èç¹û×¢ÊÍµô´Ë¾ä£¬ºóÃæÊ¹ÓÃLoginµÄµØ·½£¬»áÌáÊ¾Î´¶¨Òå¡£
+class Login;    // ä¸ºä»€ä¹ˆclass çš„å‰ç½®å£°æ˜Žï¼Œå’Œfriend classä¸èƒ½åˆå¹¶åœ¨ä¸€èµ·å‘¢ï¼Ÿ
+                // å¦‚æžœæ³¨é‡ŠæŽ‰æ­¤å¥ï¼ŒåŽé¢ä½¿ç”¨Loginçš„åœ°æ–¹ï¼Œä¼šæç¤ºæœªå®šä¹‰ã€‚
 
-// ±¾ÖÊÊÇ¶ÔDBPROCESS * µÄ·â×°£»µ«ÊÇDBPROCESSÕâÑùµÄÃû×ÖÌ«³¤£¬ËùÒÔ¸Ä³ÉDBLinkÕâÑù
-// ÉÔÎ¢¶ÌÒ»µãµÄÃû×Ö¡£
+// æœ¬è´¨æ˜¯å¯¹DBPROCESS * çš„å°è£…ï¼›ä½†æ˜¯DBPROCESSè¿™æ ·çš„åå­—å¤ªé•¿ï¼Œæ‰€ä»¥æ”¹æˆDBLinkè¿™æ ·
+// ç¨å¾®çŸ­ä¸€ç‚¹çš„åå­—ã€‚
 class DBLink
 {
-    friend class Query; // Ö´ÐÐsql £¬·ÃÎÊÄÚ²¿µÄ dbprocess
-    friend class Login; // ¹¹ÔìÊ±ºò£¬ÈÃLogin¶ÔÏó£¬ÄÜ¹»»Ø·Ã×Ô¼ºÄÚ²¿µÄ dbprocess
+    friend class Query; // æ‰§è¡Œsql ï¼Œè®¿é—®å†…éƒ¨çš„ dbprocess
+    friend class Login; // æž„é€ æ—¶å€™ï¼Œè®©Loginå¯¹è±¡ï¼Œèƒ½å¤Ÿå›žè®¿è‡ªå·±å†…éƒ¨çš„ dbprocess
 
 public:
     DBLink();
 
     explicit DBLink(Login& login);
 
-    // ÔÊÐí¿½±´¹¹Ôì
+    // å…è®¸æ‹·è´æž„é€ 
     DBLink(const DBLink& ref);
     ~DBLink();
 
@@ -45,7 +45,7 @@ private:
 
 private:
     DBPROCESS * dbprocess;
-    Login * pLogin;     // ·½±ã»ØËÝ»ù±¾Á´½ÓÐÅÏ¢
+    Login * pLogin;     // æ–¹ä¾¿å›žæº¯åŸºæœ¬é“¾æŽ¥ä¿¡æ¯
 
     int verbose;
 };

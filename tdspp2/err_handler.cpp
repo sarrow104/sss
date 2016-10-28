@@ -19,8 +19,8 @@ err_handler(DBPROCESS * dbproc,
 {
     (void)dbproc;
     // Some messages are so severe they provoke DB-Library into calling the
-    // error handler, too! If you have both installed °™ and of course you do,
-    // right? °™ then you can skip those lacking an error number.
+    // error handler, too! If you have both installed ÔºÅ and of course you do,
+    // right? ÔºÅ then you can skip those lacking an error number.
 
     std::string appname = sss::path::getbin();
     if (dberr) {
