@@ -53,8 +53,8 @@ namespace sss {
         return this->m_type_state == TYPE_COMMENT;
     }
 
-    // µ±isSectionElementµÄÊ±ºò£¬·µ»Øsection()Ãû×Ö£»
-    // µ±isKeyValueElementµÄÊ±ºò£¬·µ»Økey()
+    // å½“isSectionElementçš„æ—¶å€™ï¼Œè¿”å›section()åå­—ï¼›
+    // å½“isKeyValueElementçš„æ—¶å€™ï¼Œè¿”å›key()
     std::string IniStreamReader::name() const
     {
         std::string ret;

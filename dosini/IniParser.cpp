@@ -1,7 +1,7 @@
 #include "IniParser.hpp"
 
 namespace sss {
-    // ½âÎöiniÎÄ¼şÖĞ£¬ÌØ¶¨¹æÔò£»²¢·µ»ØÏûºÄµÄ×Ö½ÚÊı£»Í¬Ê±»áĞ´hookµ½µÄ×Ö¶Î·¶Î§£»
+    // è§£æiniæ–‡ä»¶ä¸­ï¼Œç‰¹å®šè§„åˆ™ï¼›å¹¶è¿”å›æ¶ˆè€—çš„å­—èŠ‚æ•°ï¼›åŒæ—¶ä¼šå†™hookåˆ°çš„å­—æ®µèŒƒå›´ï¼›
     char firstNoneSpace(const std::string& line, int& pos) {
         char first_none_space = '\0';
         while (pos < int (line.length())) {
@@ -61,7 +61,7 @@ namespace sss {
             key_right += pos;
             trimRange(line, key_left, key_right);
             value_left = last + pos;
-            value_right = line.size(); // ÕâÀï²»ÊÇºÜ×¼È·£»Õâ¸ö¸³Öµ£¬ÊÇÒÔline½ö°üº¬Ò»ĞĞÎÄ±¾µÄÇ°Ìá¶ø¶¨µÄ£»Èç¹û¡­¡­
+            value_right = line.size(); // è¿™é‡Œä¸æ˜¯å¾ˆå‡†ç¡®ï¼›è¿™ä¸ªèµ‹å€¼ï¼Œæ˜¯ä»¥lineä»…åŒ…å«ä¸€è¡Œæ–‡æœ¬çš„å‰æè€Œå®šçš„ï¼›å¦‚æœâ€¦â€¦
             trimRange(line, value_left, value_right);
             return value_right;
         }
@@ -69,8 +69,8 @@ namespace sss {
             return false;
         }
     }
-    // ×¢Òâ£¬×¢ÊÍµÄÅĞ¶ÏÓĞĞ©²»Í¬£»
-    // dosiniµÄ¹æÔòÊÇ£¬×¢ÊÍĞĞ£¬±ØĞë';'¿ªÍ·£¡
+    // æ³¨æ„ï¼Œæ³¨é‡Šçš„åˆ¤æ–­æœ‰äº›ä¸åŒï¼›
+    // dosiniçš„è§„åˆ™æ˜¯ï¼Œæ³¨é‡Šè¡Œï¼Œå¿…é¡»';'å¼€å¤´ï¼
     int iniParseComment(const std::string& line, int& left, int & right) {
         // sss::regex::simpleregex reg_ini_linecomment("^;\\(.+\\)$");
         if (sss::is_begin_with(line, ";")) {
