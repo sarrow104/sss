@@ -8,6 +8,8 @@
 #include <cstring>
 #include <iostream>
 
+#include <tuple>
+
 // NOTE
 // linux 下，常用的终端tools是ncurses；甚至可以支持256种颜色；
 //! http://www.gnu.org/software/ncurses/
@@ -181,6 +183,21 @@ namespace sss {
 
                 template<typename T>
                     highlight_t<T> operator()(const T& value);
+
+                // TODO ArgsT -> std::tuple()
+                // 注意：构成 tuple 参数的，可能来自临时变量——这可能导致在最后实际 operator << 输出动作调用的时候，
+                // 该部分内存空间不再有效。因此，最好还是：
+                //   std::cout << Terminal::begin << va1 << va2 << v3 << Terminal::end << ... 这样的使用方式。
+                // template<typename... Args>
+                //     highlight_t<std::tuple<typename __decay_and_strip<Args>::__type...>> operator()(Args&&... args)
+                //     {
+                //         return {*this, std::make_tuple(args...)};
+                //     }
+                //相关知识：
+                //  saved-args
+                //! http://stackoverflow.com/questions/15537817/c-how-to-store-a-parameter-pack-as-a-variable/15537864
+                //  使用timax::bind， 来获取一个std::function对象
+                //! http://purecpp.org/?p=952
 
             private:
 #ifdef __WIN32__
