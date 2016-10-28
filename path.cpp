@@ -793,7 +793,7 @@ namespace path {
 
     bool chgcwd_nothrow(const std::string& dir) // {{{1
     {
-        if (sss::path::chgcwd(dir) != 0) {
+        if (::chdir(dir.c_str()) != 0) {
             return false;
         }
         return true;
