@@ -80,8 +80,8 @@ struct GenericOutputStream<std::basic_ostringstream<TChar, TCharTraits>> {
     void putCStr(const char* s) { this->_o << s; }
     void put(const char* s, size_t len) { this->_o.write(s, len); }
     void flush() { return; }
-    std::string to_string() { this->_o.str(); }
-    const TChar* to_cstr() { this->_o.str().c_str(); }
+    std::string to_string() { return this->_o.str(); }
+    const TChar* to_cstr() { return this->_o.str().c_str(); }
 };
 
 template <typename TChar, typename TCharTraits>
