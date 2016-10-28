@@ -41,9 +41,9 @@ namespace {
 namespace sss {
     namespace os {
         bool recycle(const std::string& path) {
-            // 1. Éú³É¿ÉÓÃµÄ»ØÊÕÕ¾Ãû
-            // 2. mvÔ´ÎÄ¼ş£¬¼ÇÂ¼É¾³ıĞÅÏ¢£»
-            // 3. ½«É¾³ıĞÅÏ¢£¬Ğ´ÈëinfoÎÄ¼ş¼Ğ£»
+            // 1. ç”Ÿæˆå¯ç”¨çš„å›æ”¶ç«™å
+            // 2. mvæºæ–‡ä»¶ï¼Œè®°å½•åˆ é™¤ä¿¡æ¯ï¼›
+            // 3. å°†åˆ é™¤ä¿¡æ¯ï¼Œå†™å…¥infoæ–‡ä»¶å¤¹ï¼›
 
             std::string fpath = sss::path::full_of_copy(path);
             if (!sss::path::file_exists(fpath)) {
@@ -94,7 +94,7 @@ namespace sss {
             sss::path::dirClear(getTrashPath() + "/info/");
         }
 
-        // Ã²ËÆÈÃÓ¦ÓÃ³ÌĞò£¬»ñÈ¡ËùÓĞ»ØÊÕÕ¾ÎÄ¼şĞÅÏ¢£¬Ã»Ê²Ã´ÂÑÓÃ¡£
+        // è²Œä¼¼è®©åº”ç”¨ç¨‹åºï¼Œè·å–æ‰€æœ‰å›æ”¶ç«™æ–‡ä»¶ä¿¡æ¯ï¼Œæ²¡ä»€ä¹ˆåµç”¨ã€‚
         RecycleBin::RecycleBin()
         {
             std::string recyclebin_path =
