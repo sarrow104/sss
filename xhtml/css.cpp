@@ -61,7 +61,7 @@ css_color::css_color(const std::string& style)
             int cnt = sscanf(style.c_str() + 3,
                              " %*1[(] %d %*1[,] %d %*1[,] %d %*1[)]%n",
                              &r, &g, &b, &n);
-            // Î´¶ÁÍê£¬»òÕß»¹ÓÐÊ£Óà
+            // æœªè¯»å®Œï¼Œæˆ–è€…è¿˜æœ‰å‰©ä½™
             // ??? cnt
             if (cnt != 3 || n == -1 || int(style.length()) > 3 + n) {
                 break;
@@ -70,10 +70,10 @@ css_color::css_color(const std::string& style)
             this->g = green;
             this->b = blue;
 
-            break; // ÎÞÂÛ³É¹¦Óë·ñ£¬¶¼Ìø³öÑ­»·
+            break; // æ— è®ºæˆåŠŸä¸Žå¦ï¼Œéƒ½è·³å‡ºå¾ªçŽ¯
         }
     }
-    // 3. ÊµÃû£º
+    // 3. å®žåï¼š
     else if (css_color_table::is_valid_name(style)) {
         int color = css_color_table::convert(style);
         this->r = (color >> 16) & 0xFF;
