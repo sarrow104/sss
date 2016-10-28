@@ -29,6 +29,18 @@ class value_msg_t {
         }
     };
     template <typename TChar, typename TCharTraits>
+    struct PrintHelper<TChar, TCharTraits, bool> {
+        static void print_to(std::basic_ostream<TChar, TCharTraits>& o,
+                             bool u)
+        {
+            if (u) {
+                o.write("true", 4);
+            } else {
+                o.write("false", 5);
+            }
+        }
+    };
+    template <typename TChar, typename TCharTraits>
     struct PrintHelper<TChar, TCharTraits, std::string> {
         static void print_to(std::basic_ostream<TChar, TCharTraits>& o,
                              const std::string& u)
@@ -119,8 +131,18 @@ inline value_msg_t<sss::raw_string_t<char>> value_msg(const char* n,
 
 }  // namespace sss
 
-#ifndef VALUE_MSG
-#define VALUE_MSG(a) sss::debug::value_msg((#a), (a))
+#ifndef SSS_VALUE_MSG
+#define SSS_VALUE_MSG(a) sss::debug::value_msg((#a), (a))
 #endif
+
+// TODO 增加格式控制宏；比如：
+// VALUE_MSG_CFMT(a, f) sss::debug::value_msg_cfmt((#a), (a), (f))
+// 其中，(f)表示sprintf中的格式；是字符串形式，可以表示宽度、对齐等信息；当然，还有fill-char和解析格式。
+// 这样的话，必须的格式信息有：a. 解析格式
+// 可选信息有：a. 宽度；b. 对其；c. fill-char 三个；
+// 一共4组信息；
+// 当然，由于是模板类，因此内部，已经知晓类型信息了。因此，按整数还是字符串来解释信息，
+// 就有些多余——按debug目的，肯定是按照用户当时的使用逻辑习惯来打印信息，即，不可能要
+// 求按整型打印字符串，或者按照字符串，打印数字。
 
 #endif /* __VALUE_MSG_HPP_1476947215__ */
