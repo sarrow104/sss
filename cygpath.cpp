@@ -17,7 +17,7 @@ namespace  {
     }
     void unescape_str(std::string& s) {
         size_t i = 0, j = 0;
-        // FIXME ÊÇ·ñ×ªÒåÆäËûĞòÁĞ£¿
+        // FIXME æ˜¯å¦è½¬ä¹‰å…¶ä»–åºåˆ—ï¼Ÿ
         while (i < s.length()) {
             if (s[i] == '\\') {
                 if (i + 3 < s.length() && s[i + 1] == '0' && ::isoctdigit(s[i + 2]) && ::isoctdigit(s[i + 3])) {
@@ -40,7 +40,7 @@ namespace  {
 namespace sss {
     namespace cygpath {
         /**
-         * @brief ·µ»Ø url ´®ÀàĞÍ
+         * @brief è¿”å› url ä¸²ç±»å‹
          *
          * @param url
          *
@@ -49,8 +49,8 @@ namespace sss {
          *         'w' windows  c:\windows\system32
          *         'm' mixed    d:/Program\040Files/
          *
-         *         NOTE c: ÊÇ 'w' »¹ÊÇ 'm' £¿ 
-         *              ¼øÓÚfstabÉè¶¨ÊÇÒªÇó'm'·ç¸ñµÄwindowsÂ·¾¶£¬ËùÒÔ¡­¡­
+         *         NOTE c: æ˜¯ 'w' è¿˜æ˜¯ 'm' ï¼Ÿ 
+         *              é‰´äºfstabè®¾å®šæ˜¯è¦æ±‚'m'é£æ ¼çš„windowsè·¯å¾„ï¼Œæ‰€ä»¥â€¦â€¦
          */
         char url_type(const std::string& url)
         {
@@ -80,10 +80,10 @@ namespace sss {
         }
 
         /**
-         * @brief ÔØÈë fstab ÅäÖÃÎÄ¼ş
+         * @brief è½½å…¥ fstab é…ç½®æ–‡ä»¶
          *
-         * @param fstab_path fstabÎÄ¼şÂ·¾¶.
-         *        NOTE Â·¾¶ÊÇ native Â·¾¶·ç¸ñ£»
+         * @param fstab_path fstabæ–‡ä»¶è·¯å¾„.
+         *        NOTE è·¯å¾„æ˜¯ native è·¯å¾„é£æ ¼ï¼›
          */
         void fstab::load(const std::string& fstab_path)
         {
@@ -158,19 +158,19 @@ namespace sss {
                     return it->first + tail;
                 }
             }
-            // ´Ó mount_point -> device µÄ·´ÍÆ£¬Èç¹ûÃ»ÓĞÕÒµ½Æ¥ÅäµÄ¹æÔò£¬ÄÇÃ´ÓĞÁ½ÖÖÇé¿ö
-            // 1. Âú×ãcygpath µÄ»ù±¾¹æÔò /e/foo/bar
-            // 2. ÊÇmsysÏµÍ³Â·¾¶£¬Èç /usr /bin µÈµÈ
-            // ´ËÊ±£¬ĞèÒªÖªµÀMSYS_PATHÕâ¸öĞÅÏ¢£¬²ÅÄÜ½øĞĞÆ¥Åä£¡
+            // ä» mount_point -> device çš„åæ¨ï¼Œå¦‚æœæ²¡æœ‰æ‰¾åˆ°åŒ¹é…çš„è§„åˆ™ï¼Œé‚£ä¹ˆæœ‰ä¸¤ç§æƒ…å†µ
+            // 1. æ»¡è¶³cygpath çš„åŸºæœ¬è§„åˆ™ /e/foo/bar
+            // 2. æ˜¯msysç³»ç»Ÿè·¯å¾„ï¼Œå¦‚ /usr /bin ç­‰ç­‰
+            // æ­¤æ—¶ï¼Œéœ€è¦çŸ¥é“MSYS_PATHè¿™ä¸ªä¿¡æ¯ï¼Œæ‰èƒ½è¿›è¡ŒåŒ¹é…ï¼
             std::string path_mixed = unix;
             if (path_mixed.length() >= 2 && std::isalpha(path_mixed[1]) && (path_mixed.length() == 2 || (path_mixed.length() >= 3 && path_mixed[2] == '/'))) {
                 path_mixed[0] = path_mixed[1];
                 path_mixed[1] = ':';
             }
             else if (!this->msys_path.empty()){
-                // ¶Ô MSYS_PATH ÏÂ£¬¶ÔÓ¦×ÓÂ·¾¶£¬ÊÇ·ñ´æÔÚ£»´Ë²¿·Ö´úÂë£¬±ØĞëÔÚwindows+msysÏÂ£¡
+                // å¯¹ MSYS_PATH ä¸‹ï¼Œå¯¹åº”å­è·¯å¾„ï¼Œæ˜¯å¦å­˜åœ¨ï¼›æ­¤éƒ¨åˆ†ä»£ç ï¼Œå¿…é¡»åœ¨windows+msysä¸‹ï¼
                 path_mixed = this->msys_path + path_mixed.substr(1);
-                // NOTE ²»ĞèÒª¼ì²é´æÔÚĞÔ¡ª¡ª´ËÊ±ÓÉÓÃ»§×Ô¼º½â¾ö
+                // NOTE ä¸éœ€è¦æ£€æŸ¥å­˜åœ¨æ€§â€•â€•æ­¤æ—¶ç”±ç”¨æˆ·è‡ªå·±è§£å†³
             }
             return path_mixed;
         }
@@ -223,7 +223,7 @@ namespace sss {
                 if (!sss::is_end_with(mount_url, "/")) {
                     mount_url.append("/");
                 }
-                // NOTE ÓÉÓÚ×î³¤Æ¥ÅäÔ­Ôò£»Èç¹ûÒÑ¾­ÓĞÔØÈëµã£¬Ôò±£ÁôÔØÈëµãÂ·¾¶×î³¤µÄ£¡
+                // NOTE ç”±äºæœ€é•¿åŒ¹é…åŸåˆ™ï¼›å¦‚æœå·²ç»æœ‰è½½å…¥ç‚¹ï¼Œåˆ™ä¿ç•™è½½å…¥ç‚¹è·¯å¾„æœ€é•¿çš„ï¼
                 if (this->Base_t::find(mount_url) != this->Base_t::end()) {
                     if (this->Base_t::operator[](mount_url).length() >= mount_point.length()) {
                         return;
