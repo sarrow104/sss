@@ -21,12 +21,12 @@ std::string Hexblowfish::encode( const std::string& pass)
     int len = int(pass.length());
     if (len % 8 != 0)
         len += (8 - (len % 8));
-    unsigned char password[len];       // ³¤¶È²ÎÊı£¬±ØĞëÊÇ8µÄÕûÊı±¶£¡
+    unsigned char password[len];       // é•¿åº¦å‚æ•°ï¼Œå¿…é¡»æ˜¯8çš„æ•´æ•°å€ï¼
     memset(password, 0, sizeof(password));
     memcpy((char*)password, &pass[0], pass.length());
 
     this->bf.Encrypt(password, sizeof(password));
-    //std::cout << "¼ÓÃÜºó£º" << sss::to_hex(password, password+16) << std::endl;
+    //std::cout << "åŠ å¯†åï¼š" << sss::to_hex(password, password+16) << std::endl;
     return sss::to_hex(password, password + sizeof(password));
 }
 
@@ -40,9 +40,9 @@ std::string Hexblowfish::decode( const std::string& pass)
     this->bf.Decrypt(reinterpret_cast<unsigned char*>(const_cast<char*>(ret.c_str())), buff_len);
 
     // NOTE
-    // ÄªÃûÆäÃî£¬Ğ´³É
+    // è«åå…¶å¦™ï¼Œå†™æˆ
     // ret.resize(strlen(ret.c_str());
-    // ¾ÍÃ»ÓĞ±ä»¯£¡
+    // å°±æ²¡æœ‰å˜åŒ–ï¼
     std::string::size_type last = ret.find('\0');
     if (last != std::string::npos)
     {
