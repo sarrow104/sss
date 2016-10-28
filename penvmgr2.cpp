@@ -2,64 +2,43 @@
 
 #include <assert.h>
 #include <sstream>
-#include <string>
 #include <stdexcept>
+#include <string>
 
-#include <sss/util/Parser.hpp>
+#include <sss/path.hpp>
 #include <sss/ps.hpp>
 #include <sss/time.hpp>
-#include <sss/path.hpp>
+#include <sss/util/Parser.hpp>
 #include <sss/util/PostionThrow.hpp>
 #include <sss/utlstring.hpp>
+#include <sss/raw_print.hpp>
 
 #ifdef __WIN32__
-#    include <sss/environ.hpp>
-#    include <sss/util/Escaper.hpp>
+#include <sss/environ.hpp>
+#include <sss/util/Escaper.hpp>
 #endif
 
-namespace  {
-    const char * penvmg_script_path = "_penvmg_script_path_";
-    const char * g_shellscript_workdir = "g.shellscript_workdir";
-} // namespace
+namespace {
+const char* penvmg_script_path = "_penvmg_script_path_";
+const char* g_shellscript_workdir = "g.shellscript_workdir";
+}  // namespace
 
-namespace sss{
+namespace sss {
 
-PenvMgr2::PenvMgr2(PenvMgr2 * parent)
-    : _parent(parent)
+PenvMgr2::PenvMgr2(PenvMgr2* parent) : _parent(parent)
 {
     SSS_LOG_DEBUG("%p\n", this);
 }
 
-PenvMgr2::~PenvMgr2()
-{
-}
-
-PenvMgr2::iterator PenvMgr2::begin()
-{
-    return _env.begin();
-}
-
-PenvMgr2::iterator PenvMgr2::end()
-{
-    return _env.end();
-}
-
-PenvMgr2::const_iterator PenvMgr2::begin() const
-{
-    return _env.begin();
-}
-
-PenvMgr2::const_iterator PenvMgr2::end() const
-{
-    return _env.end();
-}
-
+PenvMgr2::~PenvMgr2() {}
+PenvMgr2::iterator PenvMgr2::begin() { return _env.begin(); }
+PenvMgr2::iterator PenvMgr2::end() { return _env.end(); }
+PenvMgr2::const_iterator PenvMgr2::begin() const { return _env.begin(); }
+PenvMgr2::const_iterator PenvMgr2::end() const { return _env.end(); }
 void PenvMgr2::print(std::ostream& o) const
 {
     for (PenvMgr2::const_iterator it = this->_env.begin();
-         it != this->_env.end();
-         ++it)
-    {
+         it != this->_env.end(); ++it) {
         o << it->first << " = `";
         it->second.print_body(o);
         o << "`" << std::endl;
@@ -89,9 +68,7 @@ void PenvMgr2::dump2map(std::map<std::string, std::string>& out) const
     }
     for (size_t i = ancestors.size(); i != 0; --i) {
         for (PenvMgr2::const_iterator it = ancestors[i - 1]->_env.begin();
-             it != ancestors[i - 1]->_env.end();
-             ++it)
-        {
+             it != ancestors[i - 1]->_env.end(); ++it) {
             out[it->first] = ancestors[i - 1]->get(it->first);
         }
     }
@@ -103,9 +80,7 @@ void PenvMgr2::var_body_t::print_body(std::ostream& o) const
         o << "{userdef funciton}";
     }
     for (expression_t::const_iterator it = this->second.begin();
-         it != this->second.end();
-         ++it)
-    {
+         it != this->second.end(); ++it) {
         o << *it;
     }
 }
@@ -118,238 +93,242 @@ typedef sss::util::Parser<iter_t> Parser_t;
 typedef Parser_t::Rewinder Rewinder_t;
 
 namespace {
-    /**
-     * @brief 变量定义体，解析器；
-     *      将字符串形式的"变量定义体"，解析重组为
-     *      expression_t 和 var_list_t 量部分；
-     */
-    class env_parser{
-    public:
-        env_parser(PenvMgr2::var_body_t& vb)
-            : _varlist(vb.first), _expr(vb.second), _p_str(0)
-        {
-        }
-        ~env_parser()
-        {
-        }
+/**
+ * @brief 变量定义体，解析器；
+ *      将字符串形式的"变量定义体"，解析重组为
+ *      expression_t 和 var_list_t 量部分；
+ */
+class env_parser {
+public:
+    env_parser(PenvMgr2::var_body_t& vb)
+        : _varlist(vb.first), _expr(vb.second), _p_str(0)
+    {
+    }
+    ~env_parser() {}
+public:
+    typedef std::string::const_iterator iter_t;
+    bool parse(const std::string& expr)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        this->_varlist.clear();
+        this->_expr.clear();
+        this->_expr.m_data.assign(expr);
+        this->_p_str = &expr;
+        iter_t s_beg = expr.begin();
+        return parse_expr(s_beg, expr.end());
+    }
 
-    public:
-        typedef std::string::const_iterator iter_t;
-        bool parse(const std::string& expr)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            this->_varlist.clear();
-            this->_expr.clear();
-            this->_expr.m_data.assign(expr);
-            this->_p_str = &expr;
-            iter_t s_beg = expr.begin();
-            return parse_expr(s_beg, expr.end());
+    bool parseRawStr(const std::string& expr)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        _varlist.clear();
+        _expr.clear();
+        _expr.m_data.assign(expr);
+        _expr.push_back(0, expr.length());
+        return true;
+    }
+
+    bool parseFunc(PenvMgr2::expression_t::FuncT func,
+                   PenvMgr2::expression_t::FuncParamT para)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        _varlist.clear();
+        _expr.clear();
+
+        _expr.m_func = func;
+        _expr.m_func_param = para;
+        return true;
+    }
+
+    static bool is_var_refer(const StringSlice_t& var)
+    {
+        StringSlice_t::iterator s_beg = var.begin();
+        return env_parser::parse_Var(s_beg, var.end()) && s_beg == var.end();
+    }
+
+    static bool is_var_refer(const std::string& var)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        std::string::const_iterator s_beg = var.begin();
+        std::string::const_iterator s_end = var.end();
+        return env_parser::parse_Var(s_beg, s_end) && s_beg == s_end;
+    }
+
+    // expr ::= char* (Var expr)?
+    // =>
+    // expr ::= (char* Var?) expr
+    // ==>
+    // expr ::= (char* Var?)+
+    // ==>
+    // expr ::= ('$$' | char)+ ....
+    //
+    // expr ::= ((char - '$$' - Var)* Var | '$$' EmptyVar)*
+    bool parse_expr(iter_t& s_beg, iter_t s_end)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        if (s_beg == s_end) {
+            this->_expr.push_back(*this->_p_str, s_beg, s_end);
         }
-
-        bool parseRawStr(const std::string& expr)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            _varlist.clear();
-            _expr.clear();
-            _expr.m_data.assign(expr);
-            _expr.push_back(0, expr.length());
-            return true;
-        }
-
-        bool parseFunc(PenvMgr2::expression_t::FuncT func, PenvMgr2::expression_t::FuncParamT para)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            _varlist.clear();
-            _expr.clear();
-
-            _expr.m_func = func;
-            _expr.m_func_param = para;
-            return true;
-        }
-
-        static bool is_var_refer(const StringSlice_t& var)
-        {
-            StringSlice_t::iterator s_beg = var.begin();
-            return env_parser::parse_Var(s_beg, var.end()) && s_beg == var.end();
-        }
-
-        static bool is_var_refer(const std::string& var)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            std::string::const_iterator s_beg = var.begin();
-            std::string::const_iterator s_end = var.end();
-            return env_parser::parse_Var(s_beg, s_end) && s_beg == s_end;
-        }
-
-        // expr ::= char* (Var expr)?
-        // =>
-        // expr ::= (char* Var?) expr
-        // ==>
-        // expr ::= (char* Var?)+
-        // ==>
-        // expr ::= ('$$' | char)+ ....
-        //
-        // expr ::= ((char - '$$' - Var)* Var | '$$' EmptyVar)*
-        bool parse_expr(iter_t & s_beg, iter_t s_end)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            if (s_beg == s_end) {
-                this->_expr.push_back(*this->_p_str, s_beg, s_end);
-            }
-            else {
-                while (s_beg != s_end)
+        else {
+            while (s_beg != s_end) {
+                bool is_end_with_escape = false;
+                size_t var_name_length = 0u;
                 {
-                    bool is_end_with_escape = false;
-                    size_t var_name_length = 0u;
-                    {
-                        Rewinder_t r(s_beg);
-                        while (s_beg != s_end) {
-                            Rewinder_t r1(s_beg);
-                            if (parse_Var(s_beg, s_end)) {
-                                var_name_length = r1.distance();
-                                // TODO 这里应该记录 var_name 长度；以避免重复解析；
-                                r1.commit(false);
+                    Rewinder_t r(s_beg);
+                    while (s_beg != s_end) {
+                        Rewinder_t r1(s_beg);
+                        if (parse_Var(s_beg, s_end)) {
+                            var_name_length = r1.distance();
+                            // TODO 这里应该记录 var_name 长度；以避免重复解析；
+                            r1.commit(false);
+                            break;
+                        }
+                        else {
+                            if (sss::is_begin_with(s_beg, s_end, "$$")) {
+                                is_end_with_escape = true;
+                                s_beg += 2;
+                                r1.commit(true);
                                 break;
                             }
                             else {
-                                if (sss::is_begin_with(s_beg, s_end, "$$")) {
-                                    is_end_with_escape = true;
-                                    s_beg += 2;
-                                    r1.commit(true);
-                                    break;
-                                }
-                                else {
-                                    s_beg++;
-                                    r1.commit(true);
-                                }
+                                s_beg++;
+                                r1.commit(true);
                             }
-                        }
-                        // NOTE 空串 ""，有没有问题？
-                        if (r.distance()) {
-                            r.commit(true);
-                            StringSlice_t slice = r.getSlice();
-                            if (is_end_with_escape) {
-                                slice.shrink(0, 1); // "$$" -> "$";
-                            }
-                            this->_expr.push_back(*this->_p_str, slice); //  1st
-                            if (is_end_with_escape) {
-                                slice.clear();      // ""
-                                this->_expr.push_back(*this->_p_str, slice); // 2nd
-                            }
-                            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, slice);
                         }
                     }
-
-                    {
-                        Rewinder_t r2(s_beg);
-                        std::advance(s_beg, var_name_length);
-                        // r2.commit(parse_Var(s_beg, s_end));
-                        if (r2.distance()) {
-                            r2.commit(true);
-                            StringSlice_t var_name = r2.getSlice();
-                            if (var_name[1] == '{') {
-                                var_name.shrink(2, 1); // strip "${" and "}"
-                            }
-                            else {
-                                var_name.shrink(1, 0); // strip "$"
-                            }
-                            // NOTE 确保 满足 [串 变量]... 的形式; 0-based
-                            if (!(this->_expr.size() & 1u)) {
-                                this->_expr.push_back(*this->_p_str, s_beg, s_beg);
-                            }
-                            SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var_name);
-                            // std::string var_name = PenvMgr2::refer2name(.str());
-                            this->_expr.push_back(*this->_p_str, var_name);
-                            this->_varlist.insert(var_name.str());
+                    // NOTE 空串 ""，有没有问题？
+                    if (r.distance()) {
+                        r.commit(true);
+                        StringSlice_t slice = r.getSlice();
+                        if (is_end_with_escape) {
+                            slice.shrink(0, 1);  // "$$" -> "$";
                         }
+                        this->_expr.push_back(*this->_p_str, slice);  //  1st
+                        if (is_end_with_escape) {
+                            slice.clear();                                // ""
+                            this->_expr.push_back(*this->_p_str, slice);  // 2nd
+                        }
+                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, slice);
+                    }
+                }
+
+                {
+                    Rewinder_t r2(s_beg);
+                    std::advance(s_beg, var_name_length);
+                    // r2.commit(parse_Var(s_beg, s_end));
+                    if (r2.distance()) {
+                        r2.commit(true);
+                        StringSlice_t var_name = r2.getSlice();
+                        if (var_name[1] == '{') {
+                            var_name.shrink(2, 1);  // strip "${" and "}"
+                        }
+                        else {
+                            var_name.shrink(1, 0);  // strip "$"
+                        }
+                        // NOTE 确保 满足 [串 变量]... 的形式; 0-based
+                        if (!(this->_expr.size() & 1u)) {
+                            this->_expr.push_back(*this->_p_str, s_beg, s_beg);
+                        }
+                        SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var_name);
+                        // std::string var_name = PenvMgr2::refer2name(.str());
+                        this->_expr.push_back(*this->_p_str, var_name);
+                        this->_varlist.insert(var_name.str());
                     }
                 }
             }
-            assert(s_beg == s_end);
-            return true;
         }
+        assert(s_beg == s_end);
+        return true;
+    }
 
-        // shell
-        // ${t.(`command par par`)} // dot 是为了与 egs匹配
-        static bool parse_Var_name(iter_t & it_beg, iter_t it_end)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            Rewinder_t r1(it_beg);
-            Rewinder_t r2(it_beg);
+    // shell
+    // ${t.(`command par par`)} // dot 是为了与 egs匹配
+    static bool parse_Var_name(iter_t& it_beg, iter_t it_end)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        Rewinder_t r1(it_beg);
+        Rewinder_t r2(it_beg);
 #ifdef PENVMGR2_SUPPORT_SHELL_CMD
-            Rewinder_t r3(it_beg);
+        Rewinder_t r3(it_beg);
 #endif
 
-            StringSlice_t id(it_beg, it_beg);
-            r1.commit(Parser_t::parseCIdentifier(it_beg, it_end, id) &&
-                      ((r2.begin() && r2.commit(id.length() == 1 && std::strchr("egs", *id.begin()) &&
-                                                Parser_t::parseChar(it_beg, it_end, '.') &&
-                                                Parser_t::parseCIdentifier(it_beg, it_end, id)))
+        StringSlice_t id(it_beg, it_beg);
+        r1.commit(
+            Parser_t::parseCIdentifier(it_beg, it_end, id) &&
+            ((r2.begin() &&
+              r2.commit(id.length() == 1 && std::strchr("egs", *id.begin()) &&
+                        Parser_t::parseChar(it_beg, it_end, '.') &&
+                        Parser_t::parseCIdentifier(it_beg, it_end, id)))
 #ifdef PENVMGR2_SUPPORT_SHELL_CMD
-                       ||
-                       (r3.begin() && r3.commit(id == "t" && Parser_t::parseSequence(it_beg, it_end, ".(`") &&
-                                                Parser_t::parseAfterSequence(it_beg, it_end, "`)")))
+             || (r3.begin() &&
+                 r3.commit(id == "t" &&
+                           Parser_t::parseSequence(it_beg, it_end, ".(`") &&
+                           Parser_t::parseAfterSequence(it_beg, it_end, "`)")))
 #endif
-                       || true));
-            return r1.is_commited();
+             || true));
+        return r1.is_commited();
+    }
+
+    // Var ::= '$' name | "${" name '}'
+    static bool parse_Var(iter_t& it_beg, iter_t it_end)
+    {
+        SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
+        Rewinder_t r1(it_beg);
+        Rewinder_t r2(it_beg);
+
+        bool has_brase = false;
+
+        // char prefix = '\0';
+        StringSlice_t id(it_beg, it_beg);
+
+        r1.commit(
+            Parser_t::parseChar(it_beg, it_end, '$') &&
+            ((has_brase = Parser_t::parseChar(it_beg, it_end, '{')) || true) &&
+            r2.begin() && r2.commit(parse_Var_name(it_beg, it_end)) &&
+            ((has_brase && Parser_t::parseChar(it_beg, it_end, '}')) ||
+             !has_brase));
+        return r1.is_commited();
+    }
+
+    // g.xyz
+    // s.abc
+    // var
+    static PenvMgr2::var_type_t get_var_type(const std::string& str)
+    {
+        if (PenvMgr2::is_var(str)) {
+            return str.length() >= 2 && str[1] == '.'
+                       ? PenvMgr2::var_type_t(str[0])
+                       : PenvMgr2::TYPE_NORMAL;
         }
+        return PenvMgr2::TYPE_UNKNOWN;
+    }
 
-        // Var ::= '$' name | "${" name '}'
-        static bool parse_Var(iter_t & it_beg, iter_t it_end)
-        {
-            SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
-            Rewinder_t r1(it_beg);
-            Rewinder_t r2(it_beg);
-
-            bool has_brase = false;
-
-            // char prefix = '\0';
-            StringSlice_t id(it_beg, it_beg);
-
-            r1.commit(Parser_t::parseChar(it_beg, it_end, '$') &&
-                      ((has_brase = Parser_t::parseChar(it_beg, it_end, '{')) || true) && r2.begin() &&
-                      r2.commit(parse_Var_name(it_beg, it_end)) &&
-                      ((has_brase && Parser_t::parseChar(it_beg, it_end, '}')) || !has_brase));
-            return r1.is_commited();
-        }
-
-        // g.xyz
-        // s.abc
-        // var
-        static PenvMgr2::var_type_t get_var_type(const std::string& str)
-        {
-            if (PenvMgr2::is_var(str)) {
-                return str.length() >= 2 && str[1] == '.' ? PenvMgr2::var_type_t(str[0]) : PenvMgr2::TYPE_NORMAL;
-            }
-            return PenvMgr2::TYPE_UNKNOWN;
-        }
-
-    private:
-        PenvMgr2::var_list_t      & _varlist;
-        PenvMgr2::expression_t    & _expr;
-        const std::string         * _p_str;
-    };
+private:
+    PenvMgr2::var_list_t& _varlist;
+    PenvMgr2::expression_t& _expr;
+    const std::string* _p_str;
+};
 }
 
-PenvMgr2&  PenvMgr2::getGlobalEnv()
+PenvMgr2& PenvMgr2::getGlobalEnv()
 {
-    PenvMgr2 * p = this;
+    PenvMgr2* p = this;
     while (p->_parent) {
         p = p->_parent;
     }
     return *p;
 }
 
-const PenvMgr2&   PenvMgr2::getGlobalEnv() const
+const PenvMgr2& PenvMgr2::getGlobalEnv() const
 {
-    const PenvMgr2 * p = this;
+    const PenvMgr2* p = this;
     while (p->_parent) {
         p = p->_parent;
     }
     return *p;
 }
 
-bool        PenvMgr2::set(std::string var, const std::string& expr)
+bool PenvMgr2::set(std::string var, const std::string& expr)
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -357,38 +336,36 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
 
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
-    case TYPE_SYSTEM:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a system-style var name; cannot modified");
-        break;
+        case TYPE_SYSTEM:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a system-style var name; cannot modified");
+            break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().set(var, expr);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().set(var, expr);
+            }
+            break;
 
-    case TYPE_OSENV:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a OS-environment var name; cannot modified");
-        break;
+        case TYPE_OSENV:
+            SSS_POSTION_THROW(
+                std::runtime_error, "PenvMgr2: `", var,
+                "` is a OS-environment var name; cannot modified");
+            break;
 
-    case TYPE_SHELL:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a shell-cmmand; cannot modified");
-        break;
+        case TYPE_SHELL:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a shell-cmmand; cannot modified");
+            break;
 
-    case TYPE_NORMAL:
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    default:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var << "` is not a valid var name");
-        break;
+        default:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is not a valid var name");
+            break;
     }
     env_t::iterator it = this->_env.find(var);
     if (it == this->_env.end()) {
@@ -397,13 +374,13 @@ bool        PenvMgr2::set(std::string var, const std::string& expr)
     }
     bool ret = (env_parser(this->_env[var]).parse(expr));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error,
-                          " (`" << var << "`, `" << expr << "`) parse failed.");
+        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
+                          sss::raw_string(expr), ") parse failed.");
     }
     return true;
 }
 
-bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
+bool PenvMgr2::setRawStr(std::string var, const std::string& expr)
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -411,40 +388,37 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
 
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
-    case TYPE_SYSTEM:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a system-style var name; cannot modified");
-        break;
+        case TYPE_SYSTEM:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a system-style var name; cannot modified");
+            break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().setRawStr(var, expr);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().setRawStr(var, expr);
+            }
+            break;
 
-    case TYPE_OSENV:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a OS-environment var name; cannot modified");
-        break;
+        case TYPE_OSENV:
+            SSS_POSTION_THROW(
+                std::runtime_error, "PenvMgr2: `", var,
+                "` is a OS-environment var name; cannot modified");
+            break;
 
-    case TYPE_SHELL:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a shell-cmmand; cannot modified");
-        break;
+        case TYPE_SHELL:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a shell-cmmand; cannot modified");
+            break;
 
-    case TYPE_NORMAL:
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    default:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is not a valid var name;");
+        default:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is not a valid var name;");
 
-        break;
+            break;
     }
     env_t::iterator it = this->_env.find(var);
     if (it == this->_env.end()) {
@@ -453,13 +427,14 @@ bool        PenvMgr2::setRawStr(std::string var, const std::string& expr)
     }
     bool ret = (env_parser(this->_env[var]).parseRawStr(expr));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error,
-                          " (`" << var << "`, `" << expr << "`) parse failed.");
+        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
+                          sss::raw_string(expr), ") parse failed.");
     }
     return true;
 }
 
-bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::FuncParamT param)
+bool PenvMgr2::set(std::string var, expression_t::FuncT func,
+                   expression_t::FuncParamT param)
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, func);
@@ -467,39 +442,36 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
 
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
-    case TYPE_SYSTEM:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a system-style var name; cannot modified");
-        break;
+        case TYPE_SYSTEM:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a system-style var name; cannot modified");
+            break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().set(var, func, param);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().set(var, func, param);
+            }
+            break;
 
-    case TYPE_OSENV:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a OS-environment var name; cannot modified");
-        break;
+        case TYPE_OSENV:
+            SSS_POSTION_THROW(
+                std::runtime_error, "PenvMgr2: `", var,
+                "` is a OS-environment var name; cannot modified");
+            break;
 
-    case TYPE_SHELL:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a shell-cmmand; cannot modified");
-        break;
+        case TYPE_SHELL:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a shell-cmmand; cannot modified");
+            break;
 
-    case TYPE_NORMAL:
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    default:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is not a valid var name;");
-        break;
+        default:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is not a valid var name;");
+            break;
     }
     env_t::iterator it = this->_env.find(var);
     if (it == this->_env.end()) {
@@ -508,9 +480,8 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
     }
     bool ret = (env_parser(this->_env[var]).parseFunc(func, param));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error,
-                          " (`" << var << "`, `" << func
-                          << "`, `" << param << "`) parse failed.");
+        SSS_POSTION_THROW(std::runtime_error, " (`", var, "`, `", func, "`, `",
+                          param, "`) parse failed.");
     }
     return true;
 }
@@ -518,39 +489,25 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func, expression_t::Func
 /**
  * @brief 循环依赖异常
  */
-class ExceptionDependLoop : public std::runtime_error
-{
+class ExceptionDependLoop : public std::runtime_error {
 public:
     explicit ExceptionDependLoop(const std::string& msg)
-        : std::runtime_error(msg)
-    {
-    };
-    ~ExceptionDependLoop() throw()
-    {
-    }
+        : std::runtime_error(msg){};
+    ~ExceptionDependLoop() throw() {}
 };
 
 /**
  * @brief 依赖状态变量类型；用来记录所依赖变量的求值状态；
  */
-struct depend_t
-{
-    depend_t()
-        : _ok(false)
-    {
-    }
-    explicit depend_t(const std::string& value)
-        : _ok(true), _value(value)
-    {
-    }
-
-    ~depend_t()
-    {
-    }
-    bool        _ok;
+struct depend_t {
+    depend_t() : _ok(false) {}
+    explicit depend_t(const std::string& value) : _ok(true), _value(value) {}
+    ~depend_t() {}
+    bool _ok;
     std::string _value;
 
-    void print(std::ostream& o) const {
+    void print(std::ostream& o) const
+    {
         if (this->_ok) {
             o << "\"" << this->_value << "\"";
         }
@@ -558,10 +515,11 @@ struct depend_t
             o << 0;
         }
     }
+
 public:
 };
 
-std::ostream& operator << (std::ostream& o, const depend_t& d)
+std::ostream& operator<<(std::ostream& o, const depend_t& d)
 {
     d.print(o);
     return o;
@@ -585,36 +543,34 @@ std::ostream& operator << (std::ostream& o, const depend_t& d)
  *        当这个依赖检查器，检测到递归深度，超过某一个深度(比如500)，的时候，同
  *        样会抛出异常。
  */
-class depend_checker2_t : private std::map<std::string, depend_t>
-{
+class depend_checker2_t : private std::map<std::string, depend_t> {
     int m_depth;
     static const int max_depth = 500;
+
 public:
     typedef std::map<std::string, depend_t> Base_t;
     typedef Base_t::const_iterator const_iterator;
-    typedef Base_t::iterator       iterator;
+    typedef Base_t::iterator iterator;
 
     using Base_t::begin;
     using Base_t::end;
     using Base_t::find;
 
-    depend_checker2_t()
-        : m_depth(0)
-    {
-    }
-    ~depend_checker2_t()
-    {
-    }
-
+    depend_checker2_t() : m_depth(0) {}
+    ~depend_checker2_t() {}
 public:
-    void push() {
+    void push()
+    {
         if (m_depth++ > max_depth) {
-            SSS_POSTION_THROW(std::runtime_error, "depend_checker2_t max depth > " << max_depth);
+            SSS_POSTION_THROW(std::runtime_error,
+                              "depend_checker2_t max depth > ", max_depth);
         }
     }
-    void pop() {
+    void pop()
+    {
         if (m_depth-- < 0) {
-            SSS_POSTION_THROW(std::runtime_error, "depend_checker2_t max depth < 0 ");
+            SSS_POSTION_THROW(std::runtime_error,
+                              "depend_checker2_t max depth < 0 ");
         }
     }
 
@@ -642,15 +598,14 @@ public:
         else {
             if (it->second._ok && it->second._value != value) {
                 SSS_LOG_ERROR("re-assign `%s` \"%s\" -> \"%s\"\n",
-                              it->first.c_str(),
-                              it->second._value.c_str(),
+                              it->first.c_str(), it->second._value.c_str(),
                               value.c_str());
                 SSS_LOG_EXPRESSION(sss::log::log_ERROR, it->first);
                 SSS_LOG_EXPRESSION(sss::log::log_ERROR, it->second);
                 SSS_POSTION_THROW(ExceptionDependLoop, var);
             }
-            it->second._ok      = true;
-            it->second._value   = value;
+            it->second._ok = true;
+            it->second._value = value;
         }
     }
 
@@ -669,12 +624,11 @@ public:
         }
     }
 
-    void print(std::ostream& o) const{
+    void print(std::ostream& o) const
+    {
         o << "[";
         for (Base_t::const_iterator it = this->Base_t::begin();
-             it != this->Base_t::end();
-             ++it)
-        {
+             it != this->Base_t::end(); ++it) {
             o << it->first << ":" << it->second << "\";";
         }
         o << "]";
@@ -683,9 +637,7 @@ public:
     void dump2map(std::map<std::string, std::string>& var_map)
     {
         for (Base_t::const_iterator it = this->Base_t::begin();
-             it != this->Base_t::end();
-             ++it)
-        {
+             it != this->Base_t::end(); ++it) {
             if (it->second._ok) {
                 var_map[it->first] = it->second._value;
             }
@@ -700,18 +652,13 @@ private:
  */
 class dc_depth_wrapper {
 public:
-    dc_depth_wrapper(depend_checker2_t& dc) : m_ref_dc(dc) {
-        m_ref_dc.push();
-    }
-    ~dc_depth_wrapper() {
-        m_ref_dc.pop();
-    }
-
+    dc_depth_wrapper(depend_checker2_t& dc) : m_ref_dc(dc) { m_ref_dc.push(); }
+    ~dc_depth_wrapper() { m_ref_dc.pop(); }
 private:
-    depend_checker2_t & m_ref_dc;
+    depend_checker2_t& m_ref_dc;
 };
 
-std::ostream& operator <<(std::ostream& o, const depend_checker2_t& dc)
+std::ostream& operator<<(std::ostream& o, const depend_checker2_t& dc)
 {
     dc.print(o);
     return o;
@@ -725,33 +672,33 @@ std::string PenvMgr2::get(std::string var) const
     assert(type);
 
     switch (type) {
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().get(var);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().get(var);
+            }
+            break;
 
-    case TYPE_SYSTEM:
-        var = var.substr(2);
-        return this->getSystemVar(var);
-        break;
+        case TYPE_SYSTEM:
+            var = var.substr(2);
+            return this->getSystemVar(var);
+            break;
 
-    case TYPE_OSENV:
-        var = var.substr(2);
-        return this->getEnvVar(var);
-        break;
+        case TYPE_OSENV:
+            var = var.substr(2);
+            return this->getEnvVar(var);
+            break;
 
-    case TYPE_SHELL:
-        // t.(`...`)
-        return this->getShellComandFromVar(var);
-        break;
+        case TYPE_SHELL:
+            // t.(`...`)
+            return this->getShellComandFromVar(var);
+            break;
 
-    case TYPE_NORMAL:
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
     std::string ret;
     // 先看变量是否存在；如果不存在，直接返回""；
@@ -779,10 +726,8 @@ std::string PenvMgr2::get(std::string var) const
             ret = evaluator_impl(var, dc);
         }
         catch (ExceptionDependLoop& e) {
-            SSS_POSTION_THROW(std::runtime_error,
-                              "ExceptionDependLoop "
-                              << std::string(e.what())
-                              << "; when requre " << var);
+            SSS_POSTION_THROW(std::runtime_error, "ExceptionDependLoop ",
+                              std::string(e.what()), "; when requre ", var);
         }
     }
     return ret;
@@ -797,7 +742,8 @@ std::string PenvMgr2::getSystemVar(const std::string& var) const
         if (fmt.empty()) {
             fmt.assign("%FT%T");
         }
-        // std::cout << __FILE__ << ':' << __func__ << sss::time::strftime(fmt) << std::endl;
+        // std::cout << __FILE__ << ':' << __func__ << sss::time::strftime(fmt)
+        // << std::endl;
         return sss::time::strftime(fmt);
     }
     else if (var == "cwd" || var == "getcwd") {
@@ -812,19 +758,20 @@ std::string PenvMgr2::getSystemVar(const std::string& var) const
 
 std::string PenvMgr2::getEnvVar(const std::string& var) const
 {
-    const char * e = ::getenv(var.c_str());
+    const char* e = ::getenv(var.c_str());
     return e ? e : "";
 }
 
-std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_checker2_t & dc) const
+std::string PenvMgr2::getShellComandFromVar(const std::string& var,
+                                            depend_checker2_t& dc) const
 {
     std::string cmd(var, 4, var.length() - 6);
-    // static const char * err_to_null = " 2>/dev/null";
-    // if (!sss::is_end_with(cmd, err_to_null)) {
-    //     cmd.append(err_to_null);
-    // }
+// static const char * err_to_null = " 2>/dev/null";
+// if (!sss::is_end_with(cmd, err_to_null)) {
+//     cmd.append(err_to_null);
+// }
 #ifdef __WIN32__
-    const char * shell_path = sss::env::get("SHELL");
+    const char* shell_path = sss::env::get("SHELL");
     if (shell_path) {
         // FIXME escape or quote
         cmd = shell_path + std::string(" -c ") + sss::util::dquote_copy(cmd);
@@ -841,13 +788,15 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
 #else
     std::string script_wd = ".";
     std::map<std::string, std::string> script_env;
-    if (this->has(g_shellscript_workdir) && this->get(g_shellscript_workdir) != "") {
+    if (this->has(g_shellscript_workdir) &&
+        this->get(g_shellscript_workdir) != "") {
         script_wd = sss::path::full_of_copy(this->get(g_shellscript_workdir));
     }
     else if (this->has(penvmg_script_path)) {
         script_wd = sss::path::dirname(this->get(penvmg_script_path));
     }
-    if (script_wd != "." && sss::path::file_exists(script_wd) != sss::PATH_TO_DIRECTORY) {
+    if (script_wd != "." &&
+        sss::path::file_exists(script_wd) != sss::PATH_TO_DIRECTORY) {
         script_wd = ".";
     }
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, script_wd);
@@ -869,21 +818,21 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
     // 会递归调用，并用这个dc，保存依赖关系(变量临时值)，以避免，对某一个变量，
     // 进行重复计算。
     //
-    // 即，可以在调用 getShellComandFromVar() 函数的时候，也传入这个dc，并避免导出重复的值？
+    // 即，可以在调用 getShellComandFromVar()
+    // 函数的时候，也传入这个dc，并避免导出重复的值？
     //
     // 另外，还应该假如深度控制的保险。
-    // 多提供一个深度参数，比如，就保存在 dc对象中；进出一次 evaluator_impl，就加减一次；
+    // 多提供一个深度参数，比如，就保存在 dc对象中；进出一次
+    // evaluator_impl，就加减一次；
     // 如果，超出"熔断"值，就抛出一个异常。
 
     var_body_t vb;
     if (!env_parser(vb).parse(cmd)) {
-        SSS_POSTION_THROW(std::runtime_error, " (`" << cmd << "`) parse failed.");
+        SSS_POSTION_THROW(std::runtime_error, " (" , sss::raw_string(cmd) , ") parse failed.");
     }
     // 即， cmd 串，依赖于 变量形参列表 vb.first
     for (var_list_t::const_iterator it_var = vb.first.begin();
-         it_var != vb.first.end();
-         ++it_var)
-    {
+         it_var != vb.first.end(); ++it_var) {
         dc_depth_wrapper dcg(dc);
         dc.put(*it_var, this->evaluator_impl(*it_var, dc));
     }
@@ -905,7 +854,8 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var, depend_check
 #endif
 }
 
-std::string PenvMgr2::getShellComandFromVar(const std::string& var) const {
+std::string PenvMgr2::getShellComandFromVar(const std::string& var) const
+{
     depend_checker2_t dc;
     return this->getShellComandFromVar(var, dc);
 }
@@ -919,7 +869,7 @@ std::string PenvMgr2::get_expr(const std::string& expr) const
     var_body_t vb;
 
     if (!env_parser(vb).parse(expr)) {
-        SSS_POSTION_THROW(std::runtime_error, " (`" << expr << "`) parse failed.");
+        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(expr), ") parse failed.");
     }
 
     try {
@@ -928,19 +878,15 @@ std::string PenvMgr2::get_expr(const std::string& expr) const
         // 并输出
         depend_checker2_t dc;
         for (var_list_t::const_iterator it_var = vb.first.begin();
-             it_var != vb.first.end();
-             ++it_var)
-        {
+             it_var != vb.first.end(); ++it_var) {
             dc_depth_wrapper dcg(dc);
             dc.put(*it_var, this->evaluator_impl(*it_var, dc));
         }
         ret = PenvMgr2::generate(vb, dc);
     }
     catch (ExceptionDependLoop& e) {
-        SSS_POSTION_THROW(std::runtime_error,
-                          "ExceptionDependLoop " <<
-                          std::string(e.what()) <<
-                          "; when requre " << expr);
+        SSS_POSTION_THROW(std::runtime_error, "ExceptionDependLoop ", e.what(),
+                          "; when requre ", expr);
     }
     return ret;
 }
@@ -959,7 +905,7 @@ std::string PenvMgr2::get_expr_file(const std::string& file_script) const
     return script_value;
 }
 
-bool PenvMgr2::is_var_refer(const std::string & var)
+bool PenvMgr2::is_var_refer(const std::string& var)
 {
     return env_parser::is_var_refer(var);
 }
@@ -969,7 +915,7 @@ bool PenvMgr2::is_var_refer(const StringSlice_t& var)
     return env_parser::is_var_refer(var);
 }
 
-bool PenvMgr2::is_var(const std::string & var)
+bool PenvMgr2::is_var(const std::string& var)
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
@@ -982,7 +928,7 @@ bool PenvMgr2::is_var(const std::string & var)
     return ret;
 }
 
-std::string PenvMgr2::refer2name(const std::string & var)
+std::string PenvMgr2::refer2name(const std::string& var)
 {
     assert(PenvMgr2::is_var_refer(var));
 
@@ -994,9 +940,9 @@ std::string PenvMgr2::refer2name(const std::string & var)
     }
 }
 
-const PenvMgr2::var_body_t *    PenvMgr2::find_body(const std::string& var) const
+const PenvMgr2::var_body_t* PenvMgr2::find_body(const std::string& var) const
 {
-    const PenvMgr2::var_body_t * p_body = 0;
+    const PenvMgr2::var_body_t* p_body = 0;
     const_iterator it = this->_env.find(var);
     if (it != this->_env.end()) {
         p_body = &(it->second);
@@ -1011,51 +957,53 @@ const PenvMgr2::var_body_t *    PenvMgr2::find_body(const std::string& var) cons
 
 // 2015-08-10
 // 或者这样检测循环依赖：
-//   记录 evaluator_impl 的调用条件！理论上，不能对同一个变量，两次通过evaluator_impl来求值！
+//   记录 evaluator_impl
+//   的调用条件！理论上，不能对同一个变量，两次通过evaluator_impl来求值！
 //------------------------------------
 // 求出var的值；
 // 将var所依赖变量的值，都通过depend_checker2_t管理起来，以便在求值的过程中，找
 // 出循环依赖额情况；
-std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) const
+std::string PenvMgr2::evaluator_impl(std::string var,
+                                     depend_checker2_t& dc) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
     var_type_t type = env_parser::get_var_type(var);
-    SSS_LOG_DEBUG("type of %s is %c\n", var.c_str(), type ? type : var_type_t('0'));
+    SSS_LOG_DEBUG("type of %s is %c\n", var.c_str(),
+                  type ? type : var_type_t('0'));
     switch (type) {
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().evaluator_impl(var, dc);
+            }
+            break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().evaluator_impl(var, dc);
-        }
-        break;
+        case TYPE_SYSTEM:
+            var = var.substr(2);
+            return this->getSystemVar(var);
+            break;
 
-    case TYPE_SYSTEM:
-        var = var.substr(2);
-        return this->getSystemVar(var);
-        break;
+        case TYPE_OSENV:
+            var = var.substr(2);
+            return this->getEnvVar(var);
+            break;
 
-    case TYPE_OSENV:
-        var = var.substr(2);
-        return this->getEnvVar(var);
-        break;
+        case TYPE_SHELL:
+            return this->getShellComandFromVar(var);
+            break;
 
-    case TYPE_SHELL:
-        return this->getShellComandFromVar(var);
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    case TYPE_NORMAL:
-        break;
-
-    default:
-        assert(false);
-        break;
+        default:
+            assert(false);
+            break;
     }
 
     std::string ret;
 
-    const var_body_t * definition = this->find_body(var);
+    const var_body_t* definition = this->find_body(var);
     if (!definition) {
         SSS_LOG_DEBUG("this->_env no %s\n", var.c_str());
         ret = "";
@@ -1067,9 +1015,7 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) co
             return definition->evalFunction();
         }
         for (var_list_t::const_iterator it_var = definition->var_list().begin();
-             it_var != definition->var_list().end();
-             ++it_var)
-        {
+             it_var != definition->var_list().end(); ++it_var) {
             dc_depth_wrapper dcg(dc);
             dc.put(*it_var);
             std::string val = this->evaluator_impl(*it_var, dc);
@@ -1089,16 +1035,16 @@ std::string PenvMgr2::evaluator_impl(std::string var, depend_checker2_t & dc) co
  *
  * @return
  */
-std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & dc)
+std::string PenvMgr2::generate(const var_body_t& bd,
+                               const depend_checker2_t& dc)
 {
-    const PenvMgr2::expression_t & expr(bd.second);
+    const PenvMgr2::expression_t& expr(bd.second);
     std::ostringstream oss;
     int index = 0;
     for (PenvMgr2::expression_t::const_iterator it = expr.begin();
-         it != expr.end();
-         ++it, ++index)
-    {
-        // std::cout << __LINE__ << ":" << __func__ << " index = " << index << std::endl;
+         it != expr.end(); ++it, ++index) {
+        // std::cout << __LINE__ << ":" << __func__ << " index = " << index <<
+        // std::endl;
         // NOTE 奇数位，变量
         // 偶数位，raw字符串
         if (index & 1) {
@@ -1109,10 +1055,12 @@ std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & 
             depend_checker2_t::const_iterator it_dc = dc.find(var_name);
             assert(it_dc != dc.end() && it_dc->second._ok);
             oss << it_dc->second._value;
-            // std::cout << __LINE__ << ":" << __func__ << " var_name = " << var_name << std::endl;
+            // std::cout << __LINE__ << ":" << __func__ << " var_name = " <<
+            // var_name << std::endl;
         }
         else {
-            // std::cout << __LINE__ << ":" << __func__ << " raw_str = " << *it << std::endl;
+            // std::cout << __LINE__ << ":" << __func__ << " raw_str = " << *it
+            // << std::endl;
             oss << *it;
         }
     }
@@ -1120,39 +1068,37 @@ std::string PenvMgr2::generate(const var_body_t & bd, const depend_checker2_t & 
 }
 
 // FIXME 下面这几个函数，还得针对 type进行分解！
-bool        PenvMgr2::unset(std::string var)
+bool PenvMgr2::unset(std::string var)
 {
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
-    case TYPE_OSENV:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a OS-environment var name; cannot modified");
-        break;
+        case TYPE_OSENV:
+            SSS_POSTION_THROW(
+                std::runtime_error, "PenvMgr2: `", var,
+                "` is a OS-environment var name; cannot modified");
+            break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().unset(var);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().unset(var);
+            }
+            break;
 
-    case TYPE_SYSTEM:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a system-style var name; cannot modified");
-        break;
+        case TYPE_SYSTEM:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a system-style var name; cannot modified");
+            break;
 
-    case TYPE_SHELL:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a shell-cmmand; cannot modified");
-        break;
+        case TYPE_SHELL:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a shell-cmmand; cannot modified");
+            break;
 
-    default:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var << "` is not a valid var name");
-        break;
+        default:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is not a valid var name");
+            break;
     }
     env_t::iterator it = this->_env.find(var);
     if (it != this->_env.end()) {
@@ -1167,50 +1113,45 @@ bool        PenvMgr2::unset(std::string var)
 }
 
 // FIXME 下面这几个函数，还得针对 type进行分解！
-bool        PenvMgr2::has(std::string var) const
+bool PenvMgr2::has(std::string var) const
 {
     SSS_LOG_FUNC_TRACE(sss::log::log_DEBUG);
     SSS_LOG_EXPRESSION(sss::log::log_DEBUG, var);
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
-    case TYPE_OSENV:
-        {
+        case TYPE_OSENV: {
             return ::getenv(var.substr(2).c_str());
-        }
-        break;
+        } break;
 
-    case TYPE_GLOBAL:
-        var = var.substr(2);
-        if (this->_parent) {
-            return this->getGlobalEnv().has(var);
-        }
-        break;
+        case TYPE_GLOBAL:
+            var = var.substr(2);
+            if (this->_parent) {
+                return this->getGlobalEnv().has(var);
+            }
+            break;
 
-    case TYPE_SYSTEM:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a system-style var name;"
-                          " do not support `has` operation.");
-        break;
+        case TYPE_SYSTEM:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a system-style var name;"
+                              " do not support `has` operation.");
+            break;
 
-    case TYPE_SHELL:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var <<
-                          "` is a shell-cmmand;"
-                          " do not support `has` operation.");
-        break;
+        case TYPE_SHELL:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is a shell-cmmand;"
+                              " do not support `has` operation.");
+            break;
 
-    case TYPE_NORMAL:
-        break;
+        case TYPE_NORMAL:
+            break;
 
-    default:
-        SSS_POSTION_THROW(std::runtime_error,
-                          "PenvMgr2: `" << var << "` is not a valid var name");
-        break;
+        default:
+            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+                              "` is not a valid var name");
+            break;
     }
-    return
-        this->_env.find(var) != this->_env.end() ||
-        (this->has_parent() && this->parent().has(var));
+    return this->_env.find(var) != this->_env.end() ||
+           (this->has_parent() && this->parent().has(var));
 }
 
 // TODO 另外，最好再增加一个find()函数；返回一个自定义类型的iterator；这个类型
@@ -1247,7 +1188,6 @@ void PenvMgr2::unset_shellscript_workdir()
 {
     this->unset(g_shellscript_workdir);
 }
-
 }
 
 #if 0
