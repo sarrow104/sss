@@ -41,10 +41,17 @@ inline void encoding_normalize(std::string& encoding)
 
 namespace sss {
 // 确保编码满足——有些标准是包含关系，所以，有些时候，就算编码不同，也没有必要转化；
-void Encoding::ensure(std::string& content, std::string to_encoding)
+void Encoding::ensure(std::string& content, std::string to_encoding,
+                      const std::string& encodings)
 {
     encoding_normalize(to_encoding);
-    std::string from_encoding = Encoding::dectect(content);
+    std::string from_encoding;
+    if (encodings.empty()) {
+        from_encoding = Encoding::dectect(content);
+    }
+    else {
+        from_encoding = Encoding::encodings(content, encodings);
+    }
     if (!Encoding::isCompatibleWith(from_encoding, to_encoding)) {
         std::string out;
         sss::iConv ic(to_encoding, from_encoding);

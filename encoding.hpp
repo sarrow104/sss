@@ -42,7 +42,8 @@ public:
     // static bool isConvertable(std::string from, std::string to);
 
     // 确保编码满足——有些标准是包含关系，所以，有些时候，就算编码不同，也没有必要转化；
-    static void ensure(std::string& str, std::string encoding);
+    static void ensure(std::string& str, std::string encoding,
+                       const std::string& encodings = "");
 
     // 返回编码信息；
     static std::string dectect(const std::string& str);
