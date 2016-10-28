@@ -13,6 +13,9 @@
 #include <sss/log.hpp>
 #include <sss/bit_operation/bit_operation.h>
 #include <sss/utlstring.hpp>
+#include <sss/util/PostionThrow.hpp>
+#include <sss/raw_print.hpp>
+#include <sss/hex_print.hpp>
 
 namespace {
     bool is_wchar_t_codename(const std::string& codename)
@@ -169,8 +172,7 @@ int iConv::convert(std::string& to, const std::string& from)
                 }
                 break;
 
-            case EILSEQ:
-                {
+                case EILSEQ: {
 #if 0
                     sss::log::error("%s in string %s ... of %d-th byte, can-not convert sequence %s had-been found\n",
                                     msg.str().c_str(),
@@ -178,17 +180,20 @@ int iConv::convert(std::string& to, const std::string& from)
                                     from.substr(in - &from[0], 5).c_str());
                     return false;
 #else
-                    msg << " in string " << from.substr(0, 5) << " ... of "
-                        << int(in - &from[0]) << "-th byte, `"
-                        << from.substr(in - &from[0], 5) << "` convert failed; "
-                        << strerror(errno);
-                    throw std::runtime_error(msg.str());
+                    SSS_POSTION_THROW(std::runtime_error, "in string ",
+                                      sss::raw_string(from.substr(0, 5)), "... of ",
+                                      int(in - &from[0]), "-th byte, ",
+                                      sss::raw_string(from.substr(in - &from[0], 6)),
+                                      " convert failed;", strerror(errno));
+// msg << " in string " << from.substr(0, 5) << " ... of "
+//     << int(in - &from[0]) << "-th byte, `"
+//     << from.substr(in - &from[0], 5) << "` convert failed; "
+//     << strerror(errno);
+// throw std::runtime_error(msg.str());
 #endif
-                }
-                break;
+                } break;
 
-            case EINVAL:
-                {
+                case EINVAL: {
 #if 0
                     // NOTE 不完整的输入序列，通常不意味着错误，而是意味着后面还
                     // 有字符……
@@ -198,11 +203,16 @@ int iConv::convert(std::string& to, const std::string& from)
                                     from.substr(in - &from[0], 5).c_str());
                     return false;
 #else
-                    msg << " in string " << from.substr(0, 5) << " ... of "
-                        << int(in - &from[0]) << "-th byte, `"
-                        << from.substr(in - &from[0], 5) << "` convert failed; "
-                        << strerror(errno);
-                    throw std::runtime_error(msg.str());
+                    SSS_POSTION_THROW(std::runtime_error, "in string ",
+                                      sss::raw_string(from.substr(0, 5)), "... of ",
+                                      int(in - &from[0]), "-th byte, ",
+                                      sss::raw_string(from.substr(in - &from[0], 6)),
+                                      " convert failed;", strerror(errno));
+                    // msg << " in string " << from.substr(0, 5) << " ... of "
+                    //     << int(in - &from[0]) << "-th byte, `"
+                    //     << from.substr(in - &from[0], 5) << "` convert failed; "
+                    //     << strerror(errno);
+                    // throw std::runtime_error(msg.str());
 #endif
                 }
                 break;
