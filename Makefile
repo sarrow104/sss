@@ -1,4 +1,4 @@
-.PHONY: all release debug clean clean-debug clean-release
+.PHONY: all release debug clean clean-debug clean-release doxygen
 all: release
 
 release:
@@ -8,6 +8,9 @@ release:
 debug:
 	@mkdir -p ../../Debug
 	cd ../../Debug && cmake -DCMAKE_BUILD_TYPE=Debug ../include/sss && make
+
+doxygen:
+	@doxygen sss.conf
 
 clean: clean-debug clean-release
 
