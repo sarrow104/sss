@@ -17,7 +17,7 @@ namespace sss {
             case EDummy:
                 return true;
 
-            case EEmpty: // ±¾ÉíÊÇ tag ½Úµã£»µ«ÊÇÄÚ²¿×î¶àÖ»ÄÜÓĞ×¢ÊÍ£¡
+            case EEmpty: // æœ¬èº«æ˜¯ tag èŠ‚ç‚¹ï¼›ä½†æ˜¯å†…éƒ¨æœ€å¤šåªèƒ½æœ‰æ³¨é‡Šï¼
                 {
                     if (!apNode->is_type(sss::xml3::type_node)) {
                         return false;
@@ -30,7 +30,7 @@ namespace sss {
                     return true;
                 }
 
-            case EOnlyChild: // ÊÇ¸¸½ÚµãµÄÎ¨Ò»×Ó½Úµã£»
+            case EOnlyChild: // æ˜¯çˆ¶èŠ‚ç‚¹çš„å”¯ä¸€å­èŠ‚ç‚¹ï¼›
                 {
                     if (!apNode->is_type(sss::xml3::type_node))
                     {
@@ -117,7 +117,7 @@ namespace sss {
         }
 
         // NOTE
-        // Ã»ÓĞµ÷ÓÃ±¾º¯ÊıµÄº¯Êı£¡
+        // æ²¡æœ‰è°ƒç”¨æœ¬å‡½æ•°çš„å‡½æ•°ï¼
         node_list_t Selector::filter(node_list_t nodes)
         {
             node_list_t ret;
@@ -139,7 +139,7 @@ namespace sss {
             return ret;
         }
 
-        // ½«apNode±¾Éí£¬ÒÔ¼°ÏÂÊôËùÓĞ×Ó½Úµã£¬Èç¹û·ûºÏ¼ìË÷Ìõ¼ş£¬ÔòÒÔÏÈ¸ù½ÚµãµÄË³Ğò£¬¸½¼Óµ½nodesÖĞ£»
+        // å°†apNodeæœ¬èº«ï¼Œä»¥åŠä¸‹å±æ‰€æœ‰å­èŠ‚ç‚¹ï¼Œå¦‚æœç¬¦åˆæ£€ç´¢æ¡ä»¶ï¼Œåˆ™ä»¥å…ˆæ ¹èŠ‚ç‚¹çš„é¡ºåºï¼Œé™„åŠ åˆ°nodesä¸­ï¼›
         void Selector::matchAllInto(node* apNode, node_list_t& nodes)
         {
             if (match(apNode))

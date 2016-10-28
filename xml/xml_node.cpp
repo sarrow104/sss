@@ -37,13 +37,13 @@ namespace sss{
 
         int         properties_t::parse(const std::string& properties_str)
         {
-            // ÏÈ¿¼ÂÇ¼òµ¥µÄÇé¿ö£º
+            // å…ˆè€ƒè™‘ç®€å•çš„æƒ…å†µï¼š
             // key = "value"
             // \c\w+\s*=\s*"[^"]+"
-            // ÔÊĞí¼õºÅ'-'£¬×ÖÄ¸´óĞ¡Ğ´£¬ÒÔ¼°Êı×Ö£»µ«ÊÇÊı×ÖºÍ¼õºÅ²»ÄÜ×÷Îª¿ªÍ·£»
-            // ¼õºÅ²»ÄÜ×÷Îª½áÎ²£»
+            // å…è®¸å‡å·'-'ï¼Œå­—æ¯å¤§å°å†™ï¼Œä»¥åŠæ•°å­—ï¼›ä½†æ˜¯æ•°å­—å’Œå‡å·ä¸èƒ½ä½œä¸ºå¼€å¤´ï¼›
+            // å‡å·ä¸èƒ½ä½œä¸ºç»“å°¾ï¼›
             static sss::regex::simpleregex
-                key_value_pair_reg("^\\s*"      // Ç°µ¼¿Õ°×·û
+                key_value_pair_reg("^\\s*"      // å‰å¯¼ç©ºç™½ç¬¦
                                    "\\(\\<\\c[\\-a-zA-Z0-9]*\\>\\)" // key
                                    "\\s*=\\s*"  // =
                                    "\"\\([^\"]*\\)\""); // "value"
@@ -94,7 +94,7 @@ namespace sss{
                 return it->second;
             }
             else {
-                // ¡­¡­
+                // â€¦â€¦
                 return "";
             }
         }
@@ -242,22 +242,22 @@ namespace sss{
         node * node::locate(const std::string& path)
         {
             //    E
-            //          ÔªËØÃû³Æ(div, p);
+            //          å…ƒç´ åç§°(div, p);
             //    E#id
-            //          Ê¹ÓÃidµÄÔªËØ(div#content, p#intro, span#error);
+            //          ä½¿ç”¨idçš„å…ƒç´ (div#content, p#intro, span#error);
             //    E.class
-            //          Ê¹ÓÃÀàµÄÔªËØ(div.header, p.error.critial). ÄãÒ²¿ÉÒÔÁªºÏ
-            //          Ê¹ÓÃclassºÍidID: div#content.column.width;
+            //          ä½¿ç”¨ç±»çš„å…ƒç´ (div.header, p.error.critial). ä½ ä¹Ÿå¯ä»¥è”åˆ
+            //          ä½¿ç”¨classå’ŒidID: div#content.column.width;
             //    E>N
-            //          ×Ó´úÔªËØ(div>p, div#footer>p>span);
+            //          å­ä»£å…ƒç´ (div>p, div#footer>p>span);
             //    E+N
-            //          ĞÖµÜÔªËØ(h1+p, div#header+div#content+div#footer);
+            //          å…„å¼Ÿå…ƒç´ (h1+p, div#header+div#content+div#footer);
             //    E*N
-            //          ÔªËØ±¶Ôö(ul#nav>li*5>a);
+            //          å…ƒç´ å€å¢(ul#nav>li*5>a);
             //    E$*N
-            //          ÌõÄ¿±àºÅ(ul#nav>li.item-$*5);
+            //          æ¡ç›®ç¼–å·(ul#nav>li.item-$*5);
             //    E:N
-            //          µÚN¸ö×Ó½Úµã£»
+            //          ç¬¬Nä¸ªå­èŠ‚ç‚¹ï¼›
             node * tmp = this;
             sss::Spliter sp(path, '>');
             std::string stem;
@@ -349,7 +349,7 @@ namespace sss{
             }
         }
 
-        // µİ¹é²éÕÒ·ûºÏÃû×ÖµÄËùÓĞ×ÓËï½Úµã
+        // é€’å½’æŸ¥æ‰¾ç¬¦åˆåå­—çš„æ‰€æœ‰å­å­™èŠ‚ç‚¹
         node_list_t node::find_all(const std::string& name) const
         {
             node_list_t ret;
@@ -423,7 +423,7 @@ namespace sss{
 
         node * node::find_child(const std::string& name, int index) const
         {
-            // FIXME Èç¹û index ´«ÈëµÄÖµ£¬¾ÍÊÇ -1£¬ÄÇÃ´±¾º¯ÊıÆñ²»ÊÇÒªËÀÑ­»·£¿
+            // FIXME å¦‚æœ index ä¼ å…¥çš„å€¼ï¼Œå°±æ˜¯ -1ï¼Œé‚£ä¹ˆæœ¬å‡½æ•°å²‚ä¸æ˜¯è¦æ­»å¾ªç¯ï¼Ÿ
             node * ret = 0;
             if (0 <= index && index < int(this->node_list.size())) {
                 for (node_list_t::const_iterator it = this->node_list.begin();
@@ -457,10 +457,10 @@ namespace sss{
             return *this->node_list.rbegin();
         }
 
-        // ·µ»Ø±»²åÈëµÄ½Úµã£»
-        // refchild ±ØĞëÊÇµ±Ç°½ÚµãµÄ¶ù×Ó£¡
-        // child ²»ÄÜÊÇµ±Ç°½ÚµãµÄ×æÏÈ£¡
-        // Èç¹ûrefchild ÊÇ null£»Ôò²åµ½µÚÒ»¸ö£¡
+        // è¿”å›è¢«æ’å…¥çš„èŠ‚ç‚¹ï¼›
+        // refchild å¿…é¡»æ˜¯å½“å‰èŠ‚ç‚¹çš„å„¿å­ï¼
+        // child ä¸èƒ½æ˜¯å½“å‰èŠ‚ç‚¹çš„ç¥–å…ˆï¼
+        // å¦‚æœrefchild æ˜¯ nullï¼›åˆ™æ’åˆ°ç¬¬ä¸€ä¸ªï¼
         node * node::insert_before(node* child, node* refchild)
         {
             if (!this->is_node()) {
@@ -473,7 +473,7 @@ namespace sss{
                 refchild = this->first_child();
             }
             // FIXME
-            // ¼ì²é refchild µÄºÏ·¨ĞÔ£¡
+            // æ£€æŸ¥ refchild çš„åˆæ³•æ€§ï¼
             this->node_list.insert(std::find(this->node_list.begin(),
                                              this->node_list.end(),
                                              refchild),
@@ -481,7 +481,7 @@ namespace sss{
             return refchild;
         }
 
-        // ·µ»Ø±»²åÈëµÄµÚÒ»¸ö½Úµã
+        // è¿”å›è¢«æ’å…¥çš„ç¬¬ä¸€ä¸ªèŠ‚ç‚¹
         node * node::insert_before(const node_list_t& childs, node* refchild)
         {
             if (!this->is_node()) {
@@ -496,7 +496,7 @@ namespace sss{
                     refchild = this->first_child();
                 }
                 // FIXME
-                // ¼ì²é refchild µÄºÏ·¨ĞÔ£¡
+                // æ£€æŸ¥ refchild çš„åˆæ³•æ€§ï¼
                 this->node_list.insert(std::find(this->node_list.begin(),
                                                  this->node_list.end(),
                                                  refchild),
@@ -639,13 +639,13 @@ namespace sss{
             return ret;
         }
 
-        // ÊÇ·ñÔÊĞíÓĞ×Ó½Úµã£¿
+        // æ˜¯å¦å…è®¸æœ‰å­èŠ‚ç‚¹ï¼Ÿ
         bool node::is_node() const
         {
             return (this->node_type & 1) == 1;
         }
 
-        // ½âÎöxmlµÄÊôĞÔ×Ö·û´®£¬²¢·µ»Ø½âÎöÊı£»
+        // è§£æxmlçš„å±æ€§å­—ç¬¦ä¸²ï¼Œå¹¶è¿”å›è§£ææ•°ï¼›
         int  node::parse_properties_str(const std::string& properties_str)
         {
             return this->properties.parse(properties_str);
@@ -678,7 +678,7 @@ namespace sss{
             : node(name, pdoc)
         {
              this->node_type = type_info;
-             // Ä¬ÈÏÖµ
+             // é»˜è®¤å€¼
              this->set("version", "1.0");
              this->set("encoding", "utf8");
         }
@@ -687,9 +687,9 @@ namespace sss{
         {
         }
 
-        // NOTE info ¶ÔÏó£¬±ØĞëÏÈÊä³ö version £¬È»ºóÊä³öencoding£¬²»È»ä¯ÀÀÆ÷»áÎŞ·¨Ê¶±ğ¡­¡­
-        // ¶î£¬ÕâËãÉ¶ÄñÃÅ×ÓµÄÏŞÖÆ£¿
-        // Ó¦¸ÃÏÈÈ·¶¨±àÂë¼¯£¬ÔÙ¾ö¶¨°æ±¾°É£¿
+        // NOTE info å¯¹è±¡ï¼Œå¿…é¡»å…ˆè¾“å‡º version ï¼Œç„¶åè¾“å‡ºencodingï¼Œä¸ç„¶æµè§ˆå™¨ä¼šæ— æ³•è¯†åˆ«â€¦â€¦
+        // é¢ï¼Œè¿™ç®—å•¥é¸Ÿé—¨å­çš„é™åˆ¶ï¼Ÿ
+        // åº”è¯¥å…ˆç¡®å®šç¼–ç é›†ï¼Œå†å†³å®šç‰ˆæœ¬å§ï¼Ÿ
         void node_info::print_impl(std::ostream& out,
                                    html_util::indent_wraper& ind) const
         {

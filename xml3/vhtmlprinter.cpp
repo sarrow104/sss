@@ -23,17 +23,17 @@ namespace sss{
 
             bool is_self_close = xml_vhtmlprinter::isSelfCloseTag(n->get_data());
 
-            // NOTE Èç¹ûÄÚ²¿Ö»ÓÐÒ»¸ö½Úµã£¨²»¹ÜÊÇtext,comment,»¹ÊÇ node£©£¬¶¼²»¶îÍâÊä³ö»Ø³µ·û¡£
+            // NOTE å¦‚æžœå†…éƒ¨åªæœ‰ä¸€ä¸ªèŠ‚ç‚¹ï¼ˆä¸ç®¡æ˜¯text,comment,è¿˜æ˜¯ nodeï¼‰ï¼Œéƒ½ä¸é¢å¤–è¾“å‡ºå›žè½¦ç¬¦ã€‚
             bool is_self_node = !n->hasChildren();
 
             // 2015-11-08
-            // ÎÒÔ­À´µÄÉè¼ÆÊÇ£¬Èç¹ûÄ³½ÚµãÄÚ²¿ÓÐÇÒÖ»ÓÐÒ»¸ö½Úµã£¬ÄÇÃ´
+            // æˆ‘åŽŸæ¥çš„è®¾è®¡æ˜¯ï¼Œå¦‚æžœæŸèŠ‚ç‚¹å†…éƒ¨æœ‰ä¸”åªæœ‰ä¸€ä¸ªèŠ‚ç‚¹ï¼Œé‚£ä¹ˆ
             // <outer><inner/></outer>
-            // ÕâÑù£¬²»»»ÐÐ½øÐÐÊä³ö£»
-            // ´ËÊ±£¬»áÓöµ½ÕâÖÖÇé¿ö£º
+            // è¿™æ ·ï¼Œä¸æ¢è¡Œè¿›è¡Œè¾“å‡ºï¼›
+            // æ­¤æ—¶ï¼Œä¼šé‡åˆ°è¿™ç§æƒ…å†µï¼š
             // <body><div><div>...</div></div></body>
-            // ÕâÑù¾Í±È½ÏÄÑ¿´ÁË¡£
-            // ÎÒ¾õµÃÓ¦¸ÃÕâÑù¡ª¡ªÖ»ÓÐ×Ó½ÚµãÊÇÒ¶×Ó½Úµã£¬²ÅÊ¡ÂÔ»Ø³µºÍËõ½ø£¡
+            // è¿™æ ·å°±æ¯”è¾ƒéš¾çœ‹äº†ã€‚
+            // æˆ‘è§‰å¾—åº”è¯¥è¿™æ ·â€•â€•åªæœ‰å­èŠ‚ç‚¹æ˜¯å¶å­èŠ‚ç‚¹ï¼Œæ‰çœç•¥å›žè½¦å’Œç¼©è¿›ï¼
             if (!is_self_node || !is_self_close) {
                 bool is_neat_print = (n->size() == 1 && n->firstChild()->is_leaf());
 

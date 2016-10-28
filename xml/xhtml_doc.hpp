@@ -17,28 +17,28 @@ namespace sss{
         class xhtml_doc : public xml_doc {
 
         public:
-            // ´´½¨¿ÕµÄxmlÎÄµµ¶ÔÏó
+            // åˆ›å»ºç©ºçš„xmlæ–‡æ¡£å¯¹è±¡
             xhtml_doc();
 
-            // ´´½¨×Ö·û¼¯ÎªcharsetµÄxmlÎÄµµ¶ÔÏó
-            // Í¬Ê±ÉèÖÃÊÇ·ñ´òÓ¡bom¡ª¡ªNOTE bomÖ»ÔÚ´òÓ¡µÄÊ±ºòÓĞĞ§¡£
+            // åˆ›å»ºå­—ç¬¦é›†ä¸ºcharsetçš„xmlæ–‡æ¡£å¯¹è±¡
+            // åŒæ—¶è®¾ç½®æ˜¯å¦æ‰“å°bomâ€•â€•NOTE bomåªåœ¨æ‰“å°çš„æ—¶å€™æœ‰æ•ˆã€‚
             xhtml_doc(const std::string& charset,
                       bool has_bom = false);
 
-            // ´´½¨¸ù½ÚµãÎªroot_nameµÄxmlÎÄµµ¶ÔÏó
-            // ÆäÓàÍ¬ÉÏ£»
+            // åˆ›å»ºæ ¹èŠ‚ç‚¹ä¸ºroot_nameçš„xmlæ–‡æ¡£å¯¹è±¡
+            // å…¶ä½™åŒä¸Šï¼›
             xhtml_doc(const std::string& root_name,
                       const std::string& charset,
                       bool has_bom = false);
 
-            // ¡­¡­
+            // â€¦â€¦
             virtual ~xhtml_doc();
 
         public:
             virtual node * root() const;
             virtual node * root(const std::string&);
 
-            // »ñÈ¡¸ù½ÚµãÃû×Ö
+            // è·å–æ ¹èŠ‚ç‚¹åå­—
             virtual std::string root_name() const;
 
             virtual std::string set_charset(const std::string& );
@@ -49,7 +49,7 @@ namespace sss{
 
         protected:
 
-            // È·±£ÃèÊöcharsetµÄ½Úµã´æÔÚÓÚ¸ù½ÚµãÖ®Ç°£¡
+            // ç¡®ä¿æè¿°charsetçš„èŠ‚ç‚¹å­˜åœ¨äºæ ¹èŠ‚ç‚¹ä¹‹å‰ï¼
             node      * verify_charset_node();
         };
     }

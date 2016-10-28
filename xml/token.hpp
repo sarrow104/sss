@@ -14,13 +14,13 @@ namespace sss {
                 token_xml_nill = 0,
                 token_xml_info,                 // <? .{-} ?>
                 token_xml_comment,              // <!-- .{-} -->
-                token_xml_node_begin,           // <\w\+> ÔİÊ±²»Ö§³ÖÊôĞÔ
+                token_xml_node_begin,           // <\w\+> æš‚æ—¶ä¸æ”¯æŒå±æ€§
                 token_xml_node_end,             // </\w\+>
                 token_xml_node_self,            // </\w\+/>
-                token_xml_line_text,            // text×Ô³ÉÒ»ĞĞ£»
+                token_xml_line_text,            // textè‡ªæˆä¸€è¡Œï¼›
                 token_xml_node_cdata,           // <!CDATA[ ... ]]>
                 token_xml_doctype,              // html: <!DOCTYPE ... >
-                token_xml_space                 // ¿Õ°××Ö·û-ÓĞ±ØÒª£¡
+                token_xml_space                 // ç©ºç™½å­—ç¬¦-æœ‰å¿…è¦ï¼
             };
 
         public:
@@ -31,10 +31,10 @@ namespace sss {
         public:
             void print(std::ostream&) const;
 
-            // »ñÈ¡token×Ö·û´®µÄÃû×Ö²¿·Ö×Ó´®
+            // è·å–tokenå­—ç¬¦ä¸²çš„åå­—éƒ¨åˆ†å­ä¸²
             const std::string& get_name() const;
 
-            // »ñÈ¡token×Ö·û´®µÄÊôĞÔ²¿·Ö×Ó´®
+            // è·å–tokenå­—ç¬¦ä¸²çš„å±æ€§éƒ¨åˆ†å­ä¸²
             const std::string& get_properties_str() const;
 
         public:
@@ -63,13 +63,13 @@ namespace sss {
             ~tokenizer();
 
         public:
-            // Èç¹û½âÎö³É¹¦£¬½«»ñÈ¡µ½µÄtokenĞ´Èë´«Èë²ÎÊı;
-            // ²¢·µ»Øtrue;
-            // ·´Ö®£¬·µ»Øfalse;
+            // å¦‚æœè§£ææˆåŠŸï¼Œå°†è·å–åˆ°çš„tokenå†™å…¥ä¼ å…¥å‚æ•°;
+            // å¹¶è¿”å›true;
+            // åä¹‹ï¼Œè¿”å›false;
             bool fetch(token_t&);
 
         protected:
-            // ³¢ÊÔ¶ÁÈ¡£»³É¹¦µÄ»°·µ»Øtrue£¬²¢ĞŞ¸ÄÄÚ²¿ÊôĞÔ£»·´Ö®·µ»Øfalse;
+            // å°è¯•è¯»å–ï¼›æˆåŠŸçš„è¯è¿”å›trueï¼Œå¹¶ä¿®æ”¹å†…éƒ¨å±æ€§ï¼›åä¹‹è¿”å›false;
             bool test_xml_info();       // <?xml .... ?>
             bool test_xml_doctype();    // <!DOCTYPE ... >
             bool test_xml_comment();    // <!-- ... -->

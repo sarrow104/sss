@@ -400,7 +400,7 @@ invalid:
 
         // PseudoclassSelector
         //  -> ':' ("not"|"has"|"haschild") '(' SelectorGroup ')'
-        //  -> ':' ("contains"|"containsown") '(' (String | Identifier) ')' // Ã²ËÆÊÇcase sensitive
+        //  -> ':' ("contains"|"containsown") '(' (String | Identifier) ')' // Ä‚Ë›Ã‹Ä†Ä˜Ã‡case sensitive
         //  -> ':' ("matches"|"matchesown") // TODO not support!
         //  -> ':' ("nth-child"|"nth-last-child"|"nth-of-type"|"nth-last-of-type") '(' Nth ')'
         //  -> ':' "first-child"

@@ -21,7 +21,7 @@ namespace sss {
         {
         }
 
-        // ���� xml_str_data �������� tmp_doc ����
+        // 解析 xml_str_data ，构建于 tmp_doc 对象
         xml::xml_doc * xml_parser::parse(xml::xml_doc * tmp_doc,
                                          const std::string& xml_str_data)
         {
@@ -58,32 +58,32 @@ namespace sss {
             }
         }
 
-        // �ȴ����ֽ�����bom
-        // Ȼ���ֽ�����ת����token��
+        // 先处理字节流的bom
+        // 然后将字节流，转换成token流
         //
-        // ��һ��ѭ���������ڵ��Ӧ��ϵ���Ƿ���ȷ
-        // ��� info.charset ���� �ṩĬ��ֵ
-        // �ڶ���ѭ���������ڵ㣻
-        // ��� root �Ƿ�Ψһ��
+        // 第一遍循环，分析节点对应关系，是否正确
+        // 检测 info.charset ―― 提供默认值
+        // 第二遍循环，构建节点；
+        // 检查 root 是否唯一；
         //
-        //! �����ǽ���xml�����̣���ʵ����xhtml�Ļ���Ҳ��������������̣�
-        // ������info �ڵ�ļ�⣬��Ҫ��С�޸ģ�Ӧ��������ж�����ڵ�Ĵ�����
-        // ���Լ����ֵ�λ�úϲ����ʡ�
+        //! 上面是解析xml的流程；其实解析xhtml的话，也可以套用这个流程；
+        // 不过，info 节点的检测，需要做小修改：应该最后来判断这个节点的存在性
+        // ，以及出现的位置合不合适。
         //
-        // �磺
-        // �ȴ����ֽ�����bom
-        // Ȼ���ֽ�����ת����token��
+        // 如：
+        // 先处理字节流的bom
+        // 然后将字节流，转换成token流
         //
-        // ��һ��ѭ���������ڵ��Ӧ��ϵ���Ƿ���ȷ
-        // ��� doctype
-        // �ڶ���ѭ���������ڵ㣻
-        // ��� root �Ƿ�Ψһ��
-        // ���doctype �����ڣ����ṩһ��Ĭ��ֵ��
-        // ���doctype λ�ò��ԣ�����Ų����ʼ��
+        // 第一遍循环，分析节点对应关系，是否正确
+        // 检测 doctype
+        // 第二遍循环，构建节点；
+        // 检查 root 是否唯一；
+        // 如果doctype 不存在，则提供一个默认值；
+        // 如果doctype 位置不对，则将其挪至开始。
         //
-        //! �����˵�������Ϸ��Լ�⣬Ӧ��Ų��ʵ�����Ĺ��캯�������
-        //����Ȼ��Ҳ���Խ���һ����validata�ĳ�Ա������
-        // �����Ļ���parser�����������ԵñȽϼ�ࣻ
+        //! 额，或者说，上述合法性检测，应该挪到实体对象的构造函数中完成
+        //（当然，也可以借助一个叫validata的成员函数）
+        // 那样的话，parser函数，就能显得比较简洁；
 
         void   xml_parser::tokens_pair_node_check() // throw
         {
@@ -244,7 +244,7 @@ namespace sss {
                 break;
 
             case token_t::token_xml_line_text:
-                // FIXME ��� text ���ֵ�λ�õĺϷ��ԣ����磬��������ڵ�ͬ������
+                // FIXME 检测 text 出现的位置的合法性（比如，不能与根节点同级）！
                 //printf("%p %p\n", tmp_node, tmp_doc);
                 //assert(tmp_node);
                 //assert(tmp_doc);
@@ -264,7 +264,7 @@ namespace sss {
             return tk_ini;
         }
 
-        // ���� bom�������ض�ȡ�����ֽ�����
+        // 解析 bom，并返回读取过的字节数；
         int    xml_parser::parse_bom(std::string::const_iterator ini,
                                      std::string::const_iterator fin)
         {

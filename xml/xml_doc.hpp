@@ -11,14 +11,14 @@
 #include <iostream>
 #include <map>
 
-// NOTE xml_doc µÄĞĞÎª£¬´ó²¿·Ö£¬Óë xml::node ÏàÍ¬£¡
-// µ½µ×Òª²»ÒªÇø·Ö£¿xml_doc ½Úµã ÓëÆÕÍ¨½Úµã£¿
+// NOTE xml_doc çš„è¡Œä¸ºï¼Œå¤§éƒ¨åˆ†ï¼Œä¸ xml::node ç›¸åŒï¼
+// åˆ°åº•è¦ä¸è¦åŒºåˆ†ï¼Ÿxml_doc èŠ‚ç‚¹ ä¸æ™®é€šèŠ‚ç‚¹ï¼Ÿ
 //
 // TODO list
-// 1. ±àÂë×ª»»£»Àà±Èvim£»ÄÚ²¿±àÂë£¬ÎÄ¼ş±àÂë£»
-// 2. BOM ÊÇ·ñĞèÒªÌá¹©£¿
+// 1. ç¼–ç è½¬æ¢ï¼›ç±»æ¯”vimï¼›å†…éƒ¨ç¼–ç ï¼Œæ–‡ä»¶ç¼–ç ï¼›
+// 2. BOM æ˜¯å¦éœ€è¦æä¾›ï¼Ÿ
 //
-// ZenCoding ·¶Àı
+// ZenCoding èŒƒä¾‹
 //
 // html:xt>div#header>div#logo+ul#nav>li.item-$*5>a
 //
@@ -43,13 +43,13 @@
 // </body>
 // </html>
 //
-// NOTE ÉÏÊö ZenCoding ÔÚÕ¹¿ªÖ®ºó£¬ÏÈÉú³ÉÒ»¸öxhtml Í·£»È»ºóÄÚ²¿½Úµã¶¼Éú³ÉÔÚ
-// html>bodyÏÂÃæ£»
-// Ê×ÏÈÊÇ div#header£»È»ºóÊÇÆäÄÚ²¿µÄÁ½¸öĞÖµÜ½Úµã£ºdiv#logo ºÍ ul#nav£»
-// ×îºó£¬ÔÚul#navÀïÃæ£¬ÈûÁË5¸öclassÃû×Ö£¬ÒÀ´Ë±ä»¯µÄliÔªËØ£»²¢ÇÒÃ¿¸öliÖĞ£¬¶¼º¬ÓĞ
-// Ò»¸öa½Úµã£»
+// NOTE ä¸Šè¿° ZenCoding åœ¨å±•å¼€ä¹‹åï¼Œå…ˆç”Ÿæˆä¸€ä¸ªxhtml å¤´ï¼›ç„¶åå†…éƒ¨èŠ‚ç‚¹éƒ½ç”Ÿæˆåœ¨
+// html>bodyä¸‹é¢ï¼›
+// é¦–å…ˆæ˜¯ div#headerï¼›ç„¶åæ˜¯å…¶å†…éƒ¨çš„ä¸¤ä¸ªå…„å¼ŸèŠ‚ç‚¹ï¼šdiv#logo å’Œ ul#navï¼›
+// æœ€åï¼Œåœ¨ul#navé‡Œé¢ï¼Œå¡äº†5ä¸ªclassåå­—ï¼Œä¾æ­¤å˜åŒ–çš„liå…ƒç´ ï¼›å¹¶ä¸”æ¯ä¸ªliä¸­ï¼Œéƒ½å«æœ‰
+// ä¸€ä¸ªaèŠ‚ç‚¹ï¼›
 //
-// Ö§³ÖÊôĞÔ£º
+// æ”¯æŒå±æ€§ï¼š
 //
 // html>head+body>div.test_div>ul>li.list-item*10>a[href="#"]>p>span[style="color:red;"]
 
@@ -64,13 +64,13 @@
 //  <RECORD>
 //    <ID>JY33030002-4</ID>
 //    <WAREHOUSEID>JY33030002-02</WAREHOUSEID>
-//    <LOCATION>ÒõÁ¹¿â</LOCATION>
+//    <LOCATION>é˜´å‡‰åº“</LOCATION>
 //  </RECORD>
 //</UPLOAD>
 
-//NOTE ÈçºÎ´¦ÀíÎÄ±¾ÖĞµÄÌØÊâ·ûºÅ£»
+//NOTE å¦‚ä½•å¤„ç†æ–‡æœ¬ä¸­çš„ç‰¹æ®Šç¬¦å·ï¼›
 //
-// Ã²ËÆ£¬½ÚµãµÄÊôĞÔ¡¢½ÚµãÄÚÈİ£¬ÀïÃæ
+// è²Œä¼¼ï¼ŒèŠ‚ç‚¹çš„å±æ€§ã€èŠ‚ç‚¹å†…å®¹ï¼Œé‡Œé¢
 
 namespace sss{
     namespace xml{
@@ -82,28 +82,28 @@ namespace sss{
         class xml_doc : public node {
 
         public:
-            // ´´½¨¿ÕµÄxmlÎÄµµ¶ÔÏó
+            // åˆ›å»ºç©ºçš„xmlæ–‡æ¡£å¯¹è±¡
             xml_doc();
 
-            // ´´½¨×Ö·û¼¯ÎªcharsetµÄxmlÎÄµµ¶ÔÏó
-            // Í¬Ê±ÉèÖÃÊÇ·ñ´òÓ¡bom¡ª¡ªNOTE bomÖ»ÔÚ´òÓ¡µÄÊ±ºòÓĞĞ§¡£
+            // åˆ›å»ºå­—ç¬¦é›†ä¸ºcharsetçš„xmlæ–‡æ¡£å¯¹è±¡
+            // åŒæ—¶è®¾ç½®æ˜¯å¦æ‰“å°bomâ€•â€•NOTE bomåªåœ¨æ‰“å°çš„æ—¶å€™æœ‰æ•ˆã€‚
             xml_doc(const std::string& charset,
                     int has_bom = false);
 
-            // ´´½¨¸ù½ÚµãÎªroot_nameµÄxmlÎÄµµ¶ÔÏó
-            // ÆäÓàÍ¬ÉÏ£»
+            // åˆ›å»ºæ ¹èŠ‚ç‚¹ä¸ºroot_nameçš„xmlæ–‡æ¡£å¯¹è±¡
+            // å…¶ä½™åŒä¸Šï¼›
             xml_doc(const std::string& root_name,
                     const std::string& charset,
                     int has_bom = false);
 
-            // ¡­¡­
+            // â€¦â€¦
             virtual ~xml_doc();
 
         public:
             virtual node * root() const;
             virtual node * root(const std::string&);
 
-            // »ñÈ¡¸ù½ÚµãÃû×Ö
+            // è·å–æ ¹èŠ‚ç‚¹åå­—
             virtual std::string root_name() const;
 
             virtual std::string set_charset(const std::string& );
@@ -114,35 +114,35 @@ namespace sss{
 
         protected:
 
-            // È·±£ÃèÊöcharsetµÄ½Úµã´æÔÚÓÚ¸ù½ÚµãÖ®Ç°£¡
+            // ç¡®ä¿æè¿°charsetçš„èŠ‚ç‚¹å­˜åœ¨äºæ ¹èŠ‚ç‚¹ä¹‹å‰ï¼
             node      * verify_charset_node();
 
         public:
             void print(std::ostream&, const char * sep = "\t") const;
 
-            // Êä³öµ½Íâ²¿ÎÄ¼ş£»
-            // ´ËÊ±£¬»áµ÷ÓÃ±àÂë×ª»»
+            // è¾“å‡ºåˆ°å¤–éƒ¨æ–‡ä»¶ï¼›
+            // æ­¤æ—¶ï¼Œä¼šè°ƒç”¨ç¼–ç è½¬æ¢
             void write(const std::string&, const char * sep = "\t");
 
-            // ´ÓÍâ²¿ÎÄ¼şÔØÈë
+            // ä»å¤–éƒ¨æ–‡ä»¶è½½å…¥
             void load(const std::string& );
 
-            // Ğ´µ½Íâ²¿ÎÄ¼şÖĞ
+            // å†™åˆ°å¤–éƒ¨æ–‡ä»¶ä¸­
             void save(const std::string& );
 
             void clear();
 
-            // ½ÚµãÉú³É£»
+            // èŠ‚ç‚¹ç”Ÿæˆï¼›
             node_text * create_text(const std::string& text);
             node *      create_node(const std::string& name);
             node *      create_comment(const std::string& data);
             node *      create_info(const std::string& data);
             node *      create_doctype(const std::string& data);
             node *      create_cdata(const std::string& data);
-            // TODO ¿ÉÒÔ¼ÓÈë½ÚµãµÄÖµ£»ÓÃÔ²À¨ºÅÀ´´úÌæ£»
+            // TODO å¯ä»¥åŠ å…¥èŠ‚ç‚¹çš„å€¼ï¼›ç”¨åœ†æ‹¬å·æ¥ä»£æ›¿ï¼›
             node_list_t create_zencoding(const std::string& script);
 
-            // ÓÃÎÄ±¾ĞòÁĞ£¬°¤¸öÌî³äÎÄµµÖĞ£¬Ä³½ÚµãÒÔÏÂµÄÒ¶×Ó½Úµã£»
+            // ç”¨æ–‡æœ¬åºåˆ—ï¼ŒæŒ¨ä¸ªå¡«å……æ–‡æ¡£ä¸­ï¼ŒæŸèŠ‚ç‚¹ä»¥ä¸‹çš„å¶å­èŠ‚ç‚¹ï¼›
             template<typename IT>
             int text_fill_empty_node(node * here, IT ini, IT fin)
             {
@@ -163,15 +163,15 @@ namespace sss{
             static std::string safe_xml_entites(const std::string& raw_string);
 
         private:
-            //NOTE "¸ù½Úµã"
-            // xml_doc ¶ÔÏó±¾Éí²¢²»ÊÇ¸ù½Úµã£»¸ù½ÚµãÊÇÆäÖ±½ÓµÄ£¬Î¨Ò»Ò»¸ötype_node
-            // ÀàĞÍµÄ×Ó½Úµã£»£¨ÔÊĞí¶îÍâÓĞtype_comment½Úµã£©
+            //NOTE "æ ¹èŠ‚ç‚¹"
+            // xml_doc å¯¹è±¡æœ¬èº«å¹¶ä¸æ˜¯æ ¹èŠ‚ç‚¹ï¼›æ ¹èŠ‚ç‚¹æ˜¯å…¶ç›´æ¥çš„ï¼Œå”¯ä¸€ä¸€ä¸ªtype_node
+            // ç±»å‹çš„å­èŠ‚ç‚¹ï¼›ï¼ˆå…è®¸é¢å¤–æœ‰type_commentèŠ‚ç‚¹ï¼‰
 
             bool is_bom_enable;
-            // ÄÚ´æ±àÂë£»ÎªÁË·½±ãÓëÆäËû²¿·Ö½»»»£¬ÆäÄ¬ÈÏÖµÎªcp936£¬¼´gb2312
+            // å†…å­˜ç¼–ç ï¼›ä¸ºäº†æ–¹ä¾¿ä¸å…¶ä»–éƒ¨åˆ†äº¤æ¢ï¼Œå…¶é»˜è®¤å€¼ä¸ºcp936ï¼Œå³gb2312
             std::string encoding;
 
-            // ÎÄ¼ş±àÂë£»³£¼ûµÄÎªutf8
+            // æ–‡ä»¶ç¼–ç ï¼›å¸¸è§çš„ä¸ºutf8
             std::string fencoding;
 
             sss::iConv icv;

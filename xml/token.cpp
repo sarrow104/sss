@@ -9,11 +9,11 @@
 #include <sss/utlstring.hpp>
 
 // FIXME
-// Õâ¸öÄ£¿é£¬»¹±ØĞëÊä³ö SSS_LOG_ERROR £¬²»È»Ö´ĞĞ³ö´í£¿·Ç·¨ÄÚ´æ¶ÁÈ¡£¿
-// ±¾À´È«¾Ölog::level ÊÇ log_DEBUG£¬È»ºóÕâÀï»ù±¾¶¼ÊÇSSS_LOG_DEBUG£»
-// ²»µÃÒÑ£¬È«²¿ĞŞ¸ÄÎªSSS_LOG_ERROR£»¾ÍÕı³£ÁË£»
+// è¿™ä¸ªæ¨¡å—ï¼Œè¿˜å¿…é¡»è¾“å‡º SSS_LOG_ERROR ï¼Œä¸ç„¶æ‰§è¡Œå‡ºé”™ï¼Ÿéæ³•å†…å­˜è¯»å–ï¼Ÿ
+// æœ¬æ¥å…¨å±€log::level æ˜¯ log_DEBUGï¼Œç„¶åè¿™é‡ŒåŸºæœ¬éƒ½æ˜¯SSS_LOG_DEBUGï¼›
+// ä¸å¾—å·²ï¼Œå…¨éƒ¨ä¿®æ”¹ä¸ºSSS_LOG_ERRORï¼›å°±æ­£å¸¸äº†ï¼›
 //
-// ÈçºÎÅÅ²é£¿ÕÛ°ëÌæ»»»ØÈ¥£¡
+// å¦‚ä½•æ’æŸ¥ï¼ŸæŠ˜åŠæ›¿æ¢å›å»ï¼
 
 namespace sss {
     namespace xml {
@@ -22,19 +22,19 @@ namespace sss {
             bool operator () (char ch)
             {
                 return
-                    // ¿Õ¸ñ¡¢Ë®Æ½ÖÆ±í·û¡¢´¹Ö±ÖÆ±í·û
+                    // ç©ºæ ¼ã€æ°´å¹³åˆ¶è¡¨ç¬¦ã€å‚ç›´åˆ¶è¡¨ç¬¦
                     ch != ' ' && ch != '\t' && ch != '\v' &&
-                    // »Ø³µ¡¢»»ĞĞ
+                    // å›è½¦ã€æ¢è¡Œ
                     ch != '\r' && ch != '\n';
             }
         };
 
         // FIXME
-        // xmlÃû×Ö£º
+        // xmlåå­—ï¼š
         //      [a-zA-Z_][\w\d]\+\([-.:]\w[\w\d]\+\)*
-        // ¼´£º
-        //      ±ØĞëÒÔ×ÖÄ¸»òÏÂ»®Ïß¿ªÍ·¡£ÖĞ¼ü¿ÉÒÔÌí¼Ó"-",".",":"·Ö¸î£»
-        //      µ«ÊÇ£¬²»ÄÜÒÔxml»òÕßXML¿ªÍ·¡ª¡ªÕâÊÇxmlÓï·¨¹æ¶¨µÄ±£Áô×Ö¡­¡­
+        // å³ï¼š
+        //      å¿…é¡»ä»¥å­—æ¯æˆ–ä¸‹åˆ’çº¿å¼€å¤´ã€‚ä¸­é”®å¯ä»¥æ·»åŠ "-",".",":"åˆ†å‰²ï¼›
+        //      ä½†æ˜¯ï¼Œä¸èƒ½ä»¥xmlæˆ–è€…XMLå¼€å¤´â€•â€•è¿™æ˜¯xmlè¯­æ³•è§„å®šçš„ä¿ç•™å­—â€¦â€¦
         token_t::token_t(token_type_t type,
                          const std::string& d,
                          int r, int c)
@@ -47,8 +47,8 @@ namespace sss {
             case token_xml_node_begin:
             case token_xml_node_self:
                 {
-                    //  ++it;                           // Ìø¹ı'/'
-                    //  ++it;                           // Ìø¹ı'<'
+                    //  ++it;                           // è·³è¿‡'/'
+                    //  ++it;                           // è·³è¿‡'<'
                     static sss::regex::simpleregex
                         node_data_reg("\\(\\<\\c\\w*\\>\\)");
 
@@ -71,7 +71,7 @@ namespace sss {
                 break;
 
             case token_xml_info: // 2014-07-09
-                it += 2;    // Ìø¹ı "<?"
+                it += 2;    // è·³è¿‡ "<?"
                 {
                     static sss::regex::simpleregex info_name_reg("\\<\\c\\w+\\>");
                     std::string::const_iterator match_s_begin;
@@ -84,7 +84,7 @@ namespace sss {
 
                     std::string::const_iterator match_e_begin = match_s_end;
                     std::string::const_iterator match_e_end = this->data.end();
-                    // Ìø¹ıÄ©Î²µÄ "?>"
+                    // è·³è¿‡æœ«å°¾çš„ "?>"
                     std::advance(match_e_end, -2);
 
                     this->properties_str = std::string(match_e_begin, match_e_end);
@@ -138,7 +138,7 @@ namespace sss {
             return this->name;
         }
 
-        // »ñÈ¡token×Ö·û´®µÄÊôĞÔ²¿·Ö×Ó´®
+        // è·å–tokenå­—ç¬¦ä¸²çš„å±æ€§éƒ¨åˆ†å­ä¸²
         const std::string& token_t::get_properties_str() const
         {
             return this->properties_str;
@@ -246,7 +246,7 @@ namespace sss {
                                     match_e_begin, match_e_end);
 
                 if (ret) {
-                    // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                    // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                     data = std::string(match_s_begin, match_e_end);
                     token_type = token_t::token_xml_info;
                     this->move_next(match_s_begin, match_e_end);
@@ -276,7 +276,7 @@ namespace sss {
                                     match_e_begin, match_e_end);
 
                 if (ret) {
-                    // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                    // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                     data = std::string(match_s_begin, match_e_end);
                     token_type = token_t::token_xml_doctype;
                     this->move_next(match_s_begin, match_e_end);
@@ -305,7 +305,7 @@ namespace sss {
                                     match_e_begin, match_e_end);
 
                 if (ret) {
-                    // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                    // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                     data = std::string(match_s_end, match_e_begin);
                     token_type = token_t::token_xml_comment;
 
@@ -318,8 +318,8 @@ namespace sss {
         bool tokenizer::test_xml_node_begin()
         {
             // FIXME
-            // Õâ¸öÆ¥ÅäÓĞÈ±Ïİ£»Ó¦¸ÃÕÒ£ºµÚÒ»¸öÊÇ'<'µ«ÊÇµÚ¶ş¸ö²»ÊÇ'/'µÄ´®£»Ö®ºó£¬
-            // ÔÊĞí¿Õ°×·û£»½Ó×Å²ÅÊÇ±êÊ¾½ÚµãÃû×ÖµÄ±êÊ¶·û¡£
+            // è¿™ä¸ªåŒ¹é…æœ‰ç¼ºé™·ï¼›åº”è¯¥æ‰¾ï¼šç¬¬ä¸€ä¸ªæ˜¯'<'ä½†æ˜¯ç¬¬äºŒä¸ªä¸æ˜¯'/'çš„ä¸²ï¼›ä¹‹åï¼Œ
+            // å…è®¸ç©ºç™½ç¬¦ï¼›æ¥ç€æ‰æ˜¯æ ‡ç¤ºèŠ‚ç‚¹åå­—çš„æ ‡è¯†ç¬¦ã€‚
             static sss::regex::simpleregex reg_begin("^<\\c\\w*\\>");
             static sss::regex::simpleregex reg_end(">");
 
@@ -337,7 +337,7 @@ namespace sss {
                                     match_e_begin, match_e_end);
 
                 if (ret) {
-                    // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                    // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                     data = std::string(match_s_begin, match_e_end);
                     if (*(data.rbegin() + 1) == '/') {
                         token_type = token_t::token_xml_node_self;
@@ -372,7 +372,7 @@ namespace sss {
                                         match_e_begin, match_e_end);
 
                     if (ret) {
-                        // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                        // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                         data = std::string(match_s_begin, match_e_end);
                         token_type = token_t::token_xml_node_end;
 
@@ -406,7 +406,7 @@ namespace sss {
                                     match_e_begin, match_e_end);
 
                 if (ret) {
-                    // ¸ù¾İÀàĞÍ£¬¾ö¶¨ÈçºÎ±£´æÒª½ØÈ¡µÄÊı¾İ£»
+                    // æ ¹æ®ç±»å‹ï¼Œå†³å®šå¦‚ä½•ä¿å­˜è¦æˆªå–çš„æ•°æ®ï¼›
                     data = std::string(match_s_end, match_e_begin);
                     token_type = token_t::token_xml_node_cdata;
 
@@ -430,7 +430,7 @@ namespace sss {
             if (is_not_line_text()(ch)) {
                 return false;
             }
-            // ·Ç»»ĞĞ·û¡¢<> µÄËùÓĞ·ûºÅ
+            // éæ¢è¡Œç¬¦ã€<> çš„æ‰€æœ‰ç¬¦å·
             std::string::const_iterator match_end =
                 std::find_if(this->ini, this->fin, is_not_line_text());
 
