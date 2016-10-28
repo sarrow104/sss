@@ -30,8 +30,8 @@ std::string demangle(const char* name) {
     handle result( abi::__cxa_demangle(name, NULL, NULL, &status) );
     return (status==0) ? result.p : name ;
 #else
-    // TODO ¿ÉÒÔ¹Ì¶¨Ò»¸öÕ»´óĞ¡£¬¹© __cxa_demangle Ê¹ÓÃ£¬ÒÔ±ÜÃâ¶¯Ì¬ÉêÇë¡ª¡ªÔÙÍ¨
-    // ¹ıstd::string ´«³öÈ¥µÄ»°£¬Ïàµ±ÓÚ¹¹ÔìÁ½´Î£¡
+    // TODO å¯ä»¥å›ºå®šä¸€ä¸ªæ ˆå¤§å°ï¼Œä¾› __cxa_demangle ä½¿ç”¨ï¼Œä»¥é¿å…åŠ¨æ€ç”³è¯·â€•â€•å†é€š
+    // è¿‡std::string ä¼ å‡ºå»çš„è¯ï¼Œç›¸å½“äºæ„é€ ä¸¤æ¬¡ï¼
     // enable c++11 by passing the flag -std=c++11 to g++
     std::unique_ptr<char, void(*)(void*)> res {
         abi::__cxa_demangle(name, NULL, NULL, &status),
