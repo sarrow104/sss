@@ -12,8 +12,8 @@ typedef std::string DOMString;
 namespace sss {
 namespace dom {
     //
-    // ±»»Á£∫
-    // PCDATA,CDAT,<!DOCTYPE,<!-- comment,TEXTµ»µ»£ª
+    // ÊØîÂ¶ÇÔºö
+    // PCDATA,CDAT,<!DOCTYPE,<!-- comment,TEXTÁ≠âÁ≠âÔºõ
     enum dom_node_t {
         ELEMENT_NODE = 1,   // html,head,body,...
         ATTRIBUTE_NODE = 2,
@@ -29,7 +29,7 @@ namespace dom {
         NOTATION_NODE = 12
     };
 
-    // html_tag µƒª˘¿‡£ª”√”⁄¥¶¿Ì“ª–©Ãÿ ‚µƒ°¢…Ÿ¡øµƒhtml‘™Àÿ÷÷¿‡£ª
+    // html_tag ÁöÑÂü∫Á±ªÔºõÁî®‰∫éÂ§ÑÁêÜ‰∏Ä‰∫õÁâπÊÆäÁöÑ„ÄÅÂ∞ëÈáèÁöÑhtmlÂÖÉÁ¥†ÁßçÁ±ªÔºõ
     class dom_node{
     private:
         dom_node_t node_type;

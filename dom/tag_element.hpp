@@ -22,21 +22,21 @@
 namespace sss {
 namespace html_tags {
 
-    //»ùÓÚÄ£°æµÄhtml½ÚµãÀà×å
-    // ±ÜÃâÖØĞ´´úÂë£¬Ò»¸öÊÇ¼Ì³Ğ£¨¶à×ÓÀà£¬²¢ÇÒĞèÒª½»»¥µÄÇé¿ö£¬¼Ì³ĞÀàĞÍÏàµ±Âé·³£©£»
-    // Ò»ÖÖÊÇÄ£°æÀà£»ÖÁÓÚvisitorÀàµÄÄÚ²¿£¬¿ÉÒÔ¿¼ÂÇÄ£°æ³ÉÔ±º¯ÊıµÄ·½Ê½£¬À´¼õÉÙ´úÂëµÄ
-    // ÖØĞ´£»
+    //åŸºäºæ¨¡ç‰ˆçš„htmlèŠ‚ç‚¹ç±»æ—
+    // é¿å…é‡å†™ä»£ç ï¼Œä¸€ä¸ªæ˜¯ç»§æ‰¿ï¼ˆå¤šå­ç±»ï¼Œå¹¶ä¸”éœ€è¦äº¤äº’çš„æƒ…å†µï¼Œç»§æ‰¿ç±»å‹ç›¸å½“éº»çƒ¦ï¼‰ï¼›
+    // ä¸€ç§æ˜¯æ¨¡ç‰ˆç±»ï¼›è‡³äºvisitorç±»çš„å†…éƒ¨ï¼Œå¯ä»¥è€ƒè™‘æ¨¡ç‰ˆæˆå‘˜å‡½æ•°çš„æ–¹å¼ï¼Œæ¥å‡å°‘ä»£ç çš„
+    // é‡å†™ï¼›
     //
-    // ²»¹ı£¬ÕâÖÖĞèÒªdispatcherµÄ´úÂë£¬Ä£°æº¯Êı²»»áÒıÆğÎÊÌâÂğ£¿»òĞí£¬»¹ÊÇÄ£°æÀà¿¿Æ×
-    // Ò»Ğ©£»
+    // ä¸è¿‡ï¼Œè¿™ç§éœ€è¦dispatcherçš„ä»£ç ï¼Œæ¨¡ç‰ˆå‡½æ•°ä¸ä¼šå¼•èµ·é—®é¢˜å—ï¼Ÿæˆ–è®¸ï¼Œè¿˜æ˜¯æ¨¡ç‰ˆç±»é è°±
+    // ä¸€äº›ï¼›
     //----------------------------------------------------------------------
     //
     // TODO
-    // ¸Ä½ø£º
+    // æ”¹è¿›ï¼š
     //
-    // Ôö¼ÓÄ£°æ²ÎÊı£¬¼´¿ÉÌá¹©¸ü¶à¿ÉÄÜµÄ¶¨ÖÆ£»
+    // å¢åŠ æ¨¡ç‰ˆå‚æ•°ï¼Œå³å¯æä¾›æ›´å¤šå¯èƒ½çš„å®šåˆ¶ï¼›
     //
-    // ±ÈÈç:
+    // æ¯”å¦‚:
     // template<int html_tag_id, bool is_single> class html_tag_impl
     //     : public html_tag,
     //       public html_data<is_single> {
@@ -53,9 +53,9 @@ namespace html_tags {
     // ...
     // };
     //
-    // ÁíÍâ£¬Èç¹ûÄÜ½«µÚÒ»¸öÄ£°æ²ÎÊı int html_tag_id£¬»»³É const char * tag_name£¬¾Í¸üºÃÁË£»
+    // å¦å¤–ï¼Œå¦‚æœèƒ½å°†ç¬¬ä¸€ä¸ªæ¨¡ç‰ˆå‚æ•° int html_tag_idï¼Œæ¢æˆ const char * tag_nameï¼Œå°±æ›´å¥½äº†ï¼›
     //
-    // »¹ÓĞ£¬±¾Àà×åÔÚÊ¹ÓÃÖĞ£¬ĞèÒª²»¶ÏµØnew£¬Ò²ÊÇÒ»¸öÂé·³ÊÂ£»Àà±Èlibxl£¬Ó¦¸ÃÊ¹ÓÃ¹¤³§Àà£º
+    // è¿˜æœ‰ï¼Œæœ¬ç±»æ—åœ¨ä½¿ç”¨ä¸­ï¼Œéœ€è¦ä¸æ–­åœ°newï¼Œä¹Ÿæ˜¯ä¸€ä¸ªéº»çƒ¦äº‹ï¼›ç±»æ¯”libxlï¼Œåº”è¯¥ä½¿ç”¨å·¥å‚ç±»ï¼š
     //
     template<bool is_single, int id> class tag_style { }; // {{{1
 
@@ -83,7 +83,7 @@ namespace html_tags {
         }
     };
 
-    // ×Ô±ÕºÍ ½ö£¬ begin_tag
+    // è‡ªé—­å’Œ ä»…ï¼Œ begin_tag
     template<int id> class tag_style<true, id> : public html_tag { // {{{1
     public:
         tag_style() : html_tag(id, true) {
@@ -105,13 +105,13 @@ namespace html_tags {
         }
     };
 
-    // ³ÉÔ±º¯Êı£¬¿É²»¿ÉÒÔÆ«ÌØ»¯ÄØ£¿
+    // æˆå‘˜å‡½æ•°ï¼Œå¯ä¸å¯ä»¥åç‰¹åŒ–å‘¢ï¼Ÿ
     // template<int id>
     //     html_tag_impl<int id, false, true>::add() {
     // }
 
-    // ¶ÔÓÚ·Ç×Ô±ÕºÍ±êÇ©£¬Æä´òÓ¡Êä³öº¬ÓĞÁ½ÖÖ·½Ê½£¬Ò»ÖÖÊÇ»»ĞĞ£¬Ò»ÖÖÊÇ½ôËõÔÚÒ»ĞĞ£»
-    // ²¢ÇÒ£¬Í¨³£»»ĞĞµÄ£¬ÆäÄÚ²¿ÊÇÓĞ×Ó½á¹¹µÄ£»¶ø½ôËõÒ»Æğ£¬ÆäÄÚ²¿Ö»ÓĞtext½á¹¹£»
+    // å¯¹äºéè‡ªé—­å’Œæ ‡ç­¾ï¼Œå…¶æ‰“å°è¾“å‡ºå«æœ‰ä¸¤ç§æ–¹å¼ï¼Œä¸€ç§æ˜¯æ¢è¡Œï¼Œä¸€ç§æ˜¯ç´§ç¼©åœ¨ä¸€è¡Œï¼›
+    // å¹¶ä¸”ï¼Œé€šå¸¸æ¢è¡Œçš„ï¼Œå…¶å†…éƒ¨æ˜¯æœ‰å­ç»“æ„çš„ï¼›è€Œç´§ç¼©ä¸€èµ·ï¼Œå…¶å†…éƒ¨åªæœ‰textç»“æ„ï¼›
     template<bool is_inline, bool is_single, int id, typename T> class print_style { }; // {{{1
 
     template<bool is_single, int id, typename T> class print_style<false, is_single, id, T> // {{{1
@@ -144,7 +144,7 @@ namespace html_tags {
         }
 
         html_tag * clone() const {
-            // NOTE ¶¯Ì¬¹¹Ôì£¡
+            // NOTE åŠ¨æ€æ„é€ ï¼
             print_style * ret = dynamic_cast<print_style*>(new T(dynamic_cast<const T&>(*this)));
 
             ret->elements.clear();
@@ -258,9 +258,9 @@ namespace html_tags {
                                      html_tag_impl<id, is_single, is_inline> >{
     public:
         // is_single:
-        //      ÊÇ·ñµ¥±êÇ©£¿ true: <br /> ; false: <p> </p>
-        // is_inline: FIXME inline£¬Ò²¿ÉÒÔÓĞ×Ó½á¹¹£¡
-        //      ÊÇ·ñÃ»ÓĞ×Ó½á¹¹£¿true: <br />,<td>; false: <body>...</body> <tr>...</tr>
+        //      æ˜¯å¦å•æ ‡ç­¾ï¼Ÿ true: <br /> ; false: <p> </p>
+        // is_inline: FIXME inlineï¼Œä¹Ÿå¯ä»¥æœ‰å­ç»“æ„ï¼
+        //      æ˜¯å¦æ²¡æœ‰å­ç»“æ„ï¼Ÿtrue: <br />,<td>; false: <body>...</body> <tr>...</tr>
         static const int tag_id = id;
         typedef html_tag_impl<id, is_single, is_inline> html_tag_impl_t;
         typedef print_style<is_inline, is_single, id, html_tag_impl_t > print_style_t;
@@ -274,7 +274,7 @@ namespace html_tags {
         }
     };
 
-    // ÌØ»¯ html µÄÊä³ö£º
+    // ç‰¹åŒ– html çš„è¾“å‡ºï¼š
     template<> class html_tag_impl<sss::dom::html_tag_name_map::id_HTML, false, false>  // {{{1
         : public print_style<false, false, sss::dom::html_tag_name_map::id_HTML, html_tag_impl<sss::dom::html_tag_name_map::id_HTML, false, false> >,
           public sss::factory_policy<sss::dom::html_tag_factory, html_tag,
@@ -344,7 +344,7 @@ namespace html_tags {
         }
     };
 
-    // NOTE id_STYLEĞèÒªÌØ»¯´¦Àí£¡
+    // NOTE id_STYLEéœ€è¦ç‰¹åŒ–å¤„ç†ï¼
 
     // html_tag typedef-class list {{{1
     // vim:'<,'>s/^\s*\<\(id_\)\(\w\+\)\>,/typedef html_tag_impl<html_tag_name_map::id_\2> \U\2;/ge

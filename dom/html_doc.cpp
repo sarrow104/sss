@@ -9,8 +9,8 @@ namespace sss {
 namespace dom {
 
 html_doc::html_doc(html_doc::document_type_t t) : root(0), p_current(0) {
-    // ǿ��ϵͳ����ע�ắ����
-    // ��Ȼ��ϵͳ���ܺ�������δ�õľ�̬����__regist�Ĺ��죻
+    // 强制系统调用注册函数；
+    // 不然，系统可能忽略这种未用的静态变量__regist的构造；
     if (sss::html_tags::html::__regist) {
         this->root = html_tag_factory::create("html");
         this->p_current = root;
@@ -57,34 +57,34 @@ bool html_doc::is_sub_node_of(html_tags::html_tag * sub, html_tags::html_tag * r
 }
 
 bool html_doc::swap_node(html_tags::html_tag * A, html_tags::html_tag * B) {
-    // ���ȣ������ڵ㶼������this->root���ӽڵ㣿����ʵ��������һ���ǣ�������Ҳ�����壩
+    // 首先，两个节点都必须是this->root的子节点？（其实，仅其中一个是，本操作也有意义）
     if (!is_sub_node_of(A, this->root) || !is_sub_node_of(B, this->root)) {
         return false;
     }
-    // ��ζ�λ���ڵ���elements�е�iterator����index��
-    // �Զ����ɵ��칹���࣬��Ȼ�кô�����д�ܶ���룻���ǣ�����˽ӿڵĻ��ң�
-    // �����군�ˣ������������͵�tag������elements��Ա�ģ��ѵ�Ҫÿ��tag��
-    // dynamic_castһ����
+    // 如何定位父节点中elements中的iterator或者index？
+    // 自动生成的异构子类，虽然有好处，少写很多代码；但是，造成了接口的混乱；
+    // 这下完蛋了！不是所有类型的tag，都有elements成员的！难道要每种tag都
+    // dynamic_cast一下吗？
     //
-    // �ٹ����м�һ�������𣿡���ֻҪ����м�������֧��elements��Ա��
+    // 再构建中键一层类型吗？――只要这个中间类型能支持elements成员？
     //
-    // ��Ҫ����Ϊ��������������û���ģ�壬��������ģ��丸�࣬����html_tag����
-    // ʵ��Ȼ�������ƣ�����ʵ����ģ�������һ���������ڱ��������������Ǻ��޹�ϵ
-    // �Ĳ�ͬ���ͣ�
+    // 主要是因为，我这个类族是用基于模板，正交构造的；其父类，除了html_tag，其
+    // 实虽然看似相似，但其实由于模板参数不一样，所有在编译器看来，都是毫无关系
+    // 的不同类型；
     //
-    // ��Щhtml_tagsʵ���࣬��Ψһ��ѪԵ��ϵ�����ǻ���html_tags::html_tag �ˡ�
+    // 这些html_tags实体类，其唯一的血缘关系，就是基类html_tags::html_tag 了。
     //
-    // ���⣬�ǲ������еı�ǩ���������Ապϣ�
+    // 另外，是不是所有的标签，都可以自闭合？
     //
     // <p />
     // TODO
     //
-    // ��ˣ�Ҫô��
-    // 1. �ұ����ṩһ����Ӳ㣡���ṩһ��֧�� elementsԪ�ز����Ĺ��н��棡
-    // 2. ����html_tag�£��ṩһ��swap���������У�html_tag element�Ĳ�ͬ����ͨ
-    //    ���麯��vtab_ptr�����ֵģ����������������ݣ��Ҳ�����ԭ�ع��첻ͬ�Ķ�
-    //    ������swap��������ȡ����õİ취�����ǽ����ϲ�ָ���ֵ��
-    // ����Ҫ��¼�ϲ�ڵ�ָ�룬�����ڲ�����λ�õ�iterator��
+    // 因此，要么，
+    // 1. 我必须提供一个间接层！以提供一个支持 elements元素操作的公有界面！
+    // 2. 我在html_tag下，提供一个swap函数？不行；html_tag element的不同，是通
+    //    过虚函数vtab_ptr来区分的，而不是其他的数据；我不可能原地构造不同的对
+    //    象！所以swap方法不可取；最好的办法，还是交换上层指针的值；
+    // 我需要记录上层节点指针，还有内部插入位置的iterator；
 
     bool is_still_go = true;
     // std::swap(a, b);
@@ -200,9 +200,9 @@ html_doc::subnodes_t html_doc::get_element_by_predictor(predictor& pre) {
     html_tags::html_tag * current = this->get_root();
     int index = 0;
 
-    // ������ȣ������ڵ㣻
+    // 深度优先，遍历节点；
     do {
-        // ��ǰ�ڵ㣬�Ƿ����Ҫ��
+        // 当前节点，是否符合要求？
         if (pre(current)) {
             ret.push_back(current);
         }
@@ -224,12 +224,12 @@ html_doc::subnodes_t html_doc::get_element_by_predictor(predictor& pre) {
             //std::cout << "number of siblings = " << father->get_subnodes()->size() << std::endl;
             //std::cout << "index = " << index << std::endl;
 
-            // ����Ǹ��ڵ����һ�����ӣ�
+            // 如果是父节点最后一个儿子！
             if (int(father->get_subnodes()->size()) <= index) {
                 if (!calc_stack.empty()) {
-                    // Ŀ���ǵ�����һ�����ڵ㣻
-                    // ��������Ķ���ֻ�ǻص����׽ڵ㣻�������ġ���һ�����ڵ㣬
-                    // ��ʵ��ָ���׵��ֵܣ����߸��׵ĸ��׵��ֵܣ�
+                    // 目的是到“下一个”节点；
+                    // 但是下面的动作只是回到父亲节点；而真正的”下一个“节点，
+                    // 其实是指父亲的兄弟，或者父亲的父亲的兄弟！
                     current = calc_stack.back();
                     calc_stack.pop_back();
                     index = calc_index_stack.back();

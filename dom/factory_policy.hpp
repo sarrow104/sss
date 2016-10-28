@@ -15,7 +15,7 @@ namespace sss {
 template <typename Factory, typename TB, typename TD>
 class factory_policy{   //{{{1
 public:
-    // C++ ¹æ¶¨£¬Ä£°æ²ÎÊı²»ÄÜÉùÃ÷ÎªÓÑÔª
+    // C++ è§„å®šï¼Œæ¨¡ç‰ˆå‚æ•°ä¸èƒ½å£°æ˜ä¸ºå‹å…ƒ
     // friend typename TB;
     // friend typename TD;
     factory_policy() {
@@ -24,16 +24,16 @@ public:
     }
 
 public:
-    static bool __regist;       // ³õÊ¼»¯µÄÊ±ºò£¬»á×Ô¶¯µ÷ÓÃregist_meº¯Êı£¬ÒÔÍê³É×Ô¶¯»ú"×¢²á"
+    static bool __regist;       // åˆå§‹åŒ–çš„æ—¶å€™ï¼Œä¼šè‡ªåŠ¨è°ƒç”¨regist_meå‡½æ•°ï¼Œä»¥å®Œæˆè‡ªåŠ¨æœº"æ³¨å†Œ"
     static bool regist_me() {
         return Factory::reg_cloner(sss::dom::html_tag_name_map::get_name_by_id(TD::tag_id), &create);
     }
 
-    //  ×îÖÕµÄ¹¤×÷ÀàµÄcppÎÄ¼şÖĞ£¬Ê¹ÓÃÏÂÁĞºê£º
+    //  æœ€ç»ˆçš„å·¥ä½œç±»çš„cppæ–‡ä»¶ä¸­ï¼Œä½¿ç”¨ä¸‹åˆ—å®ï¼š
     //
     //  REG_CLONER(fsm)
     //
-    //  ÒÔÍê³É×¢²á£»
+    //  ä»¥å®Œæˆæ³¨å†Œï¼›
     //
 
     static TB* create() {
@@ -47,11 +47,11 @@ public:
 } // end of namespace sss
 #endif  /* __FACTORY_POLICY_HPP_1391063871__ */
 
-// NOTE ÉÏÃæÀûÓÃ¾²Ì¬³ÉÔ±±äÁ¿µÄ¸³Öµ¶¯×÷¡°regist_me()¡°£¬À´Íê³É×¢²á»úµÄ×¢²á¶¯×÷£»
-// ÉÏÊö£¬Ò²¿ÉÒÔÓÃÒ»¸öÄÚ²¿Àà£¨class in class£©µÄ¹¹Ôìº¯ÊıÀ´Íê³É¶¯×÷£»È»ºócppÎÄ¼ş
-// ÖĞ£¬Ğ´³ö¸Ã¾²Ì¬¶ÔÏó¼´¿É£»
+// NOTE ä¸Šé¢åˆ©ç”¨é™æ€æˆå‘˜å˜é‡çš„èµ‹å€¼åŠ¨ä½œâ€œregist_me()â€œï¼Œæ¥å®Œæˆæ³¨å†Œæœºçš„æ³¨å†ŒåŠ¨ä½œï¼›
+// ä¸Šè¿°ï¼Œä¹Ÿå¯ä»¥ç”¨ä¸€ä¸ªå†…éƒ¨ç±»ï¼ˆclass in classï¼‰çš„æ„é€ å‡½æ•°æ¥å®ŒæˆåŠ¨ä½œï¼›ç„¶åcppæ–‡ä»¶
+// ä¸­ï¼Œå†™å‡ºè¯¥é™æ€å¯¹è±¡å³å¯ï¼›
 //
-// Èç£º
+// å¦‚ï¼š
 //
 // hpp:
 // class factory_policy {
