@@ -36,7 +36,7 @@ void sss::read_require(std::FILE * fp, const void * pData, size_t len, const std
 
 std::string sss::read_stop_at(std::FILE * fp, char delimiter)
 {
-    // FIXME ×¢Òâ½áÎ²µÄ '\x00' ÊÇ·ñĞèÒª½Ğµ½×Ö·û´®ÀïÃæ£¡
+    // FIXME æ³¨æ„ç»“å°¾çš„ '\x00' æ˜¯å¦éœ€è¦å«åˆ°å­—ç¬¦ä¸²é‡Œé¢ï¼
     std::string ret;
     char ch;
     while (fread(&ch, 1, 1, fp) == 1 && !feof(fp) && ch != delimiter)
