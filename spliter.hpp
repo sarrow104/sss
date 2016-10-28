@@ -64,13 +64,13 @@ namespace sss{
 class Spliter
 {
 public:
-    // ×¢Òâ£¬¹ØÓÚ²ð·Ö£¬ÓÐÁ½ÖÖ·½Ê½¡£
-    // 1. Ò»ÖÖdelimsÖ»ÄÜÊÇÒ»¸ö×Ö·û
-    // 2. delimsÔÊÐí¶àÖÖÖµ£»´ËÊ±·ÖÎªÁ½ÖÖÇé¿ö£º
-    //    a. ÔÊÐíÑÓÉìspan   ¡ª¡ª ¼´Á¬ÐøµÄ¶à¸ödelims¿´×÷ÊÇÒ»¸ö¡£
-    //    b. ²»ÔÊÐíÑÓÉìspan
-    // ÁíÍâ£¬Èç¹ûµÚÒ»¸ö×Ö·û¾ÍÊÇdelims£¬ÄÇÃ´Ö®Ç°Ëã²»ËãÒ»¸östemÄØ£¿
-    // Èç¹ûÊäÈëµÄÊÇ¿Õ×Ö·û´®£¬ÄÇËã²»Ëã¿ÉÒÔ²ð·ÖÄØ£¿
+    // æ³¨æ„ï¼Œå…³äºŽæ‹†åˆ†ï¼Œæœ‰ä¸¤ç§æ–¹å¼ã€‚
+    // 1. ä¸€ç§delimsåªèƒ½æ˜¯ä¸€ä¸ªå­—ç¬¦
+    // 2. delimså…è®¸å¤šç§å€¼ï¼›æ­¤æ—¶åˆ†ä¸ºä¸¤ç§æƒ…å†µï¼š
+    //    a. å…è®¸å»¶ä¼¸span   â€•â€• å³è¿žç»­çš„å¤šä¸ªdelimsçœ‹ä½œæ˜¯ä¸€ä¸ªã€‚
+    //    b. ä¸å…è®¸å»¶ä¼¸span
+    // å¦å¤–ï¼Œå¦‚æžœç¬¬ä¸€ä¸ªå­—ç¬¦å°±æ˜¯delimsï¼Œé‚£ä¹ˆä¹‹å‰ç®—ä¸ç®—ä¸€ä¸ªstemå‘¢ï¼Ÿ
+    // å¦‚æžœè¾“å…¥çš„æ˜¯ç©ºå­—ç¬¦ä¸²ï¼Œé‚£ç®—ä¸ç®—å¯ä»¥æ‹†åˆ†å‘¢ï¼Ÿ
     Spliter(const std::string& str, char delims)
         : s(str), d(delims), ini(0)
     {
@@ -109,15 +109,15 @@ private:
 };
 
 // TODO
-// »ùÓÚÁ¬ÐøµÄÐòÁÐ£¬½øÐÐ×Ö·û´®ÇÐ·Ö£»
-// ×¢Òâ£¬Õâ²¢²»ÊÇÊÊÓÃÓÚËùÓÐÇé¿ö¡ª¡ªÈç¹û¿¼ÂÇµ½×ªÒå×Ö·ûÐòÁÐµÄ»°£º
+// åŸºäºŽè¿žç»­çš„åºåˆ—ï¼Œè¿›è¡Œå­—ç¬¦ä¸²åˆ‡åˆ†ï¼›
+// æ³¨æ„ï¼Œè¿™å¹¶ä¸æ˜¯é€‚ç”¨äºŽæ‰€æœ‰æƒ…å†µâ€•â€•å¦‚æžœè€ƒè™‘åˆ°è½¬ä¹‰å­—ç¬¦åºåˆ—çš„è¯ï¼š
 //
-// ´ËÊ±£¬²»ÊÇÒ»¸ö×Ö½Ú´ú±íÒ»¸ö×Ö·û£¬¶øÊÇÁ¬ÐøµÄÁ½¸ö×Ö·û£¬¿´×öÒ»¸ö×Ö·û£»
+// æ­¤æ—¶ï¼Œä¸æ˜¯ä¸€ä¸ªå­—èŠ‚ä»£è¡¨ä¸€ä¸ªå­—ç¬¦ï¼Œè€Œæ˜¯è¿žç»­çš„ä¸¤ä¸ªå­—ç¬¦ï¼Œçœ‹åšä¸€ä¸ªå­—ç¬¦ï¼›
 //
-// Õâ¾ÍÐèÒª×ö·Ö¸îÅÐ¶ÏÁË£»
-// ´ËÊ±£¬ÓÐÁ½ÖÖ½â¾ö°ì·¨£º
-// 1. Ìá¹©´øÓÐescape_charsettingµÄ×Ö·û´®°ü×°Àà£»¼´£¬ÓÉÕâ¸öÀàÀ´³éÈ¡×Ö½Ú£»
-// 2. Ã¿´ÎÊÖ¶¯±àÐ´¡­¡­
+// è¿™å°±éœ€è¦åšåˆ†å‰²åˆ¤æ–­äº†ï¼›
+// æ­¤æ—¶ï¼Œæœ‰ä¸¤ç§è§£å†³åŠžæ³•ï¼š
+// 1. æä¾›å¸¦æœ‰escape_charsettingçš„å­—ç¬¦ä¸²åŒ…è£…ç±»ï¼›å³ï¼Œç”±è¿™ä¸ªç±»æ¥æŠ½å–å­—èŠ‚ï¼›
+// 2. æ¯æ¬¡æ‰‹åŠ¨ç¼–å†™â€¦â€¦
 class SpliterSequence
 {
 };
