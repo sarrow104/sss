@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8) 	# must surply this !
 add_definitions(-std=c++11)
-add_definitions(-W -fexceptions -Wunused-variable -Wfatal-errors)
+# NOTE 如果要基于sss，创建动态库，那么libsss.a，也需要使用-fPIC参数！
+# 也就是说，不管静态库、动态库，最好都添加上 -fPIC 参数。
+# 当然，生成可执行文件的话，就不必要了。
+add_definitions(-W -fexceptions -Wunused-variable -Wfatal-errors -fPIC)
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
 	add_definitions(-DNODEBUG -O2 -s)
@@ -23,7 +26,6 @@ message(STATUS ${LIBRARY_OUTPUT_NAME})
 
 project(${target_name})                 # define cmake project name
 
-#add_definitions(-std=c++11)    		# add compiler parameter
 file(GLOB_RECURSE SOURCE "./*.cpp")  # glob all source file
 # NOTE cmake might missing some cpp source file, if I just only use this:
 # file(GLOB SOURCE "**/*.cpp")
