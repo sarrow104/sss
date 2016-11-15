@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <iostream>
 
+#include <sss/string_view.hpp>
 #include <sss/stream/stream.hpp>
 
 namespace sss {
@@ -182,7 +183,7 @@ protected:
     void raw_print(GenericOutputStream& stream) const
     {
         const char null[] = "NULL";
-        if (!this->_s) {
+        if (!this->_s && this->_len) {
             stream.put(null, sizeof(null) - 1);
         }
         else {
@@ -215,6 +216,12 @@ template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
 raw_string_t<TChar, TCharTraits> raw_string(const TChar* s, size_t len)
 {
     return raw_string_t<TChar, TCharTraits>{s, len};
+}
+
+template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
+raw_string_t<TChar, TCharTraits> raw_string(sss::basic_string_view<TChar, TCharTraits> s)
+{
+    return raw_string_t<TChar, TCharTraits>{s.data(), size_t(s.size())};
 }
 
 template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
