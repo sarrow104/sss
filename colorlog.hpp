@@ -10,6 +10,7 @@
 #include <set>
 #include <sstream>
 #include <vector>
+#include <cstdio>
 
 // third
 #include <sss/bit_operation/bit_operation.h>
@@ -198,6 +199,30 @@ enum log_style {
     ls_FUNC = (1 << 9),
 };
 
+inline log_level operator|(log_level lhs, log_level rhs)
+{
+    return static_cast<log_level>(static_cast<int>(lhs) |
+                                  static_cast<int>(rhs));
+}
+
+inline log_level operator&(log_level lhs, log_level rhs)
+{
+    return static_cast<log_level>(static_cast<int>(lhs) &
+                                  static_cast<int>(rhs));
+}
+
+inline log_level operator~(log_level lhs)
+{
+    return static_cast<log_level>(~static_cast<int>(lhs) & static_cast<int>(ll_MASK));
+}
+
+inline log_style operator|(log_style lhs, log_style rhs)
+{
+    return static_cast<log_style>(static_cast<int>(lhs) |
+                                  static_cast<int>(rhs));
+}
+
+
 inline int index_of_log_level(log_level ll)
 {
     return sss::bit::highest_bit_pos(ll);
@@ -214,6 +239,7 @@ class log_env {
     friend void regist(colog::log_level ll, const std::string& fname);
     friend void set_log_elements(colog::log_style ls);
     friend void set_log_levels(colog::log_level ll);
+    friend colog::log_level get_log_levels();
 
 public:
     static log_env& get_env()
@@ -256,7 +282,9 @@ private:
 
 public:
     void set_log_elements(log_style ls) { this->m_log_style = ls; }
-    void set_log_levels(colog::log_level ll) { this->m_log_levels = ll; }
+    void set_log_levels(colog::log_level ll) { this->m_log_levels = (ll & ll_MASK); }
+
+    colog::log_level get_log_levels() const { return this->m_log_levels; }
     void set_level_style(log_level ll, const sss::Terminal::style::begin& s)
     {
         this->m_styles[sss::colog::index_of_log_level(ll)] = s;
@@ -478,16 +506,9 @@ inline void set_log_levels(colog::log_level ll)
     log_env::get_env().set_log_levels(ll);
 }
 
-inline log_level operator|(log_level lhs, log_level rhs)
+inline colog::log_level get_log_levels()
 {
-    return static_cast<log_level>(static_cast<int>(lhs) |
-                                  static_cast<int>(rhs));
-}
-
-inline log_style operator|(log_style lhs, log_style rhs)
-{
-    return static_cast<log_style>(static_cast<int>(lhs) |
-                                  static_cast<int>(rhs));
+    return log_env::get_env().get_log_levels();
 }
 
 #ifdef SSS_COLOG_TURNOFF
@@ -498,6 +519,7 @@ inline log_style operator|(log_style lhs, log_style rhs)
 #define COLOG_INFO(args...)
 #define COLOG_DEBUG(args...)
 #else
+// NOTE TODO 如何防止，提供 空参数 时候，g++编译器，出现剩余逗号的问题？__VA_ARGS__ ？
 #define COLOG_FATAL(args...) \
     sss::colog::fatal(__FILE__, __LINE__, __func__, ##args)
 #define COLOG_ERROR(args...) \
