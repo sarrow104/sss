@@ -47,7 +47,7 @@ void Encoding::ensure(std::string& content, std::string to_encoding,
     encoding_normalize(to_encoding);
     std::string from_encoding;
     if (encodings.empty()) {
-        from_encoding = Encoding::dectect(content);
+        from_encoding = Encoding::detect(content);
     }
     else {
         from_encoding = Encoding::encodings(content, encodings);
@@ -146,26 +146,30 @@ bool Encoding::isCompatibleWith(std::string from, std::string to)
 //}
 
 // 返回编码信息；
-std::string Encoding::dectect(const std::string& content)
+std::string Encoding::detect(const std::string& content)
 {
 #ifdef _USING_UCHARDET_
     uchardet_t ud = uchardet_new();
-    if (uchardet_handle_data(ud, content.c_str(), content.length()) !=
-        0) /* 如果样本字符不够，那么有可能导致分析失败 */
+    int err = uchardet_handle_data(ud, content.c_str(), content.length());
+    if (!err)
     {
-        throw std::runtime_error("uchardet: analyze coding faild！\n");
+        uchardet_data_end(ud);
+
+        std::string encoding = uchardet_get_charset(ud);
     }
-
-    uchardet_data_end(ud);
-
-    std::string encoding = uchardet_get_charset(ud);
 
     uchardet_delete(ud);
 
-    encoding_normalize(encoding);
+    if (!err) {
+        encoding_normalize(encoding);
+        if (encoding.empty()) {
+            encoding.assign("ascii");
+        }
+    }
 
-    if (encoding.empty()) {
-        encoding.assign("ascii");
+    if (err) {
+        /* 如果样本字符不够，那么有可能导致分析失败 */
+        throw std::runtime_error("uchardet: analyze coding faild！\n");
     }
     return encoding;
 #else
@@ -226,7 +230,7 @@ std::string Encoding::fencoding(const std::string& fname)
 #ifdef _USING_UCHARDET_
     std::string content;
     sss::path::file2string(fpath, content);
-    return Encoding::dectect(content);
+    return Encoding::detect(content);
 #else
     sss::ps::StringPipe sp;
     sp.add("chardet").add(fpath);
