@@ -58,6 +58,15 @@ inline void log_out(std::ostringstream& e, bool padding, const char* file,
     log_out_impl(e, padding, args...);
 }
 }
+namespace sss {
+template <typename... Args>
+std::string rope_string(const Args&... args)
+{
+    std::ostringstream oss;
+    log_out_impl(oss, false, args...);
+    return oss.str();
+}
+}  // namespace sss
 #define SSS_POSTION_THROW(type, args...)                           \
     do {                                                           \
         std::ostringstream oss;                                    \
@@ -69,6 +78,13 @@ inline void log_out(std::ostringstream& e, bool padding, const char* file,
         std::ostringstream oss;                                   \
         log_out(oss, true, __FILE__, __LINE__, __func__, ##args); \
         throw type(oss.str());                                    \
+    } while (false)
+#define SSS_POSTION_ARGS_THROW(type, msg, args...)            \
+    do {                                                      \
+        std::ostringstream oss;                               \
+        oss << __FILE__ << ":" << __LINE__ << " " << __func__ \
+            << "(): " << msg;                                 \
+        throw type(oss.str(), ##args);                        \
     } while (false)
 #else
 #define SSS_POSTION_THROW(type, msg, args...)                 \
