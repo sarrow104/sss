@@ -46,7 +46,7 @@ public:
                        const std::string& encodings = "");
 
     // 返回编码信息；
-    static std::string dectect(const std::string& str);
+    static std::string detect(const std::string& str);
 
     static std::string fencoding(const std::string& fname);
 
