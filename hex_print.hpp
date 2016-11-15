@@ -7,11 +7,17 @@
 
 #include <sss/stream/stream.hpp>
 #include <sss/utlstring.hpp>
+#include <sss/string_view.hpp>
 
 namespace sss {
 template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
 class hex_string_t {
 public:
+    template <typename T>
+    explicit hex_string_t(const T& v)
+        : _s(reinterpret_cast<const char*>(&v)), _len(sizeof(T))
+    {
+    }
     hex_string_t(const TChar* s, size_t len) : _s(s), _len(len) {}
     std::basic_string<TChar, TCharTraits> to_string() const
     {
@@ -60,7 +66,12 @@ private:
 }  // namespace
 
 namespace sss {
-template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
+template <typename Dummy>
+hex_string_t<char, std::char_traits<char>> hex_string(const Dummy& v)
+{
+    return hex_string_t<char, std::char_traits<char>>{v};
+}
+template <typename TChar, typename TCharTraits = std::char_traits<TChar> >
 hex_string_t<TChar, TCharTraits> hex_string(const TChar* s)
 {
     return hex_string_t<TChar, TCharTraits>{s, s ? TCharTraits::length(s) : 0u};
@@ -70,6 +81,13 @@ hex_string_t<TChar, TCharTraits> hex_string(const TChar* s, size_t len)
 {
     return hex_string_t<TChar, TCharTraits>{s, len};
 }
+
+template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
+hex_string_t<TChar, TCharTraits> raw_string(sss::basic_string_view<TChar, TCharTraits> s)
+{
+    return hex_string_t<TChar, TCharTraits>{s.data(), size_t(s.size())};
+}
+
 template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
 hex_string_t<TChar, TCharTraits> hex_string(
     const std::basic_string<TChar, TCharTraits>& s)
