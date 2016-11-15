@@ -6,6 +6,7 @@
 #include <string>
 
 #include <sss/raw_print.hpp>
+#include <sss/string_view.hpp>
 
 namespace sss {
 namespace debug {
@@ -119,6 +120,13 @@ template <typename T>
 inline value_msg_t<T> value_msg(const char* n, const T& v)
 {
     return {n, v};
+}
+
+template<typename TChar, typename TCharTraits = std::char_traits<TChar> >
+inline value_msg_t<sss::raw_string_t<TChar>> value_msg(const char* n,
+                                                      const sss::basic_string_view<TChar, TCharTraits>& s)
+{
+    return {n, {s.data(), s.size()}};
 }
 
 inline value_msg_t<sss::raw_string_t<char>> value_msg(const char* n,
