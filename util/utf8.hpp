@@ -150,21 +150,21 @@ namespace sss {
 
                     case utf8::tail:
 #if defined(__cplusplus) && __cplusplus >= 201103L
-                        SSS_POSTION_THROW(std::runtime_error,
+                        SSS_POSITION_THROW(std::runtime_error,
                                           "require head byte but tail `",
                                           ext::binary, uint32_t(lead), "`");
 #else
-                        SSS_POSTION_THROW(std::runtime_error,
+                        SSS_POSITION_THROW(std::runtime_error,
                                           "require head byte but tail `" << ext::binary << uint32_t(lead) << "`");
 #endif
                         break;
 
                     case utf8::bad_byte:
 #if defined(__cplusplus) && __cplusplus >= 201103L
-                        SSS_POSTION_THROW(std::runtime_error, "bad byte `",
+                        SSS_POSITION_THROW(std::runtime_error, "bad byte `",
                                           ext::binary, lead, "`");
 #else
-                        SSS_POSTION_THROW(std::runtime_error,
+                        SSS_POSITION_THROW(std::runtime_error,
                                           "bad byte `" << ext::binary << lead << "`");
 #endif
                         break;
@@ -173,12 +173,12 @@ namespace sss {
                         {
                             if (std::distance(it_beg, it_end) < lead_type) {
 #if defined(__cplusplus) && __cplusplus >= 201103L
-                                SSS_POSTION_THROW(std::runtime_error,
+                                SSS_POSITION_THROW(std::runtime_error,
                                                   "not enough spaces for tail "
                                                   "bytes; with lead `",
                                                   std::hex, int(lead), "`");
 #else
-                                SSS_POSTION_THROW(std::runtime_error,
+                                SSS_POSITION_THROW(std::runtime_error,
                                                   "not enough spaces for tail bytes; with lead `"
                                                   << std::hex << int(lead) << "`");
 #endif
@@ -193,7 +193,7 @@ namespace sss {
 #define UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, idx)                \
     tail_byte = *(it_beg + idx);                                         \
     if (utf8::tail != utf8::to_value_type(tail_byte)) {                  \
-        SSS_POSTION_THROW(std::runtime_error, "require tail byte but `", \
+        SSS_POSITION_THROW(std::runtime_error, "require tail byte but `", \
                           ext::binary, tail_byte, "`");                  \
     }                                                                    \
     cp |= (tail_byte & ~utf8::UTF8_table[0].MASK & 0xFF)                 \
@@ -202,7 +202,7 @@ namespace sss {
 #define UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, idx)                     \
     tail_byte = *(it_beg + idx);                                              \
     if (utf8::tail != utf8::to_value_type(tail_byte)) {                       \
-        SSS_POSTION_THROW(std::runtime_error, "require tail byte but `"       \
+        SSS_POSITION_THROW(std::runtime_error, "require tail byte but `"       \
                                                   << ext::binary << tail_byte \
                                                   << "`");                    \
     }                                                                         \
