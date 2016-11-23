@@ -21,6 +21,13 @@
 
 #include <prettyprint.hpp>
 
+// TODO-list
+// 增加 file 风格限定；
+// 比如fnamemodify-string;
+// 比如vim-style shortpath，dirname部分，仅用一到两个字母表示路径；basename完全显示；
+// relative-to：相对于某路径；
+// 内部，用std::unique_ptr管理这个路径信息；
+
 namespace pretty_print {
 template <typename TChar, typename TCharTraits = ::std::char_traits<TChar>>
 std::basic_ostream<TChar, TCharTraits>& operator<<(
@@ -40,6 +47,7 @@ std::basic_ostream<TChar, TCharTraits>& operator<<(
 }
 }
 
+#ifdef COLOG_IMBUE_RAW_SRTING
 template <typename TChar, typename TCharTraits = ::std::char_traits<TChar>>
 inline std::basic_ostream<TChar, TCharTraits>& operator<<(
     std::basic_ostream<TChar, TCharTraits>& o, const TChar* s)
@@ -56,6 +64,7 @@ inline std::basic_ostream<TChar, TCharTraits>& operator<<(
     o << sss::raw_string(s);
     return o;
 }
+#endif
 
 // http://stackoverflow.com/questions/12937963/get-local-time-in-nanoseconds
 // 关于nano-timer；
@@ -77,8 +86,8 @@ inline std::basic_ostream<TChar, TCharTraits>& operator<<(
 namespace sss {
 struct timestamp_t {
     enum style {
-        DATE_F = 1u,
-        TIME_T = 2u,
+        DATE_F    = 1u,
+        TIME_T    = 2u,
         DOT_MILLS = (1u << 8),
         DOT_MICRS = (3u << 8),
         DOT_NANOS = (7u << 8),
@@ -170,33 +179,34 @@ inline std::ostream& operator<<(std::ostream& o, const timestamp_t& ts)
 
 namespace colog {
 enum log_level {
-    ll_NONE = 0,
-    ll_DEBUG = 1,
-    ll_INFO = 2,
-    ll_INFO_MASK = 3,
-    ll_WARN = 4,
-    ll_WARN_MASK = 7,
-    ll_ERROR = 8,
+    ll_NONE       = 0,
+    ll_DEBUG      = 1,
+    ll_INFO       = 2,
+    ll_INFO_MASK  = 3,
+    ll_WARN       = 4,
+    ll_WARN_MASK  = 7,
+    ll_ERROR      = 8,
     ll_ERROR_MASK = 15,
-    ll_FATAL = 16,
+    ll_FATAL      = 16,
     ll_FATAL_MASK = 31,
-    ll_MASK = ll_FATAL_MASK,
+    ll_MASK       = ll_FATAL_MASK,
 };
 enum log_style {
-    ls_DATE = (1 << 0),
-    ls_TIME = (1 << 1),
-    ls_TIME_MILL = (2 << 1),
-    ls_TIME_MICR = (3 << 1),
-    ls_TIME_NANO = (4 << 1),
-    ls_TIME_MASK = (7 << 1),
-    ls_LEVEL = (1 << 4),
+    ls_DATE        = (1 << 0),
+    ls_TIME        = (1 << 1),
+    ls_TIME_MILL   = (1 << 2),
+    ls_TIME_MICR   = (2 << 2),
+    ls_TIME_NANO   = (3 << 2),
+    ls_TIME_MASK   = (3 << 2),
+    ls_LEVEL       = (1 << 4),
     ls_LEVEL_SHORT = (2 << 4),
-    ls_LEVEL_MASK = (3 << 4),
-    ls_FILE = (1 << 6),
-    ls_FILE_SHORT = (2 << 6),
-    ls_FILE_MASK = (3 << 6),
-    ls_LINE = (1 << 8),
-    ls_FUNC = (1 << 9),
+    ls_LEVEL_MASK  = (3 << 4),
+    ls_FILE        = (1 << 6),
+    ls_FILE_SHORT  = (2 << 6),
+    ls_FILE_VIM    = (3 << 6),
+    ls_FILE_MASK   = (3 << 6),
+    ls_LINE        = (1 << 8),
+    ls_FUNC        = (1 << 9),
 };
 
 inline log_level operator|(log_level lhs, log_level rhs)
@@ -221,7 +231,6 @@ inline log_style operator|(log_style lhs, log_style rhs)
     return static_cast<log_style>(static_cast<int>(lhs) |
                                   static_cast<int>(rhs));
 }
-
 
 inline int index_of_log_level(log_level ll)
 {
@@ -253,7 +262,7 @@ protected:
     {
         this->m_path_base =
             sss::path::modify_copy(sss::path::getbin(), ":p:h:h");
-        this->m_log_style = log_style(ls_DATE | ls_TIME_NANO | ls_FILE_SHORT |
+        this->m_log_style = log_style(ls_TIME | ls_TIME_MILL | ls_FILE_VIM |
                                       ls_LINE | ls_LEVEL_SHORT | ls_FUNC);
         this->m_styles = std::vector<sss::Terminal::style::begin>{
             sss::Terminal::end, sss::Terminal::debug, sss::Terminal::info,
@@ -408,7 +417,7 @@ public:
             oss.put(']');
         }
 
-        if ((e.m_log_style & ls_FILE_MASK) && file) {
+        if ((e.m_log_style & ls_FILE_MASK) && file && file[0]) {
             if (!is_first_element) {
                 oss.put(' ');
             }
@@ -418,7 +427,7 @@ public:
                     oss.write(file, std::strlen(file));
                     break;
 
-                default: {
+                case ls_FILE_SHORT: {
                     if (e.m_path_base.empty()) {
                         oss.write(file, std::strlen(file));
                     }
@@ -427,6 +436,26 @@ public:
                         short_path =
                             sss::path::relative_to(file, e.m_path_base);
                         oss.write(short_path.c_str(), short_path.length());
+                    }
+                } break;
+
+                case ls_FILE_VIM: {
+                    // /path/to/header.hpp
+                    const char* p_cur = file;
+                    const char* p_sep =
+                        std::strchr(file + 1, sss::path::sp_char);
+                    for (;
+                         p_cur && p_cur[0];
+                         p_cur = p_sep, p_sep = std::strchr(p_sep + 1, sss::path::sp_char))
+                    {
+                        if (p_sep) {
+                            std::ptrdiff_t min_size = p_cur[0] == sss::path::sp_char ? 2 : 1;
+                            oss.write(p_cur, std::min(std::distance(p_cur, p_sep), min_size));
+                        }
+                        else {
+                            oss.write(p_cur, std::strlen(p_cur));
+                            break;
+                        }
                     }
                 } break;
             }
@@ -455,12 +484,32 @@ public:
             oss.put(')');
         }
         oss.put(':');
+
+#ifdef HIGHLIGHT_MSG
         oss.put(' ');
 
         oss.write(msg.c_str(), msg.length());
         oss.write(sss::Terminal::end.data(), sss::Terminal::end.data_len());
+#else
+        oss.write(sss::Terminal::end.data(), sss::Terminal::end.data_len());
+        oss.put(' ');
+
+        oss.write(msg.c_str(), msg.length());
+#endif
         oss.put('\n');
         std::string msg_final = oss.str();
+#ifdef HIGHLIGHT_MSG
+        std::string msg_final_normal = msg_final.substr(e.get_level_style(ll).data_len(), msg_final.c_str() +
+                                                        e.get_level_style(ll).data_len(),
+                                                        msg_final.length() -
+                                                        e.get_level_style(ll).data_len() -
+                                                        sss::Terminal::end.data_len());
+        msg_final_normal.back() = '\n';
+#else
+        std::string msg_final_normal = msg_final;
+        msg_final_normal.erase(0, e.get_level_style(ll).data_len());
+        msg_final_normal.erase(msg_final_normal.size() - msg.length() - 2, sss::Terminal::end.data_len());
+#endif
         // 如果要忽略高亮——比如输出到外部文件，如何操作？
         // 1. 临时修改换行符
         // 2. 提供偏移和长度，以只打印msg主体。
@@ -472,18 +521,22 @@ public:
                         listen->write(msg_final.c_str(), msg_final.length());
                     }
                     else {
-                        char old = '\n';
-                        std::swap(old,
-                                  msg_final[msg_final.length() -
-                                            sss::Terminal::end.data_len() - 1]);
-                        listen->write(msg_final.c_str() +
-                                          e.get_level_style(ll).data_len(),
-                                      msg_final.length() -
-                                          e.get_level_style(ll).data_len() -
-                                          sss::Terminal::end.data_len());
-                        std::swap(old,
-                                  msg_final[msg_final.length() -
-                                            sss::Terminal::end.data_len() - 1]);
+                        listen->write(msg_final_normal.c_str(), msg_final_normal.length());
+// #ifdef HIGHLIGHT_MSG
+//                         char old = '\n';
+//                         std::swap(old,
+//                                   msg_final[msg_final.length() -
+//                                             sss::Terminal::end.data_len() - 1]);
+//                         listen->write(msg_final.c_str() +
+//                                           e.get_level_style(ll).data_len(),
+//                                       msg_final.length() -
+//                                           e.get_level_style(ll).data_len() -
+//                                           sss::Terminal::end.data_len());
+//                         std::swap(old,
+//                                   msg_final[msg_final.length() -
+//                                             sss::Terminal::end.data_len() - 1]);
+// #else
+// #endif
                     }
                 }
             }
