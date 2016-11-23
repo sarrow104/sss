@@ -4,8 +4,8 @@
 #include <cstring>
 #include <sstream>
 
-#ifdef SSS_POSTION_THROW
-#undef SSS_POSTION_THROW
+#ifdef SSS_POSITION_THROW
+#undef SSS_POSITION_THROW
 #endif
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
@@ -67,7 +67,7 @@ std::string rope_string(const Args&... args)
     return oss.str();
 }
 }  // namespace sss
-#define SSS_POSTION_THROW(type, args...)                           \
+#define SSS_POSITION_THROW(type, args...)                          \
     do {                                                           \
         std::ostringstream oss;                                    \
         log_out(oss, false, __FILE__, __LINE__, __func__, ##args); \
@@ -87,7 +87,7 @@ std::string rope_string(const Args&... args)
         throw type(oss.str(), ##args);                        \
     } while (false)
 #else
-#define SSS_POSTION_THROW(type, msg, args...)                 \
+#define SSS_POSITION_THROW(type, msg, args...)                \
     do {                                                      \
         std::ostringstream oss;                               \
         oss << __FILE__ << ":" << __LINE__ << " " << __func__ \
