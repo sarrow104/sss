@@ -6,6 +6,7 @@
 #include <sss/utlstring.hpp>
 #include <sss/algorithm.hpp>
 #include <sss/log.hpp>
+#include <sss/string_view.hpp>
 
 #include <limits>
 #include <iterator>
@@ -114,6 +115,14 @@ namespace sss {
                 bool is_commited() const
                 {
                     return this->m_succeed;
+                }
+
+                sss::basic_string_view<value_type> getView() const {
+                    return sss::basic_string_view<value_type>(m_beg_sv, std::distance(m_beg_sv, this->m_beg));
+                }
+
+                sss::basic_string_view<value_type> getCommitView() const {
+                    return sss::basic_string_view<value_type>(m_beg_sv, m_succeed ? std::distance(m_beg_sv, this->m_end) : 0u);
                 }
 
                 sss::util::StringSlice<Iterator> getSlice() const {
@@ -330,6 +339,19 @@ namespace sss {
                     while (parseIfChar(it_beg, it_end, ::isalnum, holder) || parseChar(it_beg, it_end, '_'));
                     id.assign(it_beg_bak, it_beg);
                     // SSS_LOG_DEBUG("%s\n", id.str().c_str());
+                    return true;
+                }
+                return false;
+            }
+
+            static inline bool parseCIdentifier(Iterator & it_beg, Iterator it_end, sss::basic_string_view<value_type>& id)
+            {
+                char holder = '\0';
+                // SSS_LOG_DEBUG("%c\n", *it_beg);
+                Iterator it_beg_bak = it_beg;
+                if (parseIfChar(it_beg, it_end, ::isalpha, holder) || parseChar(it_beg, it_end, '_')) {
+                    while (parseIfChar(it_beg, it_end, ::isalnum, holder) || parseChar(it_beg, it_end, '_'));
+                    id = sss::basic_string_view<value_type>(it_beg_bak, std::distance(it_beg_bak, it_beg));
                     return true;
                 }
                 return false;
