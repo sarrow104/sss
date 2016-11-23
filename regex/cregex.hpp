@@ -245,7 +245,7 @@ namespace sss {
         // REG_ICASE 匹配字母时忽略大小写。
         // REG_NOSUB 不用存储匹配后的结果。
         // REG_NEWLINE 识别换行符，这样'$'就可以从行尾开始匹配，'^'就可以从行的开头开始匹配。
-        CRegex(const std::string& regstr, int mode = mode_default);
+        explicit CRegex(const std::string& regstr, int mode = mode_default);
 
         ~CRegex();
 
