@@ -624,21 +624,21 @@ T string_cast(const std::string& sVal)
     iss >> val;
     if (iss.fail()) {
 #if defined(__cplusplus) && __cplusplus >= 201103L
-        SSS_POSTION_THROW(std::runtime_error, "unable to convert `", sVal,
+        SSS_POSITION_THROW(std::runtime_error, "unable to convert `", sVal,
                           "` to type `", typeid(T).name(), "`");
 #else
-        SSS_POSTION_THROW(std::runtime_error,
+        SSS_POSITION_THROW(std::runtime_error,
                           "unable to convert `" << sVal
                           << "` to type `" << typeid(T).name() << "`");
 #endif
     }
     if (sVal.length() > size_t(iss.tellg())) {
 #if defined(__cplusplus) && __cplusplus >= 201103L
-        SSS_POSTION_THROW(std::runtime_error, "convert `", sVal, "` to type `",
+        SSS_POSITION_THROW(std::runtime_error, "convert `", sVal, "` to type `",
                           typeid(T).name(), "` with tailing bytes `",
                           sVal.substr(iss.tellg()), "`");
 #else
-        SSS_POSTION_THROW(std::runtime_error,
+        SSS_POSITION_THROW(std::runtime_error,
                           "convert `" << sVal << "` to type `" << typeid(T).name()
                           << "` with tailing bytes `" << sVal.substr(iss.tellg()) << "`");
 #endif

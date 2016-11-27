@@ -254,9 +254,9 @@ namespace path {
     {
         if (!sss::path::chgcwd_nothrow(dir)) {
 #if defined(__cplusplus) && __cplusplus >= 201103L
-            SSS_POSTION_THROW(std::runtime_error, "unable to chdir(", dir, ")");
+            SSS_POSITION_THROW(std::runtime_error, "unable to chdir(", dir, ")");
 #else
-            SSS_POSTION_THROW(std::runtime_error, "unable to chdir(" << dir << ")");
+            SSS_POSITION_THROW(std::runtime_error, "unable to chdir(" << dir << ")");
 #endif
         }
         return true;

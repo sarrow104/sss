@@ -180,7 +180,7 @@ int iConv::convert(std::string& to, const std::string& from)
                                     from.substr(in - &from[0], 5).c_str());
                     return false;
 #else
-                    SSS_POSTION_THROW(std::runtime_error, "in string ",
+                    SSS_POSITION_THROW(std::runtime_error, "in string ",
                                       sss::raw_string(from.substr(0, 5)), "... of ",
                                       int(in - &from[0]), "-th byte, ",
                                       sss::raw_string(from.substr(in - &from[0], 6)),
@@ -203,7 +203,7 @@ int iConv::convert(std::string& to, const std::string& from)
                                     from.substr(in - &from[0], 5).c_str());
                     return false;
 #else
-                    SSS_POSTION_THROW(std::runtime_error, "in string ",
+                    SSS_POSITION_THROW(std::runtime_error, "in string ",
                                       sss::raw_string(from.substr(0, 5)), "... of ",
                                       int(in - &from[0]), "-th byte, ",
                                       sss::raw_string(from.substr(in - &from[0], 6)),

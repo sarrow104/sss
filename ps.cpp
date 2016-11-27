@@ -184,7 +184,7 @@ std::string PipeRun(const std::string& command_line, const std::string& dir,
             // NOTE 只有当fd被设置为 O_NONBLOCK 的时候，errno才会因为该
             // fd，未准备好，而将errno 设置为EAGAIN == try again
             if (errno != EAGAIN) {
-                SSS_POSTION_THROW(std::runtime_error, strerror(errno));
+                SSS_POSITION_THROW(std::runtime_error, strerror(errno));
             }
         }
         if (cnt <= 0) {

@@ -337,7 +337,7 @@ bool PenvMgr2::set(std::string var, const std::string& expr)
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
         case TYPE_SYSTEM:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a system-style var name; cannot modified");
             break;
 
@@ -349,13 +349,13 @@ bool PenvMgr2::set(std::string var, const std::string& expr)
             break;
 
         case TYPE_OSENV:
-            SSS_POSTION_THROW(
+            SSS_POSITION_THROW(
                 std::runtime_error, "PenvMgr2: `", var,
                 "` is a OS-environment var name; cannot modified");
             break;
 
         case TYPE_SHELL:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a shell-cmmand; cannot modified");
             break;
 
@@ -363,7 +363,7 @@ bool PenvMgr2::set(std::string var, const std::string& expr)
             break;
 
         default:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is not a valid var name");
             break;
     }
@@ -374,7 +374,7 @@ bool PenvMgr2::set(std::string var, const std::string& expr)
     }
     bool ret = (env_parser(this->_env[var]).parse(expr));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
+        SSS_POSITION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
                           sss::raw_string(expr), ") parse failed.");
     }
     return true;
@@ -389,7 +389,7 @@ bool PenvMgr2::setRawStr(std::string var, const std::string& expr)
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
         case TYPE_SYSTEM:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a system-style var name; cannot modified");
             break;
 
@@ -401,13 +401,13 @@ bool PenvMgr2::setRawStr(std::string var, const std::string& expr)
             break;
 
         case TYPE_OSENV:
-            SSS_POSTION_THROW(
+            SSS_POSITION_THROW(
                 std::runtime_error, "PenvMgr2: `", var,
                 "` is a OS-environment var name; cannot modified");
             break;
 
         case TYPE_SHELL:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a shell-cmmand; cannot modified");
             break;
 
@@ -415,7 +415,7 @@ bool PenvMgr2::setRawStr(std::string var, const std::string& expr)
             break;
 
         default:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is not a valid var name;");
 
             break;
@@ -427,7 +427,7 @@ bool PenvMgr2::setRawStr(std::string var, const std::string& expr)
     }
     bool ret = (env_parser(this->_env[var]).parseRawStr(expr));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
+        SSS_POSITION_THROW(std::runtime_error, " (", sss::raw_string(var), ", ",
                           sss::raw_string(expr), ") parse failed.");
     }
     return true;
@@ -443,7 +443,7 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func,
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
         case TYPE_SYSTEM:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a system-style var name; cannot modified");
             break;
 
@@ -455,13 +455,13 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func,
             break;
 
         case TYPE_OSENV:
-            SSS_POSTION_THROW(
+            SSS_POSITION_THROW(
                 std::runtime_error, "PenvMgr2: `", var,
                 "` is a OS-environment var name; cannot modified");
             break;
 
         case TYPE_SHELL:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a shell-cmmand; cannot modified");
             break;
 
@@ -469,7 +469,7 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func,
             break;
 
         default:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is not a valid var name;");
             break;
     }
@@ -480,7 +480,7 @@ bool PenvMgr2::set(std::string var, expression_t::FuncT func,
     }
     bool ret = (env_parser(this->_env[var]).parseFunc(func, param));
     if (!ret) {
-        SSS_POSTION_THROW(std::runtime_error, " (`", var, "`, `", func, "`, `",
+        SSS_POSITION_THROW(std::runtime_error, " (`", var, "`, `", func, "`, `",
                           param, "`) parse failed.");
     }
     return true;
@@ -562,14 +562,14 @@ public:
     void push()
     {
         if (m_depth++ > max_depth) {
-            SSS_POSTION_THROW(std::runtime_error,
+            SSS_POSITION_THROW(std::runtime_error,
                               "depend_checker2_t max depth > ", max_depth);
         }
     }
     void pop()
     {
         if (m_depth-- < 0) {
-            SSS_POSTION_THROW(std::runtime_error,
+            SSS_POSITION_THROW(std::runtime_error,
                               "depend_checker2_t max depth < 0 ");
         }
     }
@@ -581,7 +581,7 @@ public:
         if (it != this->Base_t::end() && !it->second._ok) {
             SSS_LOG_EXPRESSION(sss::log::log_DEBUG, it->first);
             SSS_LOG_EXPRESSION(sss::log::log_DEBUG, it->second);
-            SSS_POSTION_THROW(ExceptionDependLoop, var);
+            SSS_POSITION_THROW(ExceptionDependLoop, var);
         }
         this->Base_t::insert(it, std::make_pair(var, depend_t()));
     }
@@ -602,7 +602,7 @@ public:
                               value.c_str());
                 SSS_LOG_EXPRESSION(sss::log::log_ERROR, it->first);
                 SSS_LOG_EXPRESSION(sss::log::log_ERROR, it->second);
-                SSS_POSTION_THROW(ExceptionDependLoop, var);
+                SSS_POSITION_THROW(ExceptionDependLoop, var);
             }
             it->second._ok = true;
             it->second._value = value;
@@ -726,7 +726,7 @@ std::string PenvMgr2::get(std::string var) const
             ret = evaluator_impl(var, dc);
         }
         catch (ExceptionDependLoop& e) {
-            SSS_POSTION_THROW(std::runtime_error, "ExceptionDependLoop ",
+            SSS_POSITION_THROW(std::runtime_error, "ExceptionDependLoop ",
                               std::string(e.what()), "; when requre ", var);
         }
     }
@@ -828,7 +828,7 @@ std::string PenvMgr2::getShellComandFromVar(const std::string& var,
 
     var_body_t vb;
     if (!env_parser(vb).parse(cmd)) {
-        SSS_POSTION_THROW(std::runtime_error, " (" , sss::raw_string(cmd) , ") parse failed.");
+        SSS_POSITION_THROW(std::runtime_error, " (" , sss::raw_string(cmd) , ") parse failed.");
     }
     // 即， cmd 串，依赖于 变量形参列表 vb.first
     for (var_list_t::const_iterator it_var = vb.first.begin();
@@ -869,7 +869,7 @@ std::string PenvMgr2::get_expr(const std::string& expr) const
     var_body_t vb;
 
     if (!env_parser(vb).parse(expr)) {
-        SSS_POSTION_THROW(std::runtime_error, " (", sss::raw_string(expr), ") parse failed.");
+        SSS_POSITION_THROW(std::runtime_error, " (", sss::raw_string(expr), ") parse failed.");
     }
 
     try {
@@ -885,7 +885,7 @@ std::string PenvMgr2::get_expr(const std::string& expr) const
         ret = PenvMgr2::generate(vb, dc);
     }
     catch (ExceptionDependLoop& e) {
-        SSS_POSTION_THROW(std::runtime_error, "ExceptionDependLoop ", e.what(),
+        SSS_POSITION_THROW(std::runtime_error, "ExceptionDependLoop ", e.what(),
                           "; when requre ", expr);
     }
     return ret;
@@ -1073,7 +1073,7 @@ bool PenvMgr2::unset(std::string var)
     var_type_t type = env_parser::get_var_type(var);
     switch (type) {
         case TYPE_OSENV:
-            SSS_POSTION_THROW(
+            SSS_POSITION_THROW(
                 std::runtime_error, "PenvMgr2: `", var,
                 "` is a OS-environment var name; cannot modified");
             break;
@@ -1086,17 +1086,17 @@ bool PenvMgr2::unset(std::string var)
             break;
 
         case TYPE_SYSTEM:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a system-style var name; cannot modified");
             break;
 
         case TYPE_SHELL:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a shell-cmmand; cannot modified");
             break;
 
         default:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is not a valid var name");
             break;
     }
@@ -1131,13 +1131,13 @@ bool PenvMgr2::has(std::string var) const
             break;
 
         case TYPE_SYSTEM:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a system-style var name;"
                               " do not support `has` operation.");
             break;
 
         case TYPE_SHELL:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is a shell-cmmand;"
                               " do not support `has` operation.");
             break;
@@ -1146,7 +1146,7 @@ bool PenvMgr2::has(std::string var) const
             break;
 
         default:
-            SSS_POSTION_THROW(std::runtime_error, "PenvMgr2: `", var,
+            SSS_POSITION_THROW(std::runtime_error, "PenvMgr2: `", var,
                               "` is not a valid var name");
             break;
     }
