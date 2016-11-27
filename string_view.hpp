@@ -128,8 +128,13 @@ public:
         : data_(str), size_(len){};
 
     template <size_t N>
+    basic_string_view(charT (&s)[N])
+        : data_(s), size_(s && s[N - 1] ? N : traits::length(s))
+    {
+    }
+    template <size_t N>
     basic_string_view(const charT (&s)[N])
-        : data_(s), size_((s && s[N]) ? N : N - 1)
+        : data_(s), size_((s && s[N - 1]) ? N : traits::length(s))
     {
     }
     void clear()
