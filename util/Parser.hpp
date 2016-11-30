@@ -170,6 +170,27 @@ namespace sss {
                 return false;
                 // return width <= 0 && (!isDigit(it_beg, it_end) || isEnd(it_beg, it_end))
             }
+            static
+            inline bool parseInt32_t(Iterator & it_beg, Iterator it_end,
+                                      int32_t & value, int width = 0)
+            {
+                if (width <= 0) {
+                    width = 0;
+                }
+                uint32_t uv = 0;
+                Iterator it_beg_sv = it_beg;
+                if ((parseChar(it_beg, it_end, '+') || parseChar(it_beg, it_end, '-')) && parseUint32_t(it_beg, it_end, uv, width))
+                {
+                    if (*it_beg_sv == '-') {
+                        value = - int(uv);
+                    }
+                    else {
+                        value = int(uv);
+                    }
+                    return true;
+                }
+                return false;
+            }
 
             static
             inline bool parseChar(Iterator & it_beg, Iterator it_end, char ch)
