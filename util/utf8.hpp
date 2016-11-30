@@ -331,8 +331,8 @@ namespace sss {
             template<typename IteratorIn, typename IteratorOut>
             int dumpout2utf8_once(IteratorIn it_beg, IteratorIn it_end, IteratorOut& it_out)
             {
-                IteratorIn it_beg_sv = it_beg;
-                if (std::distance(it_beg, it_end) > 0) {
+                int cnt = 0;
+                if (it_beg != it_end) {
                     uint32_t ucs_ch = *it_beg;
                     size_t code_len = get_ucs_code_length(ucs_ch);
                             
@@ -453,147 +453,22 @@ namespace sss {
                     }
                     if (code_len) {
                         ++it_beg;
+                        cnt++;
                     }
                 }
-                return std::distance(it_beg_sv, it_beg);
+                return cnt;
             }
 
             template<typename IteratorIn, typename IteratorOut>
             int dumpout2utf8(IteratorIn it_beg, IteratorIn it_end, IteratorOut it_out)
             {
-                IteratorIn it_beg_sv = it_beg;
-#if 0
-                while (std::distance(it_beg, it_end) > 0) {
-                    uint32_t ucs_ch = *it_beg;
-                    size_t code_len = get_ucs_code_length(ucs_ch);
-                    if (!code_len) {
-                        break;
-                    }
-                            
-                    switch (code_len) {
-                    case 1:
-                        *it_out++ = ucs_ch & 0xFF;
-                        break;
-
-                    case 2:
-                        *it_out++
-                            = (((ucs_ch >> 6) & ~utf8::UTF8_table[code_len].MASK)
-                            | utf8::UTF8_table[code_len].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-                        break;
-
-                    case 3:
-                        *it_out++
-                            = (((ucs_ch >> 12) & ~utf8::UTF8_table[code_len].MASK)
-                            | utf8::UTF8_table[code_len].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 6) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-                        break;
-
-                    case 4:
-                        *it_out++
-                            = (((ucs_ch >> 18) & ~utf8::UTF8_table[code_len].MASK)
-                            | utf8::UTF8_table[code_len].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 12) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 6) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-                        break;
-
-                    case 5:
-                        *it_out++
-                            = (((ucs_ch >> 24) & ~utf8::UTF8_table[code_len].MASK)
-                            | utf8::UTF8_table[code_len].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 18) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 12) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 6) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-                        break;
-
-                    case 6:
-                        *it_out++
-                            = (((ucs_ch >> 30) & ~utf8::UTF8_table[code_len].MASK)
-                            | utf8::UTF8_table[code_len].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 24) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 18) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 12) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch >> 6) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-
-                        *it_out++
-                            = (((ucs_ch) & ~utf8::UTF8_table[0].MASK)
-                            | utf8::UTF8_table[0].VALUE)
-                            & 0xFF;
-                        break;
-                    }
-                    ++it_beg;
-                }
-#else
+                int cnt = 0;
                 while (dumpout2utf8_once(it_beg, it_end, it_out)) {
                     it_beg++;
+                    cnt++;
                     // FIXME it_out需要累加吗？
                 }
-#endif
-                return std::distance(it_beg_sv, it_beg);
+                return cnt;
             }
 
             inline int dumpout2utf8_once(const uint32_t * ucs_str, char * out)
@@ -603,7 +478,6 @@ namespace sss {
                 }
                 return dumpout2utf8_once(ucs_str, ucs_str + 1, out);
             }
-
 
             template<typename Iterator> int text_width_nocheck(Iterator it_beg, Iterator it_end, int tabsize = 8)
             {
