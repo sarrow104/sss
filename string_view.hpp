@@ -121,7 +121,7 @@ public:
           size_(str.size())
     {
     }
-    basic_string_view(const charT* str) : data_(str), size_(traits::length(str))
+    basic_string_view(const charT* str) : data_(str), size_(str ? traits::length(str) : 0)
     {
     }
     basic_string_view(const charT* str, size_type len)
