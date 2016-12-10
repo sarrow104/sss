@@ -83,7 +83,7 @@ hex_string_t<TChar, TCharTraits> hex_string(const TChar* s, size_t len)
 }
 
 template <typename TChar, typename TCharTraits = std::char_traits<TChar>>
-hex_string_t<TChar, TCharTraits> raw_string(sss::basic_string_view<TChar, TCharTraits> s)
+hex_string_t<TChar, TCharTraits> hex_string(sss::basic_string_view<TChar, TCharTraits> s)
 {
     return hex_string_t<TChar, TCharTraits>{s.data(), size_t(s.size())};
 }
