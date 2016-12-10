@@ -212,6 +212,12 @@ inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare comp)
     return __first == __last;
 }
 
+template <typename _Container, typename _Compare>
+inline bool is_all(const _Container &container, _Compare comp)
+{
+    return sss::is_all(std::begin(container), std::end(container), comp);
+}
+
 template <typename _InputIterator, typename _Compare>
 inline bool is_any(_InputIterator __first, _InputIterator __last, _Compare comp)
 {
@@ -224,6 +230,12 @@ inline bool is_any(_InputIterator __first, _InputIterator __last, _Compare comp)
         __first++;
     }
     return __has_found;
+}
+
+template <typename _Container, typename _Compare>
+inline bool is_any(const _Container &container, _Compare comp)
+{
+    return sss::is_any(std::begin(container), std::end(container), comp);
 }
 }
 
