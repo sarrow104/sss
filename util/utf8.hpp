@@ -452,7 +452,6 @@ namespace sss {
                         break;
                     }
                     if (code_len) {
-                        ++it_beg;
                         cnt++;
                     }
                 }
