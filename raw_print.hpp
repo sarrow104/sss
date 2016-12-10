@@ -7,6 +7,7 @@
 
 #include <sss/string_view.hpp>
 #include <sss/stream/stream.hpp>
+#include <sss/utlstring.hpp>
 
 namespace sss {
 // NOTE raw_string 只是一个wrapper模板函数。
@@ -96,7 +97,14 @@ void raw_print_char(GenericOutputStream& stream, Tchar ch)
             stream.put("\\\"", 2);
             break;
         default:
-            stream.putChar(ch);
+            if (!(ch & 0x80) && !std::isprint(ch)) {
+                stream.put("\\x", 2);
+                stream.putChar(sss::lower_hex2char(ch >> 4));
+                stream.putChar(sss::lower_hex2char(ch));
+            }
+            else {
+                stream.putChar(ch);
+            }
     }
 }
 }  // namespace detail
