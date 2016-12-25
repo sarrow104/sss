@@ -110,6 +110,9 @@ public:
         std::string get() const {
             return p_dosini ? p_dosini->get_data_slice(*this) : "";
         }
+        void print(std::ostream& o) const {
+            o << this->get();
+        }
 
     private:
         dosini * p_dosini;
@@ -260,6 +263,12 @@ private:
     section_t         end_section;
     //std::string
 };
+
+inline std::ostream& operator << (std::ostream&o, const dosini::value_t& v)
+{
+    v.print(o);
+    return o;
+}
 
 } // end of namespace sss
 
