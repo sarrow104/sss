@@ -327,6 +327,7 @@ namespace ext // binary out put for std::ostream{{{1
 {
     class binary_out_t
     {
+        static const char * binary_table[];
     private:
         //data member list:
         std::ostream& _o;
@@ -347,9 +348,9 @@ namespace ext // binary out put for std::ostream{{{1
             {
                 typedef typename sss::bit::byte_type<sizeof(T)>::ret_t value_type;
                 value_type & v = reinterpret_cast<value_type&>(d);
-                for ( size_t i = sizeof(T) * 8; i != 0 ; --i) {
-                    char c =  ((v >> value_type(i - 1)) & value_type(1u)) + '0';
-                    _o << c;
+                for ( size_t i = sizeof(T) * 2; i != 0 ; --i) {
+                    int idx =  ((v >> (4 * value_type(i - 1))) & value_type(0x0Fu));
+                    _o << binary_table[idx];
                 }
                 return this->_o;
             }

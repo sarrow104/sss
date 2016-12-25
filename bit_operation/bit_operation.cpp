@@ -9,6 +9,14 @@ char sss::bit::bit_order()
     return (char)endian_test.mylong;
 }
 
+const char * ext::binary_out_t::binary_table[] =
+{
+    "0000", "0001", "0010", "0011",
+    "0100", "0101", "0110", "0111",
+    "1000", "1001", "1010", "1011",
+    "1100", "1101", "1110", "1111",
+};
+
 #ifdef  __DEBUG_BIT_OPERATION_CPP__     //{{{1
 
 template<typename T>
