@@ -11,10 +11,12 @@
 //! http://open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3685.html
 
 #include <algorithm>
+#include <stdexcept>
 #include <cstddef>
 #include <cstring>
 #include <limits>
 #include <string>
+#include <sstream>
 #include <type_traits>
 
 namespace sss {
@@ -171,7 +173,14 @@ public:
     bool empty() const noexcept { return !size_; };
     // 7.6, basic_string_view element access
     const_reference operator[](size_type pos) const { return data_[pos]; }
-    const_reference at(size_type pos) const { return data_[pos]; };
+    const_reference at(size_type pos) const {
+        if (pos >= this->size()) {
+            std::ostringstream oss;
+            oss << "query " << pos << "th element! but size only " << this->size();
+            throw std::runtime_error(oss.str());
+        }
+        return data_[pos];
+    };
     const_reference front() const { return data_[0]; };
     const_reference back() const { return data_[size_ - 1]; };
     const_pointer data() const noexcept { return data_; };
