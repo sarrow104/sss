@@ -192,6 +192,7 @@ enum log_level {
     ll_MASK       = ll_FATAL_MASK,
 };
 enum log_style {
+    ls_NONE        = 0,
     ls_DATE        = (1 << 0),
     ls_TIME        = (1 << 1),
     ls_TIME_MILL   = (1 << 2),
@@ -247,6 +248,7 @@ inline const std::string& get_level_name(log_level ll)
 class log_env {
     friend void regist(colog::log_level ll, const std::string& fname);
     friend void set_log_elements(colog::log_style ls);
+    friend uint32_t get_log_elements();
     friend void set_log_levels(colog::log_level ll);
     friend colog::log_level get_log_levels();
 
@@ -291,6 +293,7 @@ private:
 
 public:
     void set_log_elements(log_style ls) { this->m_log_style = ls; }
+    log_style get_log_elements() { return this->m_log_style; }
     void set_log_levels(colog::log_level ll) { this->m_log_levels = (ll & ll_MASK); }
 
     colog::log_level get_log_levels() const { return this->m_log_levels; }
@@ -552,6 +555,11 @@ inline void regist(colog::log_level ll_mask, const std::string& fname)
 inline void set_log_elements(colog::log_style ls)
 {
     log_env::get_env().set_log_elements(ls);
+}
+
+inline uint32_t get_log_elements()
+{
+    return log_env::get_env().get_log_elements();
 }
 
 inline void set_log_levels(colog::log_level ll)
