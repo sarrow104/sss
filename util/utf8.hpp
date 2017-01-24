@@ -300,7 +300,7 @@ namespace sss {
                     }
                     else {
                         // FIXME
-                        // 不是说有的两字节utf8字符，都占两个em宽！
+                        // 不是所有的两字节utf8字符，都占两个em宽！
                         //
                         // 比如&nbsp;，即&#160，相当于一个空格；也是占一个空格的宽度；
                         width += st.second > 1 ? 2 : 1;
