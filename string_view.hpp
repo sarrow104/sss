@@ -403,7 +403,7 @@ public:
     bool is_end_with(const basic_string_view& __x) const
     {
         return size_ >= __x.size_ &&
-               std::memcmp(data_, __x.data_, __x.size_) == 0;
+               std::memcmp(data_ + (size_ - __x.size_), __x.data_, __x.size_) == 0;
     }
 
     bool is_contains(const basic_string_view& __x) const
@@ -461,6 +461,33 @@ basic_string_view<charT, traits>::rfind(const charT* __str, size_type __pos,
     return result != last ? result - data_ : npos;
 }
 
+template<typename CharT, typename TraitsT>
+inline typename basic_string_view<CharT, TraitsT>::size_type
+basic_string_view<CharT, TraitsT>::find_first_of(const CharT* __str, size_type __pos, size_type __n) const
+{
+    for (; __n && __pos < this->size_; ++__pos)
+    {
+        const CharT* __p = traits_type::find(__str, __n,
+                                             this->data_[__pos]);
+        if (__p)
+            return __pos;
+    }
+    return npos;
+}
+
+template<typename CharT, typename TraitsT>
+inline typename basic_string_view<CharT, TraitsT>::size_type
+basic_string_view<CharT, TraitsT>::find_first_not_of(const CharT* __str, size_type __pos, size_type __n) const
+{
+    for (; __n && __pos < this->size_; ++__pos)
+    {
+        const CharT* __p = traits_type::find(__str, __n,
+                                             this->data_[__pos]);
+        if (!__p)
+            return __pos;
+    }
+    return npos;
+}
 }  // namespace sss
 
 #endif /* __STRING_VIEW_HPP_1476871268__ */
