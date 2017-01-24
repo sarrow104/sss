@@ -4,10 +4,10 @@
 
 #include <assert.h>
 
-#include <gumbo_query/Document.h>
-#include <gumbo_query/Node.h>
-#include <gumbo_query/DocType.h>
-#include <gumbo_query/QueryUtil.h>
+#include <gq/Document.h>
+#include <gq/Node.h>
+#include <gq/DocType.h>
+#include <gq/QueryUtil.h>
 
 #include <sss/util/Memory.hpp>
 #include <sss/utlstring.hpp>
