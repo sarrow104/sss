@@ -488,6 +488,34 @@ basic_string_view<CharT, TraitsT>::find_first_not_of(const CharT* __str, size_ty
     }
     return npos;
 }
+
+template<typename CharT, typename TraitsT>
+inline typename basic_string_view<CharT, TraitsT>::size_type
+basic_string_view<CharT, TraitsT>::find_last_of(const CharT* __str, size_type __pos, size_type __n) const
+{
+    for (__pos = (__pos == npos ? this->size_ : __pos); __n && __pos > 0; --__pos)
+    {
+        const CharT* __p = traits_type::find(__str, __n,
+                                             this->data_[__pos - 1]);
+        if (__p)
+            return __pos - 1;
+    }
+    return npos;
+}
+
+template<typename CharT, typename TraitsT>
+inline typename basic_string_view<CharT, TraitsT>::size_type
+basic_string_view<CharT, TraitsT>::find_last_not_of(const CharT* __str, size_type __pos, size_type __n) const
+{
+    for (__pos = (__pos == npos? this->size_ : __pos); __n && __pos > 0; --__pos)
+    {
+        const CharT* __p = traits_type::find(__str, __n,
+                                             this->data_[__pos - 1]);
+        if (!__p)
+            return __pos - 1;
+    }
+    return npos;
+}
 }  // namespace sss
 
 #endif /* __STRING_VIEW_HPP_1476871268__ */
