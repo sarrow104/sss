@@ -98,68 +98,70 @@ struct timestamp_t {
 public:
     void print(std::ostream& o) const
     {
-        if (!this->m_style) {
-            return;
-        }
-        auto now =
-            ::std::chrono::system_clock::now();  // 这个得到一个 time_point;
-        std::time_t t = std::chrono::system_clock::to_time_t(now);
-        std::tm tm = *std::localtime(&t);
-        char buf[40];
-        int offset = 0;
-        if (m_style & DATE_F) {
-            int cnt = std::strftime(buf, sizeof(buf), "%F ", &tm);
-            if (cnt <= 0) {
-                return;
+        if (this->m_style) {
+            auto now =
+                ::std::chrono::system_clock::now();  // 这个得到一个 time_point;
+            std::time_t t = std::chrono::system_clock::to_time_t(now);
+            std::tm tm = *std::localtime(&t);
+            char buf[40];
+            int offset = 0;
+            if (m_style & DATE_F) {
+                // MINGW 不支持 %F, %T
+                int cnt = std::strftime(buf, sizeof(buf), "%Y-%m-%d ", &tm);
+                // int cnt = std::strftime(buf, sizeof(buf), "%F ", &tm);
+                if (cnt <= 0) {
+                    return;
+                }
+                offset += cnt;
             }
-            offset += cnt;
-        }
-        if (m_style & TIME_T) {
-            int cnt = std::strftime(buf + offset, sizeof(buf), "%T", &tm);
-            if (cnt <= 0) {
-                return;
+            if (m_style & TIME_T) {
+                int cnt = std::strftime(buf + offset, sizeof(buf), "%H:%M:%S", &tm);
+                // int cnt = std::strftime(buf + offset, sizeof(buf), "%T", &tm);
+                if (cnt <= 0) {
+                    return;
+                }
+                offset += cnt;
             }
-            offset += cnt;
-        }
-        if (m_style & DOT_NANOS) {
-            if (offset > 0 && !(m_style & TIME_T)) {
-                o.put(' ');
-            }
-            int cnt = 0;
-            auto duration =
-                now.time_since_epoch();  // 从 time_point 得到一个 duration
-            switch (m_style & DOT_NANOS) {
-                case DOT_MILLS: {
-                    std::chrono::milliseconds ms =
-                        std::chrono::duration_cast<std::chrono::milliseconds>(
-                            duration % std::chrono::seconds(1));
-                    // 针对 "秒" 为单位，取余数。
-                    cnt = std::sprintf(buf + offset, ".%03ld", ms.count());
-                } break;
+            if (m_style & DOT_NANOS) {
+                if (offset > 0 && !(m_style & TIME_T)) {
+                    o.put(' ');
+                }
+                int cnt = 0;
+                auto duration =
+                    now.time_since_epoch();  // 从 time_point 得到一个 duration
+                switch (m_style & DOT_NANOS) {
+                    case DOT_MILLS: {
+                                        std::chrono::milliseconds ms =
+                                            std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                duration % std::chrono::seconds(1));
+                                        // 针对 "秒" 为单位，取余数。
+                                        cnt = std::sprintf(buf + offset, ".%03ld", ms.count());
+                                    } break;
 
-                case DOT_MICRS: {
-                    std::chrono::microseconds is =
-                        std::chrono::duration_cast<std::chrono::microseconds>(
-                            duration % std::chrono::seconds(1));
-                    // 针对 "秒" 为单位，取余数。
-                    cnt = std::sprintf(buf + offset, ".%06ld", is.count());
-                } break;
+                    case DOT_MICRS: {
+                                        std::chrono::microseconds is =
+                                            std::chrono::duration_cast<std::chrono::microseconds>(
+                                                duration % std::chrono::seconds(1));
+                                        // 针对 "秒" 为单位，取余数。
+                                        cnt = std::sprintf(buf + offset, ".%06ld", is.count());
+                                    } break;
 
-                case DOT_NANOS: {
-                    std::chrono::nanoseconds ns =
-                        std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            duration % std::chrono::seconds(1));
-                    // 针对 "秒" 为单位，取余数。
-                    cnt = std::sprintf(buf + offset, ".%09ld", ns.count());
-                } break;
+                    case DOT_NANOS: {
+                                        std::chrono::nanoseconds ns =
+                                            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                duration % std::chrono::seconds(1));
+                                        // 针对 "秒" 为单位，取余数。
+                                        cnt = std::sprintf(buf + offset, ".%09ld", ns.count());
+                                    } break;
+                }
+                if (cnt <= 0) {
+                    return;
+                }
+                offset += cnt;
             }
-            if (cnt <= 0) {
-                return;
+            if (offset) {
+                o.write(buf, offset);
             }
-            offset += cnt;
-        }
-        if (offset) {
-            o.write(buf, offset);
         }
     }
 };
@@ -328,7 +330,7 @@ public:
         }
         else {
             std::shared_ptr<std::ofstream> ss = std::make_shared<std::ofstream>(
-                fname, std::ios_base::out | std::ios_base::binary);
+                fname, std::ios_base::out | std::ios_base::binary | std::ios_base::app);
             if (!ss->good()) {
                 return;
             }
@@ -370,6 +372,7 @@ public:
         if (e.m_log_style & ls_DATE) {
             timestamp_style |= timestamp_t::DATE_F;
         }
+
         if (e.m_log_style & ls_TIME_MASK) {
             timestamp_style |= timestamp_t::TIME_T;
             switch (e.m_log_style & ls_TIME_MASK) {
@@ -579,6 +582,13 @@ inline colog::log_level get_log_levels()
 #define COLOG_WARN(args...)
 #define COLOG_INFO(args...)
 #define COLOG_DEBUG(args...)
+
+#define COLOG_FATAL_STMT(a) (a)
+#define COLOG_ERROR_STMT(a) (a)
+#define COLOG_WARN_STMT(a) (a)
+#define COLOG_INFO_STMT(a) (a)
+#define COLOG_DEBUG_STMT(a) (a)
+
 #else
 // NOTE TODO 如何防止，提供 空参数 时候，g++编译器，出现剩余逗号的问题？__VA_ARGS__ ？
 #define COLOG_FATAL(args...) \
@@ -591,6 +601,17 @@ inline colog::log_level get_log_levels()
     sss::colog::info(__FILE__, __LINE__, __func__, ##args)
 #define COLOG_DEBUG(args...) \
     sss::colog::debug(__FILE__, __LINE__, __func__, ##args)
+
+#define COLOG_FATAL_STMT(a)\
+    (sss::colog::fatal(__FILE__, __LINE__, __func__, (#a)),(a))
+#define COLOG_ERROR_STMT(a)\
+    (sss::colog::error(__FILE__, __LINE__, __func__, (#a)),(a))
+#define COLOG_WARN_STMT(a)\
+    (sss::colog::warn(__FILE__, __LINE__, __func__, (#a)),(a))
+#define COLOG_INFO_STMT(a)\
+    (sss::colog::info(__FILE__, __LINE__, __func__, (#a)),(a))
+#define COLOG_DEBUG_STMT(a)\
+    (sss::colog::debug(__FILE__, __LINE__, __func__, (#a)),(a))
 #endif
 /**
  * @brief log_out_impl for empty args-list
