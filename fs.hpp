@@ -189,13 +189,13 @@ bool is_path_exists(const std::string& path);
 inline int  get_file_size(const std::string& path)
 {
 #ifdef __WIN32__
-    HANDLE hFile = ::CreateFile(path.c_str(),
-                                GENERIC_READ,
-                                FILE_SHARE_READ,
-                                NULL,
-                                OPEN_EXISTING,
-                                FILE_ATTRIBUTE_NORMAL,
-                                NULL);
+    HANDLE hFile = ::CreateFileA(path.c_str(),
+                                 GENERIC_READ,
+                                 FILE_SHARE_READ,
+                                 NULL,
+                                 OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL,
+                                 NULL);
 
     DWORD file_size = ::GetFileSize(hFile,NULL);
 
