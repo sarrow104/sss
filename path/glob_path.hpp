@@ -2,6 +2,18 @@
 #ifndef  __PATH_GLOB_HPP_1395147786__
 #define  __PATH_GLOB_HPP_1395147786__
 
+#if (defined UNICODE) || (defined _UNICODE)
+#define UNICODE_OUTER
+#endif
+
+#ifdef UNICODE
+#undef UNICODE
+#endif
+
+#ifdef _UNICODE
+#undef _UNICODE
+#endif
+
 #ifdef __WIN32__
 #       include <windows.h>
 #else
@@ -82,7 +94,7 @@ class file_descriptor {
 
 protected:
 #ifdef __WIN32__
-    WIN32_FIND_DATA     _ffd;
+    WIN32_FIND_DATAA     _ffd;
 #else
     struct dirent       _entry;
     struct dirent *     _pentry;
@@ -308,7 +320,7 @@ private:
     filter_t *          _filter;
 #ifdef __WIN32__
     HANDLE              hFind;
-    WIN32_FIND_DATA     ffd_first;
+    WIN32_FIND_DATAA     ffd_first;
 #else
     DIR *               dirp;
 #endif
@@ -319,6 +331,9 @@ private:
 } // end of namespace sss
 
 
-
+#ifdef UNICODE_OUTER
+#define UNICODE
+#define _UNICODE
+#endif
 
 #endif  /* __PATH_GLOB_HPP_1395147786__ */
