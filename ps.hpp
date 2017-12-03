@@ -1,5 +1,5 @@
-#ifndef __PS_HPP_1439992007__
-#define __PS_HPP_1439992007__
+#ifndef  __PS_HPP_1439992007__
+#define  __PS_HPP_1439992007__
 
 #include <errno.h>
 #include <stdio.h>
@@ -145,6 +145,8 @@ public:
         // by Bart Trojanowski. Clean way to do all 3 pipes.
         this->_fs =
             popen(this->_cmd.c_str(), (this->_mod == pipe_read ? "r" : "w"));
+        // GetLocaleInfo() 对于 windows 来说，这里需要进行编码转换，以保证正确提供参数。
+        // https://msdn.microsoft.com/zh-cn/library/dd318101.aspx
         this->_is_faild = !this->_fs;
         return !this->_is_faild;
     }
@@ -206,7 +208,7 @@ public:
         char buf[buf_size];
         std::ostringstream oss;
         while (!feof(this->_fs) && fgets(buf, sizeof(buf), this->_fs)) {
-            char* p_nl = 0;
+            char * p_nl = 0;
             p_nl = strchr(buf, '\n');
             if (p_nl) {
                 *p_nl = '\0';
@@ -222,9 +224,9 @@ public:
 
 public:
     std::string _cmd;
-    FILE* _fs;
-    mode _mod;
-    bool _is_faild;
+    FILE *      _fs;
+    mode        _mod;
+    bool        _is_faild;
 };
 
 std::string PipeRun(const std::string& command_line,
@@ -316,8 +318,9 @@ template <typename ReturnType>
 inline ReturnType operator<<(std::ostream& o,
                              ReturnType (*func_oper)(std::ostream&))
 {
-    return func_oper(o);
+        return func_oper(o);
 }
 }
 
-#endif /* __PS_HPP_1439992007__ */
+
+#endif  /* __PS_HPP_1439992007__ */
