@@ -90,6 +90,10 @@ public:
     ~iConv();
 
 public:
+    std::string operator() (const std::string& from)
+    {
+        return this->convert(from);
+    }
     bool is_ok() const;
 
     bool is_coding_equal() const;
