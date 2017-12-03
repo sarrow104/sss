@@ -109,7 +109,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                     }
                     else {
                         // 逗号？还有，上一层的计数，何时+1？遇到'[','{'就增加，还是等完成，']','}'？
-                        ++m_elements_cnt.back();
+                        ++m_elements_cnt.back(); // 为什么这里+1？
                         m_state = this->next_element_state();
                     }
                 }
@@ -217,12 +217,14 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                     if (!m_array_or_map.back()) {
                         p.consumeString(s, sValue) || or_throw("string", s);
                         h.String(sss::string_view(sValue));
+                        ++m_elements_cnt.back();
                         m_state = this->next_element_state();
                     }
                     else {
                         if ((m_state & kExpectValue) == kExpectValue) {
                             p.consumeString(s, sValue) || or_throw("string", s);
                             h.String(sss::string_view(sValue));
+                            ++m_elements_cnt.back();
                             m_state = this->next_element_state();
                         }
                         else {
