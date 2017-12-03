@@ -141,6 +141,8 @@ error_in:
 
 namespace sss {
 namespace ps {
+#ifdef __WIN32__
+#else
 fd_type RWEPipe::fork(const std::string& cmd, const std::string& wd,
                       const std::map<std::string, std::string>& env)
 {
@@ -154,6 +156,7 @@ int RWEPipe::waitpid()
     int status;
     return ::waitpid(pid, &status, 0);
 }
+#endif
 std::string PipeRun(const std::string& command_line, const std::string& dir,
                     const std::map<std::string, std::string>& env)
 {
