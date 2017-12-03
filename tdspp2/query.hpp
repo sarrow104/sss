@@ -27,8 +27,12 @@ public:
     // * Rows */
     // 如果用户需要保存整个 result-set，需要自己处理
 
+    // 2017-08-20
+    // 不再需要外部传入！
+    // 需要用户根据需要每次获取一条记录。
+    sss::tdspp2::FieldList fl;
+    // FieldList * current_row;
     // 如果用户需要提取数据项，需要传入 FieldList 指针！
-    FieldList * current_row;
     //ResultSet * current_res;
 
     // 如何"规整"地打印结果集？
@@ -71,20 +75,20 @@ public:
     template <typename T>
         int  do_select(const std::string& sql, T& val)
         {
-            sss::tdspp2::FieldList fl;
-            sss::tdspp2::FieldList * p_cur = this->current_row;
+            // sss::tdspp2::FieldList fl;
+            // sss::tdspp2::FieldList * p_cur = this->current_row;
             this->sql(sql);
-            this->bind(&fl);
+            // this->bind(&fl);
             this->execute();
             bool has_stored = false;
             while (this->getresult()) {
                 if (this->fetch()) {
-                    val = sss::string_cast<T>(fl[0]->tostr());
+                    val = sss::string_cast<T>(this->fl[0]->tostr());
                     has_stored = true;
                     break;
                 }
             }
-            this->bind(p_cur);
+            // this->bind(p_cur);
             return has_stored;
         }
 
@@ -93,44 +97,44 @@ public:
     template <typename T>
         int  do_select_multy(const std::string& sql, T it)
         {
-            sss::tdspp2::FieldList fl;
-            sss::tdspp2::FieldList * p_cur = this->current_row;
+            // sss::tdspp2::FieldList fl;
+            // sss::tdspp2::FieldList * p_cur = this->current_row;
             this->sql(sql);
-            this->bind(&fl);
+            // this->bind(&fl);
             this->execute();
             int cnt = 0;
             if (this->getresult())
             {
                 while (this->fetch())
                 {
-                    *it = sss::string_cast<typename std::iterator_traits<T>::value_type>(fl[0]->tostr());
+                    *it = sss::string_cast<typename std::iterator_traits<T>::value_type>(this->fl[0]->tostr());
                     ++it;
                     ++cnt;
                 }
             }
-            this->bind(p_cur);
+            // this->bind(p_cur);
             return cnt;
         }
 
     template <typename T>
         int  do_select_multy(const std::string& sql, T ini, T fin)
         {
-            sss::tdspp2::FieldList fl;
-            sss::tdspp2::FieldList * p_cur = this->current_row;
+            // sss::tdspp2::FieldList fl;
+            // sss::tdspp2::FieldList * p_cur = this->current_row;
             this->sql(sql);
-            this->bind(&fl);
+            // this->bind(&fl);
             this->execute();
             int cnt = 0;
             if (this->getresult())
             {
                 while (ini != fin && this->fetch())
                 {
-                    *ini = sss::string_cast<typename std::iterator_traits<T>::value_type>(fl[0]->tostr());
+                    *ini = sss::string_cast<typename std::iterator_traits<T>::value_type>(this->fl[0]->tostr());
                     ++ini;
                     ++cnt;
                 }
             }
-            this->bind(p_cur);
+            // this->bind(p_cur);
             return cnt;
         }
 
@@ -147,7 +151,7 @@ public:
     void execute();
 
     // 传入指针0，表示取消绑定。
-    void bind(FieldList * fl);
+    // void bind(FieldList * fl);
 
     //void bind(ResultSet * rs);
 
@@ -156,6 +160,8 @@ public:
 
     /** fetch one row */
     bool fetch();
+    bool fetch(sss::tdspp2::FieldList& fl);
+    bool fetch(sss::tdspp2::ResultSet& rs);
 
     /** Iterate to next row in a result set. */
     // 定位到下一个结果集，有效的首"行"；
@@ -204,7 +210,7 @@ template<> inline int Query::do_select<sss::tdspp2::ResultSetList>(const std::st
         this->sql(sql);
         this->execute();
         int size = rs_list.size();
-        while (rs.load(*this, true) && rs.width()) {
+        while (rs.load(*this) && rs.width()) {
             rs_list.push_back(rs);
         }
         return rs_list.size() - size;
