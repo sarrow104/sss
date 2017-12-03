@@ -309,7 +309,7 @@ namespace path {
 
     inline bool is_directory(const std::string& path) {
 #ifdef __WIN32__
-        return PathIsDirectory(path.c_str());
+        return PathIsDirectoryA(path.c_str());
 #else
         std::string full_path = path::full_of_copy(path);
         // int _access();
@@ -323,7 +323,7 @@ namespace path {
 
     inline bool is_file(const std::string& path) {
 #ifdef __WIN32__
-        return PathIsFileSpec(path.c_str());
+        return PathIsFileSpecA(path.c_str());
 #else
         std::string full_path = path::full_of_copy(path);
 
