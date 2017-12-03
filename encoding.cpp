@@ -151,11 +151,12 @@ std::string Encoding::detect(const std::string& content)
 #ifdef _USING_UCHARDET_
     uchardet_t ud = uchardet_new();
     int err = uchardet_handle_data(ud, content.c_str(), content.length());
+    std::string encoding;
     if (!err)
     {
         uchardet_data_end(ud);
 
-        std::string encoding = uchardet_get_charset(ud);
+        encoding = uchardet_get_charset(ud);
     }
 
     uchardet_delete(ud);
