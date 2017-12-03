@@ -436,7 +436,7 @@ namespace path {
     {
         sss::ps::StringPipe ps;
 #ifdef __WIN32__
-        ps << "rmdir /s";
+        ps << "rmdir /S /Q";
         ps.add(dir);
 #else
         ps.add("rm").add("-rf").add(dir+"/");
@@ -488,11 +488,10 @@ namespace path {
         else if ( attrib & FILE_ATTRIBUTE_DIRECTORY ) {
             ret = PATH_TO_DIRECTORY;
         }
-        else if ( attrib & FILE_ATTRIBUTE_ARCHIVE ) {
-            ret = PATH_TO_FILE;
-        }
         else {
-            throw std::logic_error("unexpect file attributes!");
+            // 2017-07-23
+            // NOTE 一般的文件，属性是仅仅是FILE_ATTRIBUTE_NORMAL；而 FILE_ATTRIBUTE_ARCHIVE 重在表明这个文件是档案——备份档，可移除档案等等。
+            ret = PATH_TO_FILE;
         }
 #else
         struct stat sb;
