@@ -37,6 +37,8 @@ public:
 
     void connect(Login& login);
 
+    bool good() const;
+
 protected:
     DBPROCESS * get_dbprocess();
 

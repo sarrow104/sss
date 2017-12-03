@@ -99,6 +99,11 @@ void DBLink::use_db(const std::string& dbname)
     }
 }
 
+bool DBLink::good() const
+{
+    return bool(this->dbprocess);
+}
+
 
 } // namespace tdspp2
 } // namespace sss
