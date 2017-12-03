@@ -342,7 +342,20 @@ public:
     bool is_text(int col) const;
 
     bool empty() const;
+    // 载入一个结果集；
+    // 如果，成功，返回true; 否则，返回false
+    // NOTE 必须先调用 bind(FieldList&); 然后才能使用本函数获取结果集；
+    // 不然，只能返回空的结果；
+#ifdef OLD_ResultSet__load
+    // 内部，封装了 Query::getresult();
+    // 所以
+    // while(res.load(q)) {
+    //   即可
+    // }
     bool load(sss::tdspp2::Query& q, bool donot_execute = false);
+#else
+    bool load(sss::tdspp2::Query& q);
+#endif
     bool append(sss::tdspp2::FieldList& fl);
     bool fetch(sss::tdspp2::Query& q);
     void swap(ResultSet& ref);

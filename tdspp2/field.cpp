@@ -6,6 +6,7 @@
 
 #include "tdspp.hpp"
 
+#include <sss/debug/value_msg.hpp>
 #include <sss/log.hpp>
 
 namespace sss{
@@ -777,13 +778,14 @@ void ResultSet::calc_fdname_index()     // {{{2
 bool ResultSet::fetch(sss::tdspp2::Query& q)    // {{{2
 {
     // 注意，execute 在外！
-    return this->load(q, true);
+    return this->load(q);
 }
 
 // 载入一个结果集；
 // 如果，成功，返回true; 否则，返回false
 // NOTE 必须先调用 bind(FieldList&); 然后才能使用本函数获取结果集；
 // 不然，只能返回空的结果；
+#if 0
 bool ResultSet::load(sss::tdspp2::Query& q, bool donot_execute)     // {{{2
 {
     try {
@@ -791,6 +793,10 @@ bool ResultSet::load(sss::tdspp2::Query& q, bool donot_execute)     // {{{2
         sss::tdspp2::FieldList * p_fl = q.current_row;
         sss::tdspp2::FieldList fl;
         q.bind(&fl);
+        // NOTE  首次执行，必须调用 execute()
+        // 获取后续的结果集的上海，则不能再次调用 execute()
+        // ——这表示重新执行一次语句，并获取结果集。
+        // ——没完没了！
         if (!donot_execute) {
             q.execute();
         }
@@ -833,6 +839,54 @@ bool ResultSet::load(sss::tdspp2::Query& q, bool donot_execute)     // {{{2
         throw;
     }
 }
+#else
+bool ResultSet::load(sss::tdspp2::Query& q)     // {{{2
+{
+    try {
+        // bool is_ok = false;
+        // sss::tdspp2::FieldList * p_fl = q.current_row;
+        // sss::tdspp2::FieldList fl;
+        // q.bind(&fl);
+        // NOTE  首次执行，必须调用 execute()
+        // 获取后续的结果集的上海，则不能再次调用 execute()
+        // ——这表示重新执行一次语句，并获取结果集。
+        // ——没完没了！
+
+        ResultSet tmp;
+        if (!q.headers.empty()) {
+            tmp.infos.assign(q);
+            //tmp.infos.names = q.headers;
+            //tmp.infos.types = q.types;
+            //tmp.infos.bytes = q.col_buf_len;
+
+            //tmp.infos.maxlens.reserve(q.headers.size());
+
+            //tmp.infos.presizes = q.presizes;
+
+            //// NOTE 我觉得，不应该记录head的长度
+            //for (size_t i = 0; i != q.headers.size(); ++i) {
+            //    //tmp.infos.maxlens.push_back(q.headers[i].length());
+            //    tmp.infos.maxlens.push_back(0);
+            //}
+
+            tmp.calc_fdname_index();
+
+            while (q.fetch()) {
+                tmp.append(q.fl);
+            }
+            tmp.swap(*this);
+            return this->width();
+        }
+
+        return 0;
+    }
+    catch (...) {
+        SSS_LOG_ERROR("Exception: when query at %p\n", &q);
+        throw;
+    }
+}
+
+#endif
 
 bool ResultSet::append(sss::tdspp2::FieldList& fl) // {{{2
 {
