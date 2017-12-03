@@ -39,6 +39,7 @@ public:
     void set_password(const std::string& password);
     void set_dbname(const std::string& dbname);
     void set_charset(const std::string& charset);
+    void set_logintime(int seconds);
 
     std::string get_server();
     std::string get_ussername();
@@ -61,6 +62,8 @@ private:
                 dbname,
                 appname,
                 charset;
+    int         logintime;
+
 private:
     typedef std::map<DBPROCESS*, DBLink*> dblink_manager_t;
     dblink_manager_t dblink_manager;

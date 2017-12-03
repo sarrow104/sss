@@ -14,7 +14,7 @@ namespace tdspp2 {
 // NOTE 不在构造函数中设置登录属性的目的：
 // 允许使用 std::vector<Login>容器！
 Login::Login()
-    :loginrec(0)
+    :loginrec(0),logintime(10)
 {
     // 数据库环境初始化
     Environment::make();
@@ -61,6 +61,7 @@ void Login::set_properties(const std::string& server,
     this->set_password(password);
     this->set_dbname(dbname);
     this->set_charset(charset);
+    this->set_logintime(this->logintime);
     // NOTE APPname 不能包含特殊字符！比如斜杠
     DBSETLAPP(this->loginrec, this->appname.c_str());
 }
@@ -140,6 +141,12 @@ void Login::set_charset(const std::string& charset)
     DBSETLCHARSET(this->loginrec, this->charset.c_str());
 }
 
+void Login::set_logintime(int seconds)
+{
+    this->logintime = seconds;
+    dbsetlogintime(this->logintime);
+}
+
 std::string Login::get_server()
 {
     return this->server;
@@ -170,17 +177,20 @@ void Login::create_link(DBLink & dblink)
 {
     //连接数据库服务器
     dblink.dbprocess = dbopen(this->loginrec, this->server.c_str());
+    // NOTE FIXME dbsetlogintime() 使用了这个函数之后，进程是直接退出。
     SSS_LOG_DEBUG("%p = dbopen(%p, \"%s\");\n",
                   dblink.dbprocess,
                   this->loginrec,
                   this->server.c_str());
 
-    dblink.use_db(this->dbname);
+    if (dblink.good()) {
+        dblink.use_db(this->dbname);
 
-    dblink_manager_t::iterator it = this->dblink_manager.find(dblink.dbprocess);
-    if (it == this->dblink_manager.end())
-    {
-        this->dblink_manager.insert(it, std::make_pair(dblink.dbprocess, &dblink));
+        dblink_manager_t::iterator it = this->dblink_manager.find(dblink.dbprocess);
+        if (it == this->dblink_manager.end())
+        {
+            this->dblink_manager.insert(it, std::make_pair(dblink.dbprocess, &dblink));
+        }
     }
 }
 
