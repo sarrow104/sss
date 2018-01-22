@@ -576,31 +576,31 @@ inline colog::log_level get_log_levels()
 }
 
 #ifdef SSS_COLOG_TURNOFF
-#define COLOG_FATAL(args...)  // NOTE TODO 就算关闭了消息，FATAL，也应该调用
-                              // abort()——或者，需要用户自己abort！
-#define COLOG_ERROR(args...)
-#define COLOG_WARN(args...)
-#define COLOG_INFO(args...)
-#define COLOG_DEBUG(args...)
+#define COLOG_FATAL (...)  // NOTE TODO 就算关闭了消息，FATAL，也应该调用
+                           // abort()——或者，需要用户自己abort！
+#define COLOG_ERROR (...)
+#define COLOG_WARN  (...)
+#define COLOG_INFO  (...)
+#define COLOG_DEBUG (...)
 
 #define COLOG_FATAL_STMT(a) (a)
 #define COLOG_ERROR_STMT(a) (a)
-#define COLOG_WARN_STMT(a) (a)
-#define COLOG_INFO_STMT(a) (a)
+#define COLOG_WARN_STMT(a)  (a)
+#define COLOG_INFO_STMT(a)  (a)
 #define COLOG_DEBUG_STMT(a) (a)
 
 #else
 // NOTE TODO 如何防止，提供 空参数 时候，g++编译器，出现剩余逗号的问题？__VA_ARGS__ ？
-#define COLOG_FATAL(args...) \
-    sss::colog::fatal(__FILE__, __LINE__, __func__, ##args)
-#define COLOG_ERROR(args...) \
-    sss::colog::error(__FILE__, __LINE__, __func__, ##args)
-#define COLOG_WARN(args...) \
-    sss::colog::warn(__FILE__, __LINE__, __func__, ##args)
-#define COLOG_INFO(args...) \
-    sss::colog::info(__FILE__, __LINE__, __func__, ##args)
-#define COLOG_DEBUG(args...) \
-    sss::colog::debug(__FILE__, __LINE__, __func__, ##args)
+#define COLOG_FATAL(...) \
+    sss::colog::fatal(__FILE__, __LINE__, __func__, __VA_ARGS__)
+#define COLOG_ERROR(...) \
+    sss::colog::error(__FILE__, __LINE__, __func__, __VA_ARGS__)
+#define COLOG_WARN(...) \
+    sss::colog::warn(__FILE__, __LINE__, __func__, __VA_ARGS__)
+#define COLOG_INFO(...) \
+    sss::colog::info(__FILE__, __LINE__, __func__, __VA_ARGS__)
+#define COLOG_DEBUG(...) \
+    sss::colog::debug(__FILE__, __LINE__, __func__, __VA_ARGS__)
 
 #define COLOG_FATAL_STMT(a)\
     (sss::colog::fatal(__FILE__, __LINE__, __func__, (#a)),(a))
