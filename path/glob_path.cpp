@@ -87,7 +87,7 @@ namespace sss { namespace path {
 #else
         struct stat info;
         if (stat(this->get_path().c_str(), &info) == 0) {
-            return info.st_ctime;
+            return info.st_mtime;
         }
         return 0;
 #endif
