@@ -785,7 +785,7 @@ bool ResultSet::fetch(sss::tdspp2::Query& q)    // {{{2
 // 如果，成功，返回true; 否则，返回false
 // NOTE 必须先调用 bind(FieldList&); 然后才能使用本函数获取结果集；
 // 不然，只能返回空的结果；
-#if 0
+#ifdef OLD_ResultSet__load
 bool ResultSet::load(sss::tdspp2::Query& q, bool donot_execute)     // {{{2
 {
     try {
