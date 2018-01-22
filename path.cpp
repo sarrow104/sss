@@ -860,17 +860,23 @@ namespace path {
 
     bool copy(const std::string& src, const std::string& tar) // {{{1
     {
-        sss::ps::StringPipe ps;
-
 #ifdef __WIN32__
-        ps.add("copy");
+        // ps.add("copy");
+        // BOOL WINAPI CopyFile(
+        //     _In_ LPCTSTR lpExistingFileName,
+        //     _In_ LPCTSTR lpNewFileName,
+        //     _In_ BOOL    bFailIfExists
+        // );
+        return ::CopyFile(src.c_str(), tar.c_str(), true) != 0;
 #else
+        // https://stackoverflow.com/questions/17666316/is-there-a-posix-function-to-copy-a-file
+        sss::ps::StringPipe ps;
         ps.add("cp");
-#endif
         ps.add(src);
         ps.add(tar);
-
         return std::system(ps.str().c_str()) == -1;
+#endif
+
     }
 
     // NOTE
