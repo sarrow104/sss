@@ -508,6 +508,18 @@ namespace sss {
                 return parseIfChar(it_beg, it_end, ::isspace, ch);
             }
 
+            bool checkAhead(Iterator it_beg, Iterator it_end, char ch)
+            {
+                return it_beg != it_end && *it_beg == ch;
+            }
+
+            bool checkAheadNot(Iterator it_beg, Iterator it_end, char ch)
+            {
+                return it_beg != it_end && *it_beg != ch;
+            }
+
+            // TODO 增加 sss::sting_view 版本
+
             static
                 inline bool isDigit(Iterator it_beg, Iterator it_end)
                 {
