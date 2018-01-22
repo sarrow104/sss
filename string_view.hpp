@@ -396,13 +396,15 @@ public:
 
     bool is_begin_with(const basic_string_view& __x) const
     {
-        return size_ >= __x.size_ &&
+        return !__x.size_
+            || size_ >= __x.size_ &&
                std::memcmp(data_, __x.data_, __x.size_) == 0;
     }
 
     bool is_end_with(const basic_string_view& __x) const
     {
-        return size_ >= __x.size_ &&
+        return !__x.size_
+            || size_ >= __x.size_ &&
                std::memcmp(data_ + (size_ - __x.size_), __x.data_, __x.size_) == 0;
     }
 
