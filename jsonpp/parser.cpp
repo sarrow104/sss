@@ -6,6 +6,9 @@
 #include <sss/utlstring.hpp>
 #include <sss/util/utf8.hpp>
 #include <sss/raw_print.hpp>
+#include <sss/colorlog.hpp>
+
+#include <sss/debug/value_msg.hpp>
 
 namespace sss
 {
@@ -49,6 +52,7 @@ int           Parser::consumeObjectStart(sss::string_view& s)
 
 int           Parser::consumeKey(sss::string_view& s, std::string& key)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     return this->consumeString(s, key);
 }
 
@@ -258,6 +262,7 @@ int           Parser::consumeInt64(sss::string_view& s,  int64_t& v)
 
 int           Parser::consumeNumber(sss::string_view& s,  std::tuple<double, int64_t>& v, int& index)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     sss::string_view s_saved = s;
     bool is_double = false;
     switch (s.front()) {
@@ -347,6 +352,7 @@ int           Parser::consumeArrayEnd(sss::string_view& s)
 
 int           Parser::consumeNull(sss::string_view& s)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     auto old_start = s.begin();
     if (s.substr(0, 4) == sss::string_view("null")) {
         s.remove_prefix(4);
@@ -356,6 +362,7 @@ int           Parser::consumeNull(sss::string_view& s)
 
 int           Parser::consumeTrue(sss::string_view& s)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     auto old_start = s.begin();
     if (s.substr(0, 4) == sss::string_view("true")) {
         s.remove_prefix(4);
@@ -365,6 +372,7 @@ int           Parser::consumeTrue(sss::string_view& s)
 
 int           Parser::consumeFalse(sss::string_view& s)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     auto old_start = s.begin();
     if (s.substr(0, 5) == sss::string_view("false")) {
         s.remove_prefix(5);
@@ -384,6 +392,7 @@ int           Parser::consumeWhiteSpace(sss::string_view& s)
 
 int           Parser::consumeObject(sss::string_view& s)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     auto old_s = s;
     if (!s.empty() && this->peekType(s) == kJE_OBJECT_START) {
         this->consume_or_throw(s, '{', "expect '{'");
@@ -413,6 +422,7 @@ int           Parser::consumeObject(sss::string_view& s)
 
 int           Parser::consumeArray(sss::string_view& s)
 {
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
     auto old_s = s;
     if (!s.empty() && this->peekType(s) == kJE_ARRAY_START) {
         this->consume_or_throw(s, '[', "expect '['");
@@ -437,6 +447,7 @@ int           Parser::consumeArray(sss::string_view& s)
 int           Parser::consumeValue(sss::string_view& s)
 {
     auto old_s = s;
+    COLOG_DEBUG(SSS_VALUE_MSG(s));
 
     switch (this->peekType(s)) {
         case sss::json::Parser::kJE_STRING:
@@ -471,7 +482,7 @@ int           Parser::consumeValue(sss::string_view& s)
             break;
 
         case sss::json::Parser::kJE_ARRAY_START:
-            this->consumeObject(s);
+            this->consumeArray(s);
             break;
 
         default:
