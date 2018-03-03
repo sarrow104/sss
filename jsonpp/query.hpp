@@ -33,13 +33,14 @@ sss::string_view query_object_name(sss::string_view s, sss::string_view name)
     sss::string_view value;
     sss::json::Parser jp;
     jp.consumeWhiteSpace(s);
-    COLOG_ERROR(SSS_VALUE_MSG(s), SSS_VALUE_MSG(name));
+    COLOG_DEBUG(SSS_VALUE_MSG(s), SSS_VALUE_MSG(name));
 
     if (!s.empty() && jp.peekType(s) == sss::json::Parser::kJE_OBJECT_START) {
         jp.consume_or_throw(s, '{', "expect '{'");
         jp.consumeWhiteSpace(s);
         bool is_first = true;
         while (!s.empty() && s.front() != '}') {
+            COLOG_DEBUG(SSS_VALUE_MSG(s));
             if (is_first) {
                 is_first = false;
             }
@@ -49,7 +50,8 @@ sss::string_view query_object_name(sss::string_view s, sss::string_view name)
             }
             std::string key;
             jp.consumeWhiteSpace(s);
-            jp.consumeString(s, key);
+            jp.consumeString(s, key) || (throw "expect key", 0);
+            COLOG_DEBUG(SSS_VALUE_MSG(key));
             jp.consumeWhiteSpace(s);
             jp.consume_or_throw(s, ':', "expect ':'");
             jp.consumeWhiteSpace(s);
