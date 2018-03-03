@@ -4,6 +4,7 @@
 
 #include <sss/log.hpp>
 #include <sss/path.hpp>
+#include <sss/util/PostionThrow.hpp>
 
 #include "handlers.hpp"
 #include "Environment.hpp"
@@ -182,6 +183,10 @@ void Login::create_link(DBLink & dblink)
                   dblink.dbprocess,
                   this->loginrec,
                   this->server.c_str());
+
+    if (!dblink.dbprocess)  {
+        SSS_POSITION_THROW(std::runtime_error, "unable connect to server `", this->server, "` for unknown reason.");
+    }
 
     if (dblink.good()) {
         dblink.use_db(this->dbname);
