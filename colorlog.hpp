@@ -18,6 +18,9 @@
 #include <sss/path.hpp>
 #include <sss/raw_print.hpp>
 #include <sss/time.hpp>
+#include <sss/CMLParser.hpp>
+#include <sss/string_view.hpp>
+#include <sss/spliter.hpp>
 
 #include <prettyprint.hpp>
 
@@ -733,6 +736,83 @@ inline std::ostream& writeString(std::ostream& o, const char* s)
     return writeString(o, s, std::strlen(s));
 }
 
+inline int parse_command_line(int & argc, char * argv[])
+{
+    // 2013-04-04
+    sss::CMLParser::RuleSingleValue lvl;
+
+    sss::CMLParser::RuleSingleValue ele;
+
+    sss::CMLParser::Exclude parser;
+    parser.add_rule("--sss-colog-level", sss::CMLParser::ParseBase::r_parameter, lvl);
+    parser.add_rule("--sss-colog-style", sss::CMLParser::ParseBase::r_parameter, ele);
+
+    parser.parse(argc, argv);
+    if (lvl.size())
+    {
+        sss::colog::log_level l = sss::colog::ll_NONE;
+        sss::string_view s = lvl.get(0);
+        sss::ViewSpliter<char> sp(s, ',');
+        sss::string_view stem;
+        while (sp.fetch(stem)) {
+            while (!stem.empty() && std::isspace(stem.front())) {
+                stem.pop_front();
+            }
+            while (!stem.empty() && std::isspace(stem.back())) {
+                stem.pop_back();
+            }
+
+            if (stem == sss::string_view("NONE"))            { l = l | ll_NONE;       }
+            else if (stem == sss::string_view("DEBUG"))      { l = l | ll_DEBUG;      }
+            else if (stem == sss::string_view("INFO"))       { l = l | ll_INFO;       }
+            else if (stem == sss::string_view("INFO_MASK"))  { l = l | ll_INFO_MASK;  }
+            else if (stem == sss::string_view("WARN"))       { l = l | ll_WARN;       }
+            else if (stem == sss::string_view("WARN_MASK"))  { l = l | ll_WARN_MASK;  }
+            else if (stem == sss::string_view("ERROR"))      { l = l | ll_ERROR;      }
+            else if (stem == sss::string_view("ERROR_MASK")) { l = l | ll_ERROR_MASK; }
+            else if (stem == sss::string_view("FATAL"))      { l = l | ll_FATAL;      }
+            else if (stem == sss::string_view("FATAL_MASK")) { l = l | ll_FATAL_MASK; }
+            else if (stem == sss::string_view("MASK"))       { l = l | ll_MASK;       }
+        }
+        sss::colog::set_log_levels(l);
+    }
+
+    if (ele.size())
+    {
+        sss::colog::log_style l = sss::colog::ls_NONE;
+        sss::string_view s = ele.get(0);
+        sss::ViewSpliter<char> sp(s, ',');
+        sss::string_view stem;
+        while (sp.fetch(stem)) {
+            while (!stem.empty() && std::isspace(stem.front())) {
+                stem.pop_front();
+            }
+            while (!stem.empty() && std::isspace(stem.back())) {
+                stem.pop_back();
+            }
+
+            if (stem == sss::string_view("NONE"))             { l = l | ls_NONE;        }
+            else if (stem == sss::string_view("DATE"))        { l = l | ls_DATE;        }
+            else if (stem == sss::string_view("TIME"))        { l = l | ls_TIME;        }
+            else if (stem == sss::string_view("TIME_MILL"))   { l = l | ls_TIME_MILL;   }
+            else if (stem == sss::string_view("TIME_MICR"))   { l = l | ls_TIME_MICR;   }
+            else if (stem == sss::string_view("TIME_NANO"))   { l = l | ls_TIME_NANO;   }
+            else if (stem == sss::string_view("TIME_MASK"))   { l = l | ls_TIME_MASK;   }
+            else if (stem == sss::string_view("LEVEL"))       { l = l | ls_LEVEL;       }
+            else if (stem == sss::string_view("LEVEL_SHORT")) { l = l | ls_LEVEL_SHORT; }
+            else if (stem == sss::string_view("LEVEL_MASK"))  { l = l | ls_LEVEL_MASK;  }
+            else if (stem == sss::string_view("FILE"))        { l = l | ls_FILE;        }
+            else if (stem == sss::string_view("FILE_SHORT"))  { l = l | ls_FILE_SHORT;  }
+            else if (stem == sss::string_view("FILE_VIM"))    { l = l | ls_FILE_VIM;    }
+            else if (stem == sss::string_view("FILE_MASK"))   { l = l | ls_FILE_MASK;   }
+            else if (stem == sss::string_view("LINE"))        { l = l | ls_LINE;        }
+            else if (stem == sss::string_view("FUNC"))        { l = l | ls_FUNC;        }
+        }
+        sss::colog::set_log_elements(l);
+    }
+    return lvl.size() + ele.size();
+}
+
 // NOTE 防止 std::cout << std::string{"abc"}; 的行为，被修改！用户需要手动 sss::raw_string
 // template <typename TChar, typename TCharTraits = ::std::char_traits<TChar>>
 // inline std::basic_ostream<TChar, TCharTraits>& operator<<(
@@ -741,7 +821,7 @@ inline std::ostream& writeString(std::ostream& o, const char* s)
 //     o << sss::raw_string(s);
 //     return o;
 // }
-// 
+//
 // template <typename TChar, typename TCharTraits = ::std::char_traits<TChar>>
 // inline std::basic_ostream<TChar, TCharTraits>& operator<<(
 //     std::basic_ostream<TChar, TCharTraits>& o,
