@@ -9,10 +9,9 @@
 #include <sss/raw_print.hpp>
 #include <sss/debug/value_msg.hpp>
 
-namespace sss {
-namespace json {
+#include <better-enums/enum.h>
 
-enum state_t {
+BETTER_ENUM(sss_json_parser_state_t, uint32_t,
     kExpectArrayObjectStart = sss::json::Parser::kJE_ARRAY_START |
         sss::json::Parser::kJE_OBJECT_START,
 
@@ -31,31 +30,70 @@ enum state_t {
         kExpectValue | sss::json::Parser::kJE_ARRAY_END,
     kExpectComma = sss::json::Parser::kJE_COMMA,
     kExpectColon = sss::json::Parser::kJE_COLON,
-    kExpectNone = 0,  // EOF
-};
+    kExpectNone = 0  // EOF
+);
 
-inline state_t operator | (state_t lhs, state_t rhs)
-{
-    return static_cast<state_t>(static_cast<int>(lhs) |
-                                static_cast<int>(rhs));
-}
+namespace sss {
+namespace json {
 
-inline state_t operator |= (state_t lhs, state_t rhs)
-{
-    return static_cast<state_t>(static_cast<int>(lhs) |
-                                static_cast<int>(rhs));
-}
+using state_t = sss_json_parser_state_t;
+
+// enum state_t {
+//     kExpectArrayObjectStart = sss::json::Parser::kJE_ARRAY_START |
+//         sss::json::Parser::kJE_OBJECT_START,
+// 
+//     kExpectName = sss::json::Parser::kJE_STRING,
+//     kExpectObjectEnd = sss::json::Parser::kJE_OBJECT_END,
+//     kExpectArrayEnd = sss::json::Parser::kJE_ARRAY_END,
+//     kExpectNameOrObjectEnd =
+//         sss::json::Parser::kJE_STRING | sss::json::Parser::kJE_OBJECT_END,
+//     // sss::json::Parser::kJE_STRING | sss::json::Parser::kJE_OBJECT_END | sss::json::kJE_COLON,
+//     kExpectValue =
+//         sss::json::Parser::kJE_NULL | sss::json::Parser::kJE_NUMBER |
+//         sss::json::Parser::kJE_TRUE | sss::json::Parser::kJE_FALSE |
+//         sss::json::Parser::kJE_STRING | kExpectArrayObjectStart,
+// 
+//     kExpectValueOrArrayEnd =
+//         kExpectValue | sss::json::Parser::kJE_ARRAY_END,
+//     kExpectComma = sss::json::Parser::kJE_COMMA,
+//     kExpectColon = sss::json::Parser::kJE_COLON,
+//     kExpectNone = 0,  // EOF
+// };
+// 
+// inline state_t operator | (state_t lhs, state_t rhs)
+// {
+//     return static_cast<state_t>(static_cast<int>(lhs) |
+//                                 static_cast<int>(rhs));
+// }
+// 
+// inline state_t operator |= (state_t lhs, state_t rhs)
+// {
+//     return static_cast<state_t>(static_cast<int>(lhs) |
+//                                 static_cast<int>(rhs));
+// }
 
 template<typename SAX_handle_t>
 class Reader
 {
 public:
-    int parse(sss::string_view s, SAX_handle_t& h);
+    sss::string_view parse(sss::string_view s, SAX_handle_t& h);
+    // sss::string_view parse_element(sss::string_view s, SAX_handle_t& h);
 
-    Reader() : m_state(kExpectArrayObjectStart) {}
+    Reader() : m_state(state_t::kExpectArrayObjectStart) {}
     ~Reader() = default;
 
 public:
+    state_t expect() const {
+        return this->m_state;
+    }
+
+    void expect(state_t s) {
+        this->m_state = s;
+    }
+
+    void expectValue() {
+        this->m_state = state_t::kExpectValue;
+    }
 
 protected:
     bool or_throw(const char * msg, sss::string_view s)
@@ -64,7 +102,35 @@ protected:
     }
 
     state_t next_element_state() const {
-        return (m_array_or_map.back() ? kExpectObjectEnd : kExpectArrayEnd) | kExpectComma;
+        if (m_array_or_map.empty()) {
+            return state_t::kExpectNone;
+        }
+        else {
+            return state_t::_enumerated((m_array_or_map.back() ? state_t::kExpectObjectEnd : state_t::kExpectArrayEnd) | state_t::kExpectComma);
+        }
+    }
+
+    void increase_elements_cnt() {
+        if (!m_elements_cnt.empty()) {
+            ++this->m_elements_cnt.back();
+        }
+    }
+    void append_elements_cnt() {
+        this->m_elements_cnt.emplace_back(0);
+    }
+    int last_elements_cnt() {
+        return this->m_elements_cnt.empty() ? 0 : this->m_elements_cnt.back();
+    }
+
+    void pop_path() {
+        if (!this->m_elements_cnt.empty()) this->m_elements_cnt.pop_back();
+        if (!this->m_array_or_map.empty()) this->m_array_or_map.pop_back();
+    }
+
+    void push_path(bool is_obj)
+    {
+        m_array_or_map.push_back(is_obj);
+        m_elements_cnt.push_back(0);
     }
 
 private:
@@ -75,23 +141,23 @@ private:
 };
 
 template<typename SAX_handle_t>
-int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
+sss::string_view Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
 {
-    this->m_state = kExpectArrayObjectStart;
+    // this->m_state = state_t::kExpectValue;
     this->m_json_str = s;
     sss::json::Parser p;
     bool is_ok = true;
     auto element_type = sss::json::Parser::kJE_EOF;
-    while (is_ok) {
+    while (m_state._to_integral() != state_t::kExpectNone) {
+        COLOG_DEBUG(SSS_VALUE_MSG(s));
         element_type = p.peekType(s);
         switch (element_type) {
             case sss::json::Parser::kJE_OBJECT_START:
                 if (m_state & element_type) {
                     p.consumeObjectStart(s) || or_throw("object start {", s);
                     h.StartObject();
-                    m_array_or_map.push_back(true);
-                    m_elements_cnt.push_back(0);
-                    m_state = kExpectNameOrObjectEnd;
+                    this->push_path(true);
+                    m_state = state_t::kExpectNameOrObjectEnd;
                 }
                 else {
                     SSS_POSITION_THROW(std::runtime_error, "un Expect start of Object");
@@ -101,15 +167,14 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
             case sss::json::Parser::kJE_OBJECT_END:
                 if (m_state & element_type) {
                     p.consumeObjectEnd(s) || or_throw("object end }", s);
-                    h.EndObject(m_elements_cnt.back());
-                    m_array_or_map.pop_back();
-                    m_elements_cnt.pop_back();
+                    h.EndObject(last_elements_cnt());
+                    this->pop_path();
                     if (m_array_or_map.empty()) {
-                        m_state = kExpectNone;
+                        m_state = state_t::kExpectNone;
                     }
                     else {
                         // 逗号？还有，上一层的计数，何时+1？遇到'[','{'就增加，还是等完成，']','}'？
-                        ++m_elements_cnt.back(); // 为什么这里+1？
+                        this->increase_elements_cnt(); // 为什么这里+1？
                         m_state = this->next_element_state();
                     }
                 }
@@ -122,9 +187,8 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 if (m_state & element_type) {
                     p.consumeArrayStart(s) || or_throw("array start [", s);
                     h.StartArray();
-                    m_array_or_map.push_back(false);
-                    m_elements_cnt.push_back(0);
-                    m_state = kExpectValueOrArrayEnd;
+                    this->push_path(false);
+                    m_state = state_t::kExpectValueOrArrayEnd;
                 }
                 else {
                     SSS_POSITION_THROW(std::runtime_error, "un Expect start of array");
@@ -134,15 +198,14 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
             case sss::json::Parser::kJE_ARRAY_END:
                 if (m_state & element_type) {
                     p.consumeArrayEnd(s) || or_throw("array end ]", s);
-                    h.EndArray(m_elements_cnt.back());
-                    m_array_or_map.pop_back();
-                    m_elements_cnt.pop_back();
+                    h.EndArray(this->last_elements_cnt());
+                    this->pop_path();
                     if (m_array_or_map.empty()) {
-                        m_state = kExpectNone;
+                        m_state = state_t::kExpectNone;
                     }
                     else {
                         // 逗号？还有，上一层的计数，何时+1？遇到'[','{'就增加，还是等完成，']','}'？
-                        ++m_elements_cnt.back();
+                        this->increase_elements_cnt();
                         m_state = this->next_element_state();
                     }
                 }
@@ -155,7 +218,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 if (m_state & element_type) {
                     p.consumeNull(s) || or_throw("null", s);
                     h.Null();
-                    ++m_elements_cnt.back();
+                    this->increase_elements_cnt();
                     m_state = this->next_element_state();
                 }
                 else {
@@ -167,7 +230,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 if (m_state & element_type) {
                     p.consumeTrue(s) || or_throw("true", s);
                     h.Bool(true);
-                    ++m_elements_cnt.back();
+                    this->increase_elements_cnt();
                     m_state = this->next_element_state();
                 }
                 else {
@@ -179,7 +242,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 if (m_state & element_type) {
                     p.consumeFalse(s) || or_throw("false", s);
                     h.Bool(false);
-                    ++m_elements_cnt.back();
+                    this->increase_elements_cnt();
                     m_state = this->next_element_state();
                 }
                 else {
@@ -199,7 +262,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                     else {
                         h.Int64(std::get<1>(number));
                     }
-                    ++m_elements_cnt.back();
+                    this->increase_elements_cnt();
                     m_state = this->next_element_state();
                 }
                 else {
@@ -217,21 +280,21 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                     if (!m_array_or_map.back()) {
                         p.consumeString(s, sValue) || or_throw("string", s);
                         h.String(sss::string_view(sValue));
-                        ++m_elements_cnt.back();
+                        this->increase_elements_cnt();
                         m_state = this->next_element_state();
                     }
                     else {
-                        if ((m_state & kExpectValue) == kExpectValue) {
+                        if ((m_state & state_t::kExpectValue) == state_t::kExpectValue) {
                             p.consumeString(s, sValue) || or_throw("string", s);
                             h.String(sss::string_view(sValue));
-                            ++m_elements_cnt.back();
+                            this->increase_elements_cnt();
                             m_state = this->next_element_state();
                         }
                         else {
                             // (m_state & kExpectNameOrObjectEnd) == kExpectNameOrObjectEnd
                             p.consumeString(s, sValue) || or_throw("key", s);
                             h.Key(sss::string_view(sValue));
-                            m_state = kExpectColon;
+                            m_state = state_t::kExpectColon;
                         }
                     }
                 }
@@ -243,7 +306,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
             case sss::json::Parser::kJE_COLON:
                 if (m_state & element_type) {
                     p.consumeColon(s) || or_throw(":", s);
-                    m_state = kExpectValue;
+                    m_state = state_t::kExpectValue;
                 }
                 else {
                     SSS_POSITION_THROW(std::runtime_error, "un Expect :");
@@ -253,12 +316,19 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
             case sss::json::Parser::kJE_COMMA:
                 if (m_state & element_type) {
                     p.consumeComma(s) || or_throw(",", s);
-                    if (m_array_or_map.back()) {
-                        m_state = kExpectName;
+#if 0
+                    m_state = state_t::_enumerated(this->next_element_state() & ~state_t::kExpectComma);
+#else
+                    if (m_array_or_map.empty()) {
+                        m_state = state_t::kExpectNone;
+                    }
+                    else if (m_array_or_map.back()) {
+                        m_state = state_t::kExpectName;
                     }
                     else {
-                        m_state = kExpectValue;
+                        m_state = state_t::kExpectValue;
                     }
+#endif
                 }
                 else {
                     SSS_POSITION_THROW(std::runtime_error, "un Expect ,");
@@ -266,7 +336,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 break;
 
             case sss::json::Parser::kJE_EOF:
-                if (m_state == kExpectNone) {
+                if (m_state._to_integral() == state_t::kExpectNone) {
                     is_ok = false;
                 }
                 break;
@@ -278,7 +348,7 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
 
             case sss::json::Parser::kJE_ERROR:
                 // NOTE 或者，保留最后一次成功的状态？
-                m_state = kExpectNone;
+                m_state = state_t::kExpectNone;
                 is_ok = false;
                 break;
 
@@ -286,7 +356,9 @@ int Reader<SAX_handle_t>::parse(sss::string_view s, SAX_handle_t& h)
                 is_ok = false;
                 break;
         }
+        COLOG_DEBUG(SSS_VALUE_MSG(m_state));
     }
+    return s;
 }
 
 // 什么也不做，只是用来提供继承的基类
