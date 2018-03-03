@@ -253,7 +253,11 @@ void StringPipe::streamAddParam(std::ostream& oss, const std::string& param)
     // windows-cmd需要引号的特殊字符是:
     //     <space>
     //     &()[]{}^=;!'+,`~
+#ifdef __WIN32__
     static sss::util::Escaper esp("\\ \"'[](){}?*$&");
+#else
+    static sss::util::Escaper esp("\\ \"'[](){}?*$&;");
+#endif
     esp.escapeToStream(oss, param);
 #endif
 }
