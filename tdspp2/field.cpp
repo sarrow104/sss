@@ -5,7 +5,12 @@
 #include <stdio.h>
 
 #include "tdspp.hpp"
+#include "nanodbc_utils.hpp"
 
+// #include <sql.h>
+// #include <sqlext.h>
+// /usr/include/sqlucode.h:12
+#include <sss/iConvpp.hpp>
 #include <sss/debug/value_msg.hpp>
 #include <sss/log.hpp>
 
@@ -130,7 +135,7 @@ Field::Field(int size)          // {{{2
 #endif
 }
 
-Field::Field(char * byte_data, int len)         // {{{2
+Field::Field(const char * byte_data, int len)         // {{{2
     : status(-1),
 #ifdef SSS_TDSPP2_FIELD_USE_CPP
 #else
@@ -724,6 +729,83 @@ void ResultSet::pretty_print(std::ostream& o)   // {{{2
     }
 }
 
+int typeidentifiler_odbc2sybd(int odbc_type)
+{
+    switch (odbc_type)
+    {
+//         case (-1): // SQL_C_BINARY:    
+//             return SYBBITN; break;
+//         case SQL_C_SSHORT:    return SYBINT2; break;
+//         case SQL_C_USHORT:    return SYBINT2; break;
+//         case SQL_C_SLONG:     return SYBINT4; break;
+//         case SQL_C_ULONG:     return SYBINT4; break;
+//         case SQL_C_SBIGINT:   return SYBINT8; break;
+//         case SQL_C_UBIGINT:   return SYBINT8; break;
+//         case SQL_C_FLOAT:     return SYBFLTN; break;
+//         case SQL_C_DOUBLE:    return SYBFLT8; break;
+//         case SQL_C_WCHAR:     return SYBCHAR; break;
+//         case SQL_C_CHAR:      return SYBCHAR; break;
+//         case SQL_C_DATE:      return SYBDATETIME; break;
+//         case SQL_C_TIME:      return SYBDATETIME; break;
+//         case SQL_C_TIMESTAMP: return SYBDATETIMN; break;
+//         case SQL_C_GUID:      return SYBBINARY; break;
+//         case SQL_C_LONG:      return SYBINT4; break;
+
+// /* SQL data type codes */
+// #define	SQL_UNKNOWN_TYPE	0
+// #define SQL_CHAR            1
+// #define SQL_NUMERIC         2
+// #define SQL_DECIMAL         3
+// #define SQL_INTEGER         4
+// #define SQL_SMALLINT        5
+// #define SQL_FLOAT           6
+// #define SQL_REAL            7
+// #define SQL_DOUBLE          8
+// #if (ODBCVER >= 0x0300)
+// #define SQL_DATETIME        9
+// #endif
+// #define SQL_VARCHAR        12
+// 
+// /* One-parameter shortcuts for date/time data types */
+// #if (ODBCVER >= 0x0300)
+// #define SQL_TYPE_DATE      91
+// #define SQL_TYPE_TIME      92
+// #define SQL_TYPE_TIMESTAMP 93
+// #endif
+
+        case 0:// SQL_UNKNOWN_TYPE
+        case 1:// SQL_CHAR
+            return SYBCHAR;
+        case 2: // SQL_NUMERIC
+            return SYBNUMERIC;
+        case 3: // SQL_DECIMAL
+            return SYBDECIMAL;
+        case 4: // SQL_INTEGER        :// 4
+            return SYBINT4;
+        case 5: // SQL_SMALLINT       :// 5
+            return SYBINT2;
+        case 6: // SQL_FLOAT          :// 6
+            return SYBREAL;
+        case 7: // SQL_REAL           :// 7
+            return SYBREAL;
+        case 8: // SQL_DOUBLE         :// 8
+            return SYBFLT8;
+        case 9: // SQL_DATETIME       :// 9
+            return SYBDATETIME;
+        case 12: // SQL_VARCHAR        ://12
+            return SYBVARCHAR;
+        case -5: // SQL_C_SBIGINT, SQL_C_UBIGINT
+            return SYBINT8;
+
+        case 91: // SQL_TYPE_DATE      ://91
+        case 92: // SQL_TYPE_TIME      ://92
+        case 93: // SQL_TYPE_TIMESTAMP ://93
+            return SYBDATETIME;
+        default:
+            return SYBCHAR;
+    }
+}
+
 void ResultSet::set_fieldinfo(const sss::tdspp2::Query& q)
 {
     this->infos.assign(q);
@@ -887,6 +969,131 @@ bool ResultSet::load(sss::tdspp2::Query& q)     // {{{2
 }
 
 #endif
+
+bool ResultSet::load(nanodbc::result& res) // 2018-04-06
+{
+    // NOTE mingw-iconv 只支持utf-8，而对utf8报错!
+    static sss::iConv u2g("gb18030", "utf-8");
+    ResultSet tmp;
+    int cols_cnt = res.columns();
+    // std::cout << SSS_VALUE_MSG(res.columns()) << std::endl;
+    std::vector<bool> is_varlength_fields;
+    bool is_varlength_appear_in_the_middle = false;
+    for (int col = 0; col < cols_cnt; ++col) {
+        // std::cout << "begin : " << SSS_VALUE_MSG(col) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_name(col)) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_datatype(col)) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_datatype_name(col)) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_c_datatype(col)) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_size(col)) << std::endl;
+        // std::cout << SSS_VALUE_MSG(res.column_decimal_digits(col)) << std::endl;
+        // std::cout << "end : " << SSS_VALUE_MSG(col) << std::endl;
+        tmp.infos.bytes.push_back(res.column_size(col));
+        tmp.infos.names.emplace_back(res.column_name(col));
+        tmp.infos.maxlens.emplace_back(0);
+        tmp.infos.presizes.emplace_back(res.column_decimal_digits(col));
+        tmp.infos.types.emplace_back(typeidentifiler_odbc2sybd(res.column_datatype(col)));
+        is_varlength_fields.push_back(res.column_size(col) == 2147483647u);
+        if (!is_varlength_appear_in_the_middle && is_varlength_fields.size() >= 2u && !*is_varlength_fields.rbegin() && *(is_varlength_fields.rbegin() + 1)) {
+            is_varlength_appear_in_the_middle = true;
+        }
+        // tmp.infos.types.emplace_back(typeidentifiler_odbc2sybd(res.column_c_datatype(col)));
+    }
+    // std::cout << SSS_VALUE_MSG(tmp.infos.names.size()) << std::endl;
+    for (int r = 1; res.next(); ++r)
+    {
+        sss::tdspp2::FieldList fl;
+        for (int c = 0; c < cols_cnt; ++c) {
+            // NOTE res::get() 如果是null的话，会抛出异常。
+            // 所以，需要先检测is_null()
+            // 内部的rows，支持两种风格的template get;
+            // 分别是:
+            // T get(col, const T& default)
+            // T get(col)
+            // T get(name, const T& default)
+            // T get(name)
+            // 然后，类型对照关系：
+            // 源自 /home/sarrow/Sources/nanodbc/nanodbc/nanodbc.cpp:2629 auto_bind()
+            // ODBC             C
+            // ---------------------------------
+            // BIT              int64_t
+            // ,TINYINT
+            // ,SMALINT
+            // ,INTEGER
+            // ,BIGINT
+            // DOUBLE           double
+            // ,FLOAT
+            // ,REAL
+            // DECIMAL          char[]
+            // ,NUMERIC
+            // DATE             date
+            // ,TYPE_DATE
+            // TIME             time
+            // ,TYPE_TIME
+            // ,SS_TIME2
+            // TIMESTAMP        timestamp
+            // ,TYPE_TIMESTAMP
+            // CHAR             char[]
+            // ,VARCHAR
+            // ,NVARCHAR
+            // WCHAR            wchar_t[]
+            // ,WVARCHAR
+            // LONGVARCHAR      std::string
+            // BINARY           std::vector<uint8_t>
+            // ,VARBINARY
+            // ,LONGVARBINARY
+            // ,SS_UDT
+            //
+            // 其他类型：       string
+
+            // NOTE nanodbc 默认使用utf8编码。所以，中文需要额外处理。
+            // std::cout << convert(res.get<nanodbc::string>(c));
+            if (is_varlength_fields[c]) {
+                fl.push_back(new sss::tdspp2::Field);
+                continue;
+            }
+            if (res.is_null(c)) {
+                fl.push_back(new sss::tdspp2::Field);
+            }
+            else {
+#ifdef __MINGW32__
+                auto value = odbc::util::convert(res.get<nanodbc::string>(c));
+#else
+                auto value = u2g(odbc::util::convert(res.get<nanodbc::string>(c)));
+#endif
+                fl.push_back(new sss::tdspp2::Field(value.data(), value.length()));
+            }
+        }
+
+        if (is_varlength_appear_in_the_middle) {
+            // res.move(res.position());
+            res.prior();
+            res.next();
+            // res.skip(0);
+        }
+
+        for (int c = 0; c < cols_cnt; ++c) {
+            if (is_varlength_fields[c]) {
+                if (res.is_null(c)) {
+                    // fl[c] = new sss::tdspp2::Field;
+                }
+                else {
+#ifdef __MINGW32__
+                    auto value = odbc::util::convert(res.get<nanodbc::string>(c));
+#else
+                    auto value = u2g(odbc::util::convert(res.get<nanodbc::string>(c)));
+#endif
+                    delete fl[c];
+                    fl[c] = new sss::tdspp2::Field(value.data(), value.length());
+                }
+            }
+        }
+        tmp.append(fl);
+    }
+    tmp.swap(*this);
+    // res.next_result();
+    return this->width();
+}
 
 bool ResultSet::append(sss::tdspp2::FieldList& fl) // {{{2
 {

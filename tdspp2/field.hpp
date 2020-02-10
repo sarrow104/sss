@@ -5,13 +5,18 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <iostream>
+
+#include <nanodbc/nanodbc.h>
 
 //#define SSS_TDSPP2_FIELD_USE_CPP
 
 namespace sss{
 namespace tdspp2{
+int typeidentifiler_odbc2sybd(int odbc_type);
+class Query;
 
 bool sqltype_is_numeric(int type);
 
@@ -39,7 +44,7 @@ public:
     /** Constructor */
     explicit Field(int size);
 
-    Field(char * byte_data, int len);
+    Field(const char * byte_data, int len);
 
     Field(const Field& ref);
     /** Destructor */
@@ -151,6 +156,7 @@ private:
 class FieldList : public std::vector<Field*> // {{{1
 {
     friend class Query;
+    friend class nanodbc::result;
 
 public:
     typedef std::vector<Field*>::iterator iterator;
@@ -356,6 +362,7 @@ public:
 #else
     bool load(sss::tdspp2::Query& q);
 #endif
+    bool load(nanodbc::result& res); // 2018-04-06
     bool append(sss::tdspp2::FieldList& fl);
     bool fetch(sss::tdspp2::Query& q);
     void swap(ResultSet& ref);
