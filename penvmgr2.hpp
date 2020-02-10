@@ -360,11 +360,11 @@ public:
      */
     enum var_type_t {
         TYPE_UNKNOWN = '\0',
-        TYPE_OSENV = 'e',   // 'e' '.' Identifier
-        TYPE_GLOBAL = 'g',  // 'g' '.' Identifier
-        TYPE_NORMAL = 'n',  // ('n' '.' Identifier) |  Identifier
-        TYPE_SYSTEM = 's',  // 's' '.' Identifier
-        TYPE_SHELL = 't'    // 't' '.' "(`" Scripts "`)"
+        TYPE_OSENV   = 'e', // 'e' '.' Identifier
+        TYPE_GLOBAL  = 'g', // 'g' '.' Identifier
+        TYPE_NORMAL  = 'n', // ('n' '.' Identifier) |  Identifier
+        TYPE_SYSTEM  = 's', // 's' '.' Identifier
+        TYPE_SHELL   = 't'  // 't' '.' "(`" Scripts "`)"
     };
 
     typedef std::string::const_iterator iter_t;
@@ -407,7 +407,7 @@ public:
             return sss::cast_string(*reinterpret_cast<T*>(p));
         }
 
-        typedef std::vector<std::pair<int, int>> Slice_T;
+        typedef std::vector<std::pair<int, int> > Slice_T;
         typedef void* FuncParamT;
         typedef std::string (*FuncT)(FuncParamT);
 
@@ -686,7 +686,7 @@ public:
     template <typename T>
     bool setRefer(std::string var, T& value)
     {
-        this->set(var, &expression_t::AnyRefer<T>, &value);
+        return this->set(var, &expression_t::AnyRefer<T>, &value);
     }
 
     /**
