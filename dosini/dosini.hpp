@@ -255,12 +255,12 @@ private:
 
     // 用来顺序存放用到的行号
     // 将 padding_file_t 中的行，顺序输出，就得到ini文件了。
-    linenos_t linenos;
+    linenos_t      linenos;
 
-    std::string fname;
-    padding_file_t  data;
-    sections_t        blocks;
-    section_t         end_section;
+    std::string    fname;
+    padding_file_t data;
+    sections_t     blocks;
+    section_t      end_section;
     //std::string
 };
 
