@@ -50,7 +50,11 @@ public:
 
 }
 
+#if __cplusplus >= 201103L
+bool RuleBase::assert_valid_value(const char * val)
+#else
 bool RuleBase::assert_valid_value(const char * val) throw (CMLParser::Exception)
+#endif
 {
     // 1. 如果没有设置该值，说明任何类型的字符串，都是允许的；当然不报错。
     if (this->optional_values.empty())
