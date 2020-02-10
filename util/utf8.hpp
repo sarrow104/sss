@@ -1,6 +1,8 @@
 #ifndef __UTF8_H_1452945809__
 #define __UTF8_H_1452945809__
 
+#include <sss/config.hpp>
+
 #include <sss/bit_operation/bit_operation.h>
 #include <sss/util/PostionThrow.hpp>
 #include <sss/utlstring.hpp>
@@ -212,15 +214,19 @@ namespace sss {
 
                             case utf8::h6:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 5);
+                                SSS_FALLTHROUGH;
 
                             case utf8::h5:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 4);
+                                SSS_FALLTHROUGH;
 
                             case utf8::h4:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 3);
+                                SSS_FALLTHROUGH;
 
                             case utf8::h3:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 2);
+                                SSS_FALLTHROUGH;
 
                             case utf8::h2:
                                 UTF8_CHECK_PUSH(tail_byte, tail_len, it_beg, 1);
