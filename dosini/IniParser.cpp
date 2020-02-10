@@ -1,4 +1,5 @@
 #include "IniParser.hpp"
+#include <sss/utlstring.hpp>
 
 namespace sss {
     // 解析ini文件中，特定规则；并返回消耗的字节数；同时会写hook到的字段范围；
