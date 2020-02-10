@@ -96,6 +96,11 @@ void iConv::clear()
     }
 }
 
+void iConv::print(std::ostream& o) const
+{
+    o << "iConv(from: " << this->fromcode << " to " << this->tocode << std::endl;
+}
+
 // 注意，iconv内部，使用char * 来处理任意编码。就是说，本来需要wchar_t才能保存
 // 的UCS-2字符串，在转换的时候，也使用char序列来进行中间处理。
 //
@@ -184,12 +189,13 @@ int iConv::convert(std::string& to, const std::string& from)
                                       sss::raw_string(from.substr(0, 5)), "... of ",
                                       int(in - &from[0]), "-th byte, ",
                                       sss::raw_string(from.substr(in - &from[0], 6)),
-                                      " convert failed;", strerror(errno));
-// msg << " in string " << from.substr(0, 5) << " ... of "
-//     << int(in - &from[0]) << "-th byte, `"
-//     << from.substr(in - &from[0], 5) << "` convert failed; "
-//     << strerror(errno);
-// throw std::runtime_error(msg.str());
+                                      " convert failed; by ", this->describe(),
+                                      "; error: ", strerror(errno));
+                    // msg << " in string " << from.substr(0, 5) << " ... of "
+                    //     << int(in - &from[0]) << "-th byte, `"
+                    //     << from.substr(in - &from[0], 5) << "` convert failed; "
+                    //     << strerror(errno);
+                    // throw std::runtime_error(msg.str());
 #endif
                 } break;
 
@@ -207,7 +213,8 @@ int iConv::convert(std::string& to, const std::string& from)
                                       sss::raw_string(from.substr(0, 5)), "... of ",
                                       int(in - &from[0]), "-th byte, ",
                                       sss::raw_string(from.substr(in - &from[0], 6)),
-                                      " convert failed;", strerror(errno));
+                                      " convert failed; by ", this->describe(),
+                                      "; error: ", strerror(errno));
                     // msg << " in string " << from.substr(0, 5) << " ... of "
                     //     << int(in - &from[0]) << "-th byte, `"
                     //     << from.substr(in - &from[0], 5) << "` convert failed; "

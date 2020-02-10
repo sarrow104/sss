@@ -110,6 +110,12 @@ public:
     int ucs4tombs(const std::wstring& ucs4, std::string& mbs);
 
     void clear();
+    void print(std::ostream& o) const;
+    std::string describe() const {
+        std::ostringstream oss;
+        this->print(oss);
+        return oss.str();
+    }
 
 private:
     void do_setting();
@@ -120,6 +126,12 @@ private:
     std::string tocode;
     std::string fromcode;
 };
+
+inline std::ostream& operator << (std::ostream& o, const sss::iConv& iv)
+{
+    iv.print(o);
+    return o;
+}
 
 } // namespace sss
 
