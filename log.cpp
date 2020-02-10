@@ -205,7 +205,7 @@ namespace sss{
 
         static LogSetting& get_log_setting()
         {
-            static LogSetting log_setting;
+            static thread_local LogSetting log_setting;
             return log_setting;
         }
 
@@ -458,7 +458,7 @@ namespace sss{
 
         tracer::caller_stack_depth_recorder & tracer::get_caller_stack_ref()
         {
-            static caller_stack_depth_recorder recorder;
+            static thread_local caller_stack_depth_recorder recorder;
             return recorder;
         }
 
