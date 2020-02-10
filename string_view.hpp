@@ -9,6 +9,7 @@
 //! https://gcc.gnu.org/onlinedocs/gcc-6.2.0/libstdc++/api/a01649_source.html
 //      #694line
 //! http://open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3685.html
+//
 
 #include <algorithm>
 #include <stdexcept>
@@ -19,46 +20,48 @@
 #include <sstream>
 #include <type_traits>
 
+#include <sss/config.hpp>
+
 namespace sss {
 // 7.2, Class template basic_string_view
-template <class charT, class traits = std::char_traits<charT>>
+template <class charT, class traits = std::char_traits<charT> >
 class basic_string_view;
 
 // 7.9, basic_string_view non-member comparison functions
 template <class charT, class traits>
 bool operator==(basic_string_view<charT, traits> __x,
-                basic_string_view<charT, traits> __y) noexcept
+                basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 {
     return __x.compare(__y) == 0;
 }
 template <class charT, class traits>
 bool operator!=(basic_string_view<charT, traits> __x,
-                basic_string_view<charT, traits> __y) noexcept
+                basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 
 {
     return __x.compare(__y) != 0;
 }
 template <class charT, class traits>
 bool operator<(basic_string_view<charT, traits> __x,
-               basic_string_view<charT, traits> __y) noexcept
+               basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 {
     return __x.compare(__y) < 0;
 }
 template <class charT, class traits>
 bool operator>(basic_string_view<charT, traits> __x,
-               basic_string_view<charT, traits> __y) noexcept
+               basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 {
     return __x.compare(__y) > 0;
 }
 template <class charT, class traits>
 bool operator<=(basic_string_view<charT, traits> __x,
-                basic_string_view<charT, traits> __y) noexcept
+                basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 {
     return __x.compare(__y) <= 0;
 }
 template <class charT, class traits>
 bool operator>=(basic_string_view<charT, traits> __x,
-                basic_string_view<charT, traits> __y) noexcept
+                basic_string_view<charT, traits> __y) SSS_NOEXCEPT
 {
     return __x.compare(__y) >= 0;
 }
@@ -113,12 +116,12 @@ public:
     static const size_type npos = size_type(-1);
 
     // 7.3, basic_string_view constructors and assignment operators
-    basic_string_view() noexcept : data_(nullptr), size_(0){};
-    basic_string_view(const basic_string_view&) noexcept = default;
-    basic_string_view& operator=(const basic_string_view&) noexcept = default;
+    basic_string_view() SSS_NOEXCEPT : data_(nullptr), size_(0){};
+    basic_string_view(const basic_string_view&) SSS_NOEXCEPT = default;
+    basic_string_view& operator=(const basic_string_view&) SSS_NOEXCEPT = default;
     template <class Allocator>
     basic_string_view(
-        const std::basic_string<charT, traits, Allocator>& str) noexcept
+        const std::basic_string<charT, traits, Allocator>& str) SSS_NOEXCEPT
         : data_(str.data()),
           size_(str.size())
     {
@@ -131,7 +134,7 @@ public:
 
     template <size_t N>
     basic_string_view(charT (&s)[N])
-        : data_(s), size_(s && s[N - 1] ? N : traits::length(s))
+        : data_(s), size_(s[N - 1] ? N : traits::length(s))
     {
     }
     template <size_t N>
@@ -145,32 +148,32 @@ public:
         size_ = 0;
     }
     // 7.4, basic_string_view iterator support
-    const_iterator begin() const noexcept { return data_ ? data_ : ""; }
-    const_iterator end() const noexcept { return data_ ? data_ + size_ : ""; }
-    const_iterator cbegin() const noexcept { return data_ ? data_ : ""; };
-    const_iterator cend() const noexcept { return data_ ? data_ + size_ : ""; }
-    const_reverse_iterator rbegin() const noexcept
+    const_iterator begin() const SSS_NOEXCEPT { return data_ ? data_ : ""; }
+    const_iterator end() const SSS_NOEXCEPT { return data_ ? data_ + size_ : ""; }
+    const_iterator cbegin() const SSS_NOEXCEPT { return data_ ? data_ : ""; };
+    const_iterator cend() const SSS_NOEXCEPT { return data_ ? data_ + size_ : ""; }
+    const_reverse_iterator rbegin() const SSS_NOEXCEPT
     {
         return data_ ? data_ + size_ - 1 : "";
     };
-    const_reverse_iterator rend() const noexcept
+    const_reverse_iterator rend() const SSS_NOEXCEPT
     {
         return data_ ? data_ - 1 : "";
     };
-    const_reverse_iterator crbegin() const noexcept
+    const_reverse_iterator crbegin() const SSS_NOEXCEPT
     {
         return data_ ? data_ + size_ - 1 : "";
     };
-    const_reverse_iterator crend() const noexcept
+    const_reverse_iterator crend() const SSS_NOEXCEPT
     {
         return data_ ? data_ - 1 : "";
     };
 
     // 7.5, basic_string_view capacity
-    size_type size() const noexcept { return size_; };
-    size_type length() const noexcept { return size_; };
-    size_type max_size() const noexcept { return size_; };
-    bool empty() const noexcept { return !size_; };
+    size_type size() const SSS_NOEXCEPT { return size_; };
+    size_type length() const SSS_NOEXCEPT { return size_; };
+    size_type max_size() const SSS_NOEXCEPT { return size_; };
+    bool empty() const SSS_NOEXCEPT { return !size_; };
     // 7.6, basic_string_view element access
     const_reference operator[](size_type pos) const { return data_[pos]; }
     const_reference at(size_type pos) const {
@@ -183,7 +186,7 @@ public:
     };
     const_reference front() const { return data_[0]; };
     const_reference back() const { return data_[size_ - 1]; };
-    const_pointer data() const noexcept { return data_; };
+    const_pointer data() const SSS_NOEXCEPT { return data_; };
     value_type pop_back()
     {
         value_type __ret{0};
@@ -220,7 +223,7 @@ public:
             size_ -= n;
         }
     };
-    void swap(basic_string_view& s) noexcept
+    void swap(basic_string_view& s) SSS_NOEXCEPT
     {
         if (this != &s) {
             std::swap(data_, s.data_);
@@ -281,7 +284,7 @@ public:
         if (__n > size_ - __pos) __n = size_ - __pos;
         return basic_string_view(data_ + __pos, __n);
     }
-    int compare(basic_string_view __str) const noexcept
+    int compare(basic_string_view __str) const SSS_NOEXCEPT
     {
         int __r = std::memcmp(data_, __str.data_, std::min(size_, __str.size_));
         if (__r == 0) {
@@ -315,22 +318,22 @@ public:
         return this->substr(__pos1, __n1)
             .compare(basic_string_view(__str, __n2));
     }
-    size_type find(basic_string_view __str, size_type __pos = 0) const noexcept
+    size_type find(basic_string_view __str, size_type __pos = 0) const SSS_NOEXCEPT
     {
         return this->find(__str.data_, __pos, __str.size_);
     }
-    size_type find(charT __c, size_type __pos = 0) const noexcept;
+    size_type find(charT __c, size_type __pos = 0) const SSS_NOEXCEPT;
     size_type find(const charT* __str, size_type __pos, size_type __n) const;
     size_type find(const charT* __str, size_type __pos = 0) const
     {
         return this->find(__str, __pos, traits_type::length(__str));
     }
     size_type rfind(basic_string_view __str, size_type __pos = npos) const
-        noexcept
+        SSS_NOEXCEPT
     {
         return this->rfind(__str.data_, __pos, __str.size_);
     }
-    size_type rfind(charT __c, size_type __pos = npos) const noexcept;
+    size_type rfind(charT __c, size_type __pos = npos) const SSS_NOEXCEPT;
     size_type rfind(const charT* __str, size_type __pos, size_type __n) const;
     size_type rfind(const charT* __str, size_type __pos = npos) const
     {
@@ -338,11 +341,11 @@ public:
     }
 
     size_type find_first_of(basic_string_view __str, size_type __pos = 0) const
-        noexcept
+        SSS_NOEXCEPT
     {
         return this->find_first_of(__str.data_, __pos, __str.size_);
     }
-    size_type find_first_of(charT __c, size_type __pos = 0) const noexcept
+    size_type find_first_of(charT __c, size_type __pos = 0) const SSS_NOEXCEPT
     {
         return this->find(__c, __pos);
     }
@@ -353,11 +356,11 @@ public:
         return this->find_first_of(__str, __pos, traits_type::length(__str));
     }
     size_type find_last_of(basic_string_view __str,
-                           size_type __pos = npos) const noexcept
+                           size_type __pos = npos) const SSS_NOEXCEPT
     {
         return this->find_last_of(__str.data_, __pos, __str.size_);
     }
-    size_type find_last_of(charT __c, size_type __pos = npos) const noexcept
+    size_type find_last_of(charT __c, size_type __pos = npos) const SSS_NOEXCEPT
     {
         return this->rfind(__c, __pos);
     }
@@ -368,11 +371,11 @@ public:
         return this->find_last_of(__str, __pos, traits_type::length(__str));
     }
     size_type find_first_not_of(basic_string_view __str,
-                                size_type __pos = 0) const noexcept
+                                size_type __pos = 0) const SSS_NOEXCEPT
     {
         return this->find_first_not_of(__str.data_, __pos, __str.size_);
     }
-    size_type find_first_not_of(charT __c, size_type __pos = 0) const noexcept;
+    size_type find_first_not_of(charT __c, size_type __pos = 0) const SSS_NOEXCEPT;
     size_type find_first_not_of(const charT* __str, size_type __pos,
                                 size_type __n) const;
     size_type find_first_not_of(const charT* __str, size_type __pos = 0) const
@@ -381,12 +384,12 @@ public:
                                        traits_type::length(__str));
     }
     size_type find_last_not_of(basic_string_view __str,
-                               size_type __pos = npos) const noexcept
+                               size_type __pos = npos) const SSS_NOEXCEPT
     {
         return this->find_last_not_of(__str.data_, __pos, __str.size_);
     }
     size_type find_last_not_of(charT __c, size_type __pos = npos) const
-        noexcept;
+        SSS_NOEXCEPT;
     size_type find_last_not_of(const charT* __str, size_type __pos,
                                size_type __n) const;
     size_type find_last_not_of(const charT* __str, size_type __pos = npos) const
@@ -397,15 +400,15 @@ public:
     bool is_begin_with(const basic_string_view& __x) const
     {
         return !__x.size_
-            || size_ >= __x.size_ &&
-               std::memcmp(data_, __x.data_, __x.size_) == 0;
+            || (size_ >= __x.size_ &&
+                std::memcmp(data_, __x.data_, __x.size_) == 0);
     }
 
     bool is_end_with(const basic_string_view& __x) const
     {
         return !__x.size_
-            || size_ >= __x.size_ &&
-               std::memcmp(data_ + (size_ - __x.size_), __x.data_, __x.size_) == 0;
+            || (size_ >= __x.size_ &&
+                std::memcmp(data_ + (size_ - __x.size_), __x.data_, __x.size_) == 0);
     }
 
     bool is_contains(const basic_string_view& __x) const
@@ -433,7 +436,7 @@ basic_string_view<charT, traits>::find(const charT* __str, size_type __pos,
 template <typename charT, typename traits>
 inline typename basic_string_view<charT, traits>::size_type
 basic_string_view<charT, traits>::find(charT __c, size_type __pos) const
-    noexcept
+    SSS_NOEXCEPT
 {
     if (size_ <= 0 || __pos >= size_) return npos;
     const_pointer result = std::find(data_ + __pos, data_ + size_, __c);
@@ -443,7 +446,7 @@ basic_string_view<charT, traits>::find(charT __c, size_type __pos) const
 template <typename charT, typename traits>
 inline typename basic_string_view<charT, traits>::size_type
 basic_string_view<charT, traits>::rfind(charT __c, size_type __pos) const
-    noexcept
+    SSS_NOEXCEPT
 {
     if (size_ <= 0) return npos;
     for (size_t i = std::min(__pos + 1, size_); i != 0;) {
