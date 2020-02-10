@@ -110,7 +110,11 @@ namespace CMLParser
 
     protected:
         // 检查输入的值，是否在允许值范围内。如果不是，抛出异常。
+#if __cplusplus >= 201103L
+        bool assert_valid_value(const char * val);
+#else
         bool assert_valid_value(const char * val) throw (CMLParser::Exception);
+#endif
 
     public:
         bool    add_option(const char * val, int id);
