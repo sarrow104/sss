@@ -33,7 +33,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace sss { namespace path {
+namespace sss {
+namespace path {
 
 //#ifdef __WIN32__
 //    const char sp_char = '\\';
