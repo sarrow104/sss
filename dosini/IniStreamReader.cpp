@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cctype>
+#include <cstring> // std::memset
 #include <iostream>
 
 #include <sss/dosini/IniParser.hpp>
