@@ -70,6 +70,9 @@ void Login::set_properties(const std::string& server,
 // NOTE server 的形式为ip:port
 // mssql 的 port 为1433
 // 如果省略端口号，则默认为1433
+// 参见：
+//! http://www.freetds.org/userguide/portoverride.htm
+//! http://www.freetds.org/userguide/confirminstall.htm
 void Login::set_server(const std::string& server)
 {
     this->server = server;
@@ -79,7 +82,8 @@ void Login::set_server(const std::string& server)
         domain_name.resize(server.length());
 
         int len = -1, port = -1;
-        int status = sscanf(server.c_str(), "%[^:]:%d%n", &domain_name[0], &port, &len);
+        int status = sscanf(server.c_str(), "%[^,:]%*[,:]%d%n", &domain_name[0], &port, &len);
+        domain_name.resize(std::strlen(domain_name.c_str()));
 
         // NOTE 只有当 status == 2，len == server.length() （能分解成域名和端口
         // 两部分，并且消耗完所有字符）的时候，才说明是符合函数接口的参数。
@@ -91,6 +95,12 @@ void Login::set_server(const std::string& server)
                 // 说明端口输入是错误的
                 throw Exception("The port part of '" + server + "' is invalid.");
             }
+#if 0
+            this->server = domain_name;
+            this->loginrec->port = port;
+#else
+            this->server = domain_name + '/' + sss::cast_string(port);
+#endif
             break;
 
         case 1:
@@ -98,8 +108,16 @@ void Login::set_server(const std::string& server)
                 // 用户没有提供端口信息，添加上默认值
                 if (domain_name == server)
                 {
-                    // 说明用户只输入了域名信息——域名是否合法，就不验证了。
+#if 0
+                    this->server = domain_name;
+                    this->loginrec->port = 1433;
+#else
+                    // this->server += ",1433";
+                    // this->server += "/1433";
                     this->server += ":1433";
+#endif
+                    // 说明用户只输入了域名信息——域名是否合法，就不验证了。
+                    // this->set_portnumber(1433);
                 }
                 else    // 用户提供了端口信息，但是不正确
                 {
@@ -115,6 +133,19 @@ void Login::set_server(const std::string& server)
         }
     }
 }
+
+// int Login::get_portnumber()
+// {
+//     return this->port;
+// }
+// 
+// void Login::set_portnumber(int port)
+// {
+//     this->port = port;
+//     if (this->loginrec) {
+//         db
+//     }
+// }
 
 void Login::set_ussername(const std::string& username)
 {

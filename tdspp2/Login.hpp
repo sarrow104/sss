@@ -40,12 +40,18 @@ public:
     void set_dbname(const std::string& dbname);
     void set_charset(const std::string& charset);
     void set_logintime(int seconds);
+    //! https://github.com/rails-sqlserver/tiny_tds/issues/2
+    // freetds 不支持直接使用port number！
+    // 原因，见上面的链接。
+    // 变通的办法，是使用 .conf文件。
+    // void set_portnumber(int port);
 
     std::string get_server();
     std::string get_ussername();
     std::string get_password();
     std::string get_dbname();
     std::string get_charset();
+    // int get_portnumber();
 
 private:
     // 仅供DBLink 的构造函数调用
@@ -62,6 +68,7 @@ private:
                 dbname,
                 appname,
                 charset;
+    // int         port;
     int         logintime;
 
 private:
