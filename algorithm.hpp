@@ -99,6 +99,30 @@ std::pair<_InputIterator1, _InputIterator2> mismatch(_InputIterator1 __first1,
     return std::pair<_InputIterator1, _InputIterator2>(__first1, __first2);
 }
 
+// template <typename _InputIterator1, typename _InputIterator2>
+// bool is_end_with(_InputIterator1 __first1,
+//                  _InputIterator1 __last1,
+//                  _InputIterator2 __first2,
+//                  _InputIterator2 __last2)
+// {
+//     std::size_t len1 = std::distance(__first1, __last1);
+//     std::size_t len2 = std::distance(__first2, __last2);
+//     return len2 == 0
+//         || (len1 >= len2 && std::equal(__first1 + (len1 - len2), __last1, __first2));
+// }
+// 
+// template <typename _InputIterator1, typename _InputIterator2>
+// bool is_begin_with(_InputIterator1 __first1,
+//                    _InputIterator1 __last1,
+//                    _InputIterator2 __first2,
+//                    _InputIterator2 __last2)
+// {
+//     std::size_t len1 = std::distance(__first1, __last1);
+//     std::size_t len2 = std::distance(__first2, __last2);
+//     return len2 == 0
+//         || (len1 >= len2 && std::equal(__first1, __first1 + len2, __first2));
+// }
+
 template <typename _InputIterator1, typename _InputIterator2,
           typename _BinaryPredicate>
 
