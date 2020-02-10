@@ -15,13 +15,13 @@ namespace sss {
 class IniStreamReader {
 public:
     enum elementType {
-        TYPE_INITIATE = 0,
-        TYPE_ATEND = 1,
-        TYPE_UNKOWN = TYPE_ATEND << 1,
-        TYPE_SECTION = TYPE_UNKOWN << 1,
-        TYPE_KEYVALUE = TYPE_SECTION << 1,
-        TYPE_EMPTYLINE = TYPE_KEYVALUE << 1,
-        TYPE_COMMENT = TYPE_EMPTYLINE << 1,
+        TYPE_INITIATE  = 0,
+        TYPE_ATEND     = 1,
+        TYPE_UNKOWN    = TYPE_ATEND     << 1,
+        TYPE_SECTION   = TYPE_UNKOWN    << 1,
+        TYPE_KEYVALUE  = TYPE_SECTION   << 1,
+        TYPE_EMPTYLINE = TYPE_KEYVALUE  << 1,
+        TYPE_COMMENT   = TYPE_EMPTYLINE << 1,
     };
 
 public:
