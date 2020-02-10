@@ -579,12 +579,12 @@ inline colog::log_level get_log_levels()
 }
 
 #ifdef SSS_COLOG_TURNOFF
-#define COLOG_FATAL (...)  // NOTE TODO 就算关闭了消息，FATAL，也应该调用
+#define COLOG_FATAL(...)  // NOTE TODO 就算关闭了消息，FATAL，也应该调用
                            // abort()——或者，需要用户自己abort！
-#define COLOG_ERROR (...)
-#define COLOG_WARN  (...)
-#define COLOG_INFO  (...)
-#define COLOG_DEBUG (...)
+#define COLOG_ERROR(...)
+#define COLOG_WARN(...)
+#define COLOG_INFO(...)
+#define COLOG_DEBUG(...)
 
 #define COLOG_FATAL_STMT(a) (a)
 #define COLOG_ERROR_STMT(a) (a)
