@@ -12,6 +12,11 @@ debug:
 doxygen:
 	@doxygen sss.conf
 
+.PHONY: meld
+
+meld:
+	@meld . /home/sarrow/T470p_home/sarrow/extra/sss/include/sss
+
 clean: clean-debug clean-release
 
 clean-debug:
