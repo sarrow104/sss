@@ -15,22 +15,23 @@
 #include <sss/path.hpp>
 
 namespace {
-    void appendRecursively(sss::xml3::node * p, CNode n)
-    {
-        assert(p);
-        sss::xml3::xml_doc * pdoc = p->get_doc();
 
-        switch (n.nodeType()) {
+void appendRecursively(sss::xml3::node * p, CNode n)
+{
+    assert(p);
+    sss::xml3::xml_doc * pdoc = p->get_doc();
+
+    switch (n.nodeType()) {
         case GUMBO_NODE_TEXT:
             {
                 bool is_raw_data = false;
                 switch (gumbo_tag_enum(n.parent().tag().c_str())) {
-                case GUMBO_TAG_SCRIPT:
-                    is_raw_data = true;
-                    break;
+                    case GUMBO_TAG_SCRIPT:
+                        is_raw_data = true;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
                 }
                 p->append_child(pdoc->create_text(n.textGumbo(), is_raw_data));
             }
@@ -77,36 +78,38 @@ namespace {
         case GUMBO_NODE_WHITESPACE:
             // std::cout << "GUMBO_NODE_WHITESPACE: ignored" << std::endl;
             break;
-        }
     }
 }
+} // namespace
 
-namespace sss{
-    namespace xml3 {
-        DocHandle& DocHandle::loadFromGumbo(const std::string& fname)
-        {
-            std::string path = sss::path::full_of_copy(fname);
-            if (!sss::path::file_exists(path)) {
-                return *this;
-            }
+namespace sss {
+namespace xml3 {
 
-            std::string content;
-            sss::path::file2string(path, content);
-            sss::Encoding::ensure(content, "utf8");
-
-            CDocument doc;
-            doc.parse(content);
-
-            DocHandle tmp(new sss::xml3::xml_doc);
-
-            appendRecursively(tmp.get(), doc.document());
-
-            // tmp->print(std::cout);
-            tmp.swap(*this);
-
-            return *this;
-        }
+DocHandle& DocHandle::loadFromGumbo(const std::string& fname)
+{
+    std::string path = sss::path::full_of_copy(fname);
+    if (!sss::path::file_exists(path)) {
+        return *this;
     }
+
+    std::string content;
+    sss::path::file2string(path, content);
+    sss::Encoding::ensure(content, "utf8");
+
+    CDocument doc;
+    doc.parse(content);
+
+    DocHandle tmp(new sss::xml3::xml_doc);
+
+    appendRecursively(tmp.get(), doc.document());
+
+    // tmp->print(std::cout);
+    tmp.swap(*this);
+
+    return *this;
 }
+
+} // namespace xml3
+} // namespace sss 
 
 #endif

@@ -9,56 +9,56 @@
 #include "exception.hpp"
 
 namespace sss{
-    namespace xml3 {
+namespace xml3 {
 
-        const char * EleHandle::D_PREFIX = "sss::xml3::EleHandle";
+const char * EleHandle::D_PREFIX = "sss::xml3::EleHandle";
 
-            sss::xml3::node * EleHandle::nodeCreator(sss::xml3::node_type_t type, const std::string& data)
+sss::xml3::node * EleHandle::nodeCreator(sss::xml3::node_type_t type, const std::string& data)
+{
+    // SSS_LOG_FUNC_TRACE(sss::log::log_ERROR);
+    sss::xml3::xml_doc * pdoc = this->_data ? this->_data->get_doc() : 0;
+    if (!pdoc) {
+        return 0;
+    }
+    sss::xml3::node * ret = 0;
+    switch (type) {
+        case sss::xml3::type_PI:
+            ret = pdoc->create_PI(data);
+            break;
+
+        case sss::xml3::type_cdata:
+            ret = pdoc->create_cdata(data);
+            break;
+
+        case sss::xml3::type_comment:
+            ret = pdoc->create_comment(data);
+            break;
+
+        case sss::xml3::type_doctype:
+            ret = pdoc->create_doctype(data);
+            break;
+
+        case sss::xml3::type_info:
+            ret = pdoc->create_info(data);
+            break;
+
+        case sss::xml3::type_node:
+            ret = pdoc->create_node(data);
+            break;
+
+        case sss::xml3::type_text:
+            ret = pdoc->create_text(data);
+            break;
+
+        default:
             {
-                // SSS_LOG_FUNC_TRACE(sss::log::log_ERROR);
-                sss::xml3::xml_doc * pdoc = this->_data ? this->_data->get_doc() : 0;
-                if (!pdoc) {
-                    return 0;
-                }
-                sss::xml3::node * ret = 0;
-                switch (type) {
-                case sss::xml3::type_PI:
-                    ret = pdoc->create_PI(data);
-                    break;
-
-                case sss::xml3::type_cdata:
-                    ret = pdoc->create_cdata(data);
-                    break;
-
-                case sss::xml3::type_comment:
-                    ret = pdoc->create_comment(data);
-                    break;
-
-                case sss::xml3::type_doctype:
-                    ret = pdoc->create_doctype(data);
-                    break;
-
-                case sss::xml3::type_info:
-                    ret = pdoc->create_info(data);
-                    break;
-
-                case sss::xml3::type_node:
-                    ret = pdoc->create_node(data);
-                    break;
-
-                case sss::xml3::type_text:
-                    ret = pdoc->create_text(data);
-                    break;
-
-                default:
-                    {
-                        std::ostringstream oss;
-                        oss << D_PREFIX << "::" << __func__ << "( type error " << type << ")";
-                        throw std::runtime_error(oss.str());
-                    }
-                }
-                return ret;
+                std::ostringstream oss;
+                oss << D_PREFIX << "::" << __func__ << "( type error " << type << ")";
+                throw std::runtime_error(oss.str());
             }
+    }
+    return ret;
+}
 
 DocHandle::DocHandle()
     : _pdoc(0), _openmode(std::ios_base::in | std::ios_base::out)
@@ -199,53 +199,53 @@ DocHandle& DocHandle::load(const std::string& fname)
     sss::path_type t = sss::path::file_exists(full_name);
     if (_openmode & std::ios_base::in && t) {
         switch (t) {
-        case sss::PATH_TO_FILE:
-            if (sss::path::filereadable(full_name)) {
-                try {
-                    std::string xml_str;
-                    sss::path::file2string(full_name, xml_str);
-                    this->parse(xml_str);
+            case sss::PATH_TO_FILE:
+                if (sss::path::filereadable(full_name)) {
+                    try {
+                        std::string xml_str;
+                        sss::path::file2string(full_name, xml_str);
+                        this->parse(xml_str);
+                    }
+                    catch (sss::xml3::ParsingError& e) {
+                        std::cerr << e.what() << std::endl;
+                        this->clear();
+                        this->_pdoc = new xml3::xml_doc;
+                    }
+                    catch (sss::xml3::ConstructingError& e) {
+                        std::cerr << e.what() << std::endl;
+                        this->clear();
+                        this->_pdoc = new xml3::xml_doc;
+                    }
+                    catch (sss::ExceptionNotSupportMethod& e) {
+                        std::cerr << e.what() << std::endl;
+                        this->clear();
+                        this->_pdoc = new xml3::xml_doc;
+                    }
+                    catch (...) {
+                        std::cerr
+                            << "unexpect error " << __func__ << ":"
+                            << __FILE__ << "," << __LINE__
+                            << std::endl;
+                        throw;
+                    }
                 }
-                catch (sss::xml3::ParsingError& e) {
-                    std::cerr << e.what() << std::endl;
-                    this->clear();
-                    this->_pdoc = new xml3::xml_doc;
+                else {
+                    std::ostringstream oss;
+                    oss << "Unable to open file `" << full_name << "` to read!" << std::endl;
+                    throw std::runtime_error(oss.str());
                 }
-                catch (sss::xml3::ConstructingError& e) {
-                    std::cerr << e.what() << std::endl;
-                    this->clear();
-                    this->_pdoc = new xml3::xml_doc;
-                }
-                catch (sss::ExceptionNotSupportMethod& e) {
-                    std::cerr << e.what() << std::endl;
-                    this->clear();
-                    this->_pdoc = new xml3::xml_doc;
-                }
-                catch (...) {
-                    std::cerr
-                        << "unexpect error " << __func__ << ":"
-                        << __FILE__ << "," << __LINE__
-                        << std::endl;
-                    throw;
-                }
-            }
-            else {
-                std::ostringstream oss;
-                oss << "Unable to open file `" << full_name << "` to read!" << std::endl;
-                throw std::runtime_error(oss.str());
-            }
-            break;
+                break;
 
-        case sss::PATH_TO_DIRECTORY:
-            {
-                std::ostringstream oss;
-                oss << "Path `" << full_name << "` is a directory! cannot read" << std::endl;
-                throw std::runtime_error(oss.str());
-            }
-            break;
+            case sss::PATH_TO_DIRECTORY:
+                {
+                    std::ostringstream oss;
+                    oss << "Path `" << full_name << "` is a directory! cannot read" << std::endl;
+                    throw std::runtime_error(oss.str());
+                }
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
     }
     else if (_openmode & std::ios_base::out) {
@@ -314,5 +314,5 @@ DocHandle& DocHandle::root(const std::string& data)
     return *this;
 }
 
-    }
-}
+} // namespace xml3
+} // namespace sss
