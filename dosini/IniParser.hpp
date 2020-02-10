@@ -1,7 +1,7 @@
 #ifndef __INIPARSER_HPP_1465385991__
 #define __INIPARSER_HPP_1465385991__
 
-#include <sss/utlstring.hpp>
+#include <string>
 
 namespace sss {
     // 解析ini文件中，特定规则；并返回消耗的字节数；同时会写hook到的字段范围；
