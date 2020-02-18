@@ -28,6 +28,7 @@
 #include <sss/utlstring.hpp>
 #include <sss/path.hpp>
 
+#include <mutex>
 #include <string>
 #include <cstring>
 #include <algorithm>
@@ -95,10 +96,19 @@ class file_descriptor {
 
 protected:
 #ifdef __WIN32__
-    WIN32_FIND_DATAA     _ffd;
+    WIN32_FIND_DATAA   _ffd;
 #else
-    struct dirent       _entry;
-    struct dirent *     _pentry;
+    //struct dirent {
+    //    ino_t          d_ino;       /* Inode number */
+    //    off_t          d_off;       /* Not an offset; see below */
+    //    unsigned short d_reclen;    /* Length of this record */
+    //    unsigned char  d_type;      /* Type of file; not supported
+    //                                   by all filesystem types */
+    //    char           d_name[256]; /* Null-terminated filename */
+    //};
+    uint8_t            _type;
+    std::string        _name;
+
 #endif
     glob_path *        _p_pg;
 
@@ -109,13 +119,15 @@ public:
     }
 
     file_descriptor(const file_descriptor& ref)
-    {
+        :
 #ifdef __WIN32__
-        this->_ffd = ref._ffd;
+            _ffd  (ref._ffd),
 #else
-        this->_entry = ref._entry;
+            _type (ref._type),
+            _name (ref._name),
 #endif
-        this->_p_pg = ref._p_pg;
+            _p_pg (ref._p_pg)
+    {
     }
 
     ~file_descriptor()
@@ -150,9 +162,10 @@ public:
     void swap(file_descriptor& ref)
     {
 #ifdef __WIN32__
-        std::swap(this->_ffd, ref._ffd);
+        std::swap(this->_ffd,  ref._ffd);
 #else
-        std::swap(this->_entry, ref._entry);
+        std::swap(this->_type, ref._type);
+        std::swap(this->_name, ref._name);
 #endif
         std::swap(this->_p_pg, ref._p_pg);
     }
@@ -161,89 +174,26 @@ public:
 #ifdef __WIN32__
         return _ffd.cFileName;
 #else
-        return _entry.d_name;
+        return _name.c_str();
 #endif
     }
 
     inline long long get_fsize() const;
 
 public:
-    bool is_dir() const {
-#ifdef __WIN32__
-        return _ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-#else
-        // mingw 的 <dirent.h> 结构体，没有d_type ！
-        // 需要额外调用lstat函数，才能获取是否文件夹信息。
-        return _entry.d_type == DT_DIR;
-#endif
-    }
+    bool is_dir() const;
 
-    bool is_normal_dir() const {
-        return
-            this->is_dir() &&
-            (std::strcmp(this->get_name(), "..") != 0 && std::strcmp(this->get_name(), ".") != 0);
-    }
+    bool is_normal_dir() const;
 
     bool is_normal_file() const;
 
-    bool is_symlink() const {
-#ifdef __WIN32__
-        // http://www.howtogeek.com/howto/16226/complete-guide-to-symbolic-links-symlinks-on-windows-or-linux/
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363866(v=vs.85).aspx
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363878(v=vs.85).aspx
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365006(v=vs.85).aspx
-        //
-        // windows 下，自从2000+ntfs文件系统后，就支持hardlink和junction；
-        // 前者类似linux的硬链接；
-        // 后者部分等于linux的软件链接——它只支持文件夹，多名字；
-        //
-        // 而完全等效于 软连接的 函数 CreateSymbolicLink，则要到windows vista【桌面版】，之后才支持！
-        // TODO FIXME
-        return false;
-#else
-        return _entry.d_type == DT_LNK;
-#endif
-    }
+    bool is_symlink() const;
 
-    bool is_hide() const {
-#ifdef __WIN32__
-        return _ffd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN;
-#else
-        return this->get_name()[0] == '.' && this->get_name()[1];
-#endif
-    }
+    bool is_hide() const;
 
-    int attribute() const {
-#ifdef __WIN32__
-        return _ffd.dwFileAttributes;
-#else
-#if 0
-        // FIXME 在linux下，要获取，与windows下类似的文件属性，必须额外调用 stat 系列函数
-        struct stat buf;
-        stat(file, buf);//file 为你需要读的文件 int型的参数
-        // if(S_ISREG(buf.st_mode))
-        // printf("普通文件");
-        //
-        // S_ISREG() 为类型宏 普通文件
-        // S_ISDIR() 目录文件
-        // S_ISCHR() 字符特殊文件
-        // S_ISBLK() 块特殊文件
-        // S_ISFIFO() 管道或FIFO
-        // S_ISLNK() 符号连接
-        // S_ISSOCK() 套接字
-#endif
-        return _entry.d_type;
-#endif
-    }
+    int attribute() const;
 
-    bool is_ok() const {
-#ifdef __WIN32__
-        return reinterpret_cast<const uint32_t&>(this->_ffd);
-        //return _ffd.cFileName; // 之前，已经将 结构体 memeset 为0 了；于是……
-#else
-        return _pentry;
-#endif
-    }
+    bool is_ok() const;
 
 protected:
     void bind(glob_path& pg) {
@@ -304,7 +254,7 @@ protected:
 // #ifdef __WIN32__
 //         return this->hFind == INVALID_HANDLE_VALUE;
 // #else
-//         return this->dirp == 0;
+//         return this->_pdir == 0;
 // #endif
     }
 
@@ -321,9 +271,10 @@ private:
     filter_t *          _filter;
 #ifdef __WIN32__
     HANDLE              hFind;
-    WIN32_FIND_DATAA     ffd_first;
+    WIN32_FIND_DATAA    ffd_first;
 #else
-    DIR *               dirp;
+    DIR *               _pdir;
+    std::mutex          _mtx;
 #endif
 };
 
