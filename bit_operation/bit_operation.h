@@ -199,6 +199,18 @@ template<> struct byte_type<8> //for eight byte type!{{{1
         return static_cast<size_t>(c);
     }
 
+    static inline size_t count_1_bit_impl(value_type c)
+    {
+        c = (c & 0x5555555555555555ull) + ((c >>  1) & 0x5555555555555555ull);
+        c = (c & 0x3333333333333333ull) + ((c >>  2) & 0x3333333333333333ull);
+        c = (c & 0x0F0F0F0F0F0F0F0Full) + ((c >>  4) & 0x0F0F0F0F0F0F0F0Full);
+        c = (c & 0x00FF00FF00FF00FFull) + ((c >>  8) & 0x00FF00FF00FF00FFull);
+        c = (c & 0x0000FFFF0000FFFFull) + ((c >> 16) & 0x0000FFFF0000FFFFull);
+        c = (c & 0x00000000FFFFFFFFull) + ((c >> 32) & 0x00000000FFFFFFFFull);
+
+        return c;
+    }
+
     static inline value_type on_low_bits_impl(value_type c)
     {
         c = byte_type<4>::on_low_bits_impl(static_cast<byte_type<4>::value_type>(c));
@@ -214,21 +226,21 @@ template<> struct byte_type<8> //for eight byte type!{{{1
 template<typename T> inline typename byte_type<sizeof(T)>::value_type off_lowest_bit(T d)//{{{1
 {
     typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = reinterpret_cast<value_type>(d);
+    value_type _v = static_cast<value_type>(d);
     return _v &= (_v - 1u);
 }
 
 template<typename T> inline typename byte_type<sizeof(T)>::value_type on_lowest_bit(T d)//{{{1
 {
     typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = reinterpret_cast<value_type>(d);
+    value_type _v = static_cast<value_type>(d);
     return _v |= (_v - 1u);
 }
 
 template<typename T> inline bool is_power_of_2(T d)//{{{1
 {
     typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = reinterpret_cast<value_type>(d);
+    value_type _v = static_cast<value_type>(d);
     return !(_v & (_v - 1u)) && _v;
     //  consider Zero as a power of 2 value, too!
 }
@@ -261,6 +273,18 @@ template<typename T> size_t highest_bit_pos(T c)//{{{1
 
     typename byte_type<sizeof(T)>::ret_t ret
         = byte_type<sizeof(T)>::on_low_bits_impl(static_cast<value_type>(c));
+
+    return count_1_bit(ret);
+}
+
+template<typename T> size_t lowest_bit_pos(T c) // {{{1
+{
+    typedef typename byte_type<sizeof(T)>::value_type value_type;
+
+    value_type _v = static_cast<T>(c) ^ off_lowest_bit(c);
+
+    typename byte_type<sizeof(T)>::ret_t ret
+        = byte_type<sizeof(T)>::on_low_bits_impl(_v);
 
     return count_1_bit(ret);
 }
