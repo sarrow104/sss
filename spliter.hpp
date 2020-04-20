@@ -171,10 +171,44 @@ inline std::string join(T ini, T fin, const std::string& sep, Op o)
         if (!is_empty) {
             ret += sep;
         }
-        ret += o(ini);
+        ret += o(*ini);
         is_empty = false;
         ++ini;
     }
+    return ret;
+}
+
+template<typename Result, typename ContType, typename Op>
+inline Result join(const ContType& cont, const Result& sep, Op o)
+{
+    Result ret{};
+    auto ini = std::begin(cont);
+    auto fin = std::end(cont);
+    bool is_first = true;
+    for (; ini != fin; is_first = false, ++ini) {
+        if (!is_first) {
+            ret += sep;
+        }
+        ret += o(*ini);
+    }
+
+    return ret;
+}
+
+template<typename Result, typename ContType>
+inline Result join(const ContType& cont, const Result& sep)
+{
+    Result ret{};
+    auto ini = std::begin(cont);
+    auto fin = std::end(cont);
+    bool is_first = true;
+    for (; ini != fin; is_first = false, ++ini) {
+        if (!is_first) {
+            ret += sep;
+        }
+        ret += *ini;
+    }
+
     return ret;
 }
 
