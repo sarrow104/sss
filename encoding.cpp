@@ -7,12 +7,19 @@
 #include <sss/spliter.hpp>
 #include <sss/utlstring.hpp>
 
-#ifdef __WIN32__
 #define _USING_UCHARDET_
+
+#if !defined(_USING_UCHARDET_) && !defined(_USING_BOOST_PROCESS_) && defined(__WIN32__)
+#define _USING_UCHARDET_
+#else
+#define _USING_BOOST_PROCESS_
 #endif
 
-#ifdef _USING_UCHARDET_
+#if defined(_USING_UCHARDET_)
 #include <uchardet/uchardet.h>
+#elif defined(_USING_BOOST_PROCESS_)
+#include <boost/process.hpp>
+#include <sss/ps.hpp>
 #else
 #include <sss/ps.hpp>
 #include "popenRWE.h"
@@ -148,7 +155,7 @@ bool Encoding::isCompatibleWith(std::string from, std::string to)
 // 返回编码信息；
 std::string Encoding::detect(const std::string& content)
 {
-#ifdef _USING_UCHARDET_
+#if defined(_USING_UCHARDET_)
     uchardet_t ud = uchardet_new();
     int err = uchardet_handle_data(ud, content.c_str(), content.length());
     std::string encoding;
@@ -171,6 +178,36 @@ std::string Encoding::detect(const std::string& content)
     if (err) {
         /* 如果样本字符不够，那么有可能导致分析失败 */
         throw std::runtime_error("uchardet: analyze coding faild！\n");
+    }
+    return encoding;
+#elif defined(_USING_BOOST_PROCESS_)
+    std::string encoding;
+    namespace bp = boost::process;
+    bp::pipe p;
+    bp::ipstream is;
+
+    std::string out_buf;
+
+    //we just use the same pipe, so the 
+    bp::child chardet("chardet", bp::std_in < content, bp::std_out > is);
+    //p << content;
+
+    std::string line;
+    //when nm finished the pipe closes and c++filt exits
+    while (chardet.running() && std::getline(is, line))
+        out_buf += line;
+
+    chardet.wait();
+
+    if (!sss::is_begin_with(out_buf, "<stdin>: ")) {
+        return "";
+    }
+    size_t next_space_pos = out_buf.find(' ', 9);
+    if (next_space_pos != std::string::npos) {
+        out_buf.resize(next_space_pos);
+        encoding = out_buf.substr(9, next_space_pos);
+
+        encoding_normalize(encoding);
     }
     return encoding;
 #else
