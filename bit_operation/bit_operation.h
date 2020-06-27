@@ -305,6 +305,8 @@ template<typename T> size_t _count_1_bit(T c)//for test suit use{{{1
     return ret;
 }
 
+void buff_hex_reverse_print(std::ostream& out, const uint8_t * pdata, size_t size);
+
 template<typename T>
 class hex_out_t
 {
@@ -322,9 +324,33 @@ public:
     {
         const uint8_t * pdata = reinterpret_cast<const uint8_t*>(&_data);
         o << "0x";
-        for (int i = 0; i < sizeof(T); ++i) {
-            o << std::hex << std::setw(2) << std::setfill('0') << (pdata[i] & 0xFFu);
-        }
+        ::sss::bit::buff_hex_reverse_print(o, pdata, sizeof(T));
+    }
+
+private:
+    const T& _data;
+};
+
+template<>
+class hex_out_t<std::string>
+{
+public:
+    typedef std::string T;
+
+    explicit hex_out_t(const T& val)
+        : _data(val)
+    {
+    }
+    ~hex_out_t()
+    {
+    }
+
+public:
+    void print(std::ostream& o) const
+    {
+        const uint8_t * pdata = reinterpret_cast<const uint8_t*>(_data.data());
+        o << "0x"; // NOTE byte order!
+        ::sss::bit::buff_hex_reverse_print(o, pdata, _data.size());
     }
 
 private:
@@ -418,7 +444,7 @@ std::ostream& binary_out_t::operator << <double>(double d)
     }
     return this->_o;
 }
-}
+} // namespace ext
 
 template<typename ReturnType>
 inline ReturnType operator<< (std::ostream& o, ReturnType (*func_oper)(std::ostream&) )//{{{1

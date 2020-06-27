@@ -1,5 +1,7 @@
 #include  "bit_operation.h"
 
+#include <sss/utlstring.hpp>
+
 char sss::bit::bit_order()
 {
 // NOTE Linux 内核代码——判断系统 是little-endian 还是 big-endian；
@@ -16,6 +18,14 @@ const char * ext::binary_out_t::binary_table[] =
     "1000", "1001", "1010", "1011",
     "1100", "1101", "1110", "1111",
 };
+
+void sss::bit::buff_hex_reverse_print(std::ostream& out, const uint8_t * pdata, size_t size)
+{
+    for (size_t i = size; i != 0; --i) {
+        out << sss::lower_hex2char(pdata[i - 1] >> 4);
+        out << sss::lower_hex2char(pdata[i - 1]);
+    }
+}
 
 #ifdef  __DEBUG_BIT_OPERATION_CPP__     //{{{1
 
