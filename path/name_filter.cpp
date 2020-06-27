@@ -49,7 +49,7 @@ namespace sss{
             sss::replace_all(ret, ".", "\\.");
             sss::replace_all(ret, "?", ".");
             sss::replace_all(ret, "*", ".*");
-            sss::replace_all(ret, " ", "");
+            //sss::replace_all(ret, " ", "");
             sss::replace_all(ret, "\n", "");
             sss::replace_all(ret, "\r", "");
             sss::replace_all(ret, "\t", "");
