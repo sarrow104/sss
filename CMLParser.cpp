@@ -42,9 +42,9 @@ namespace {
 class MapValue_get_first
 {
 public:
-    std::string operator()(RuleBase::optional_values_t::iterator it)
+    std::string operator()(const RuleBase::optional_values_t::value_type& p)
     {
-        return it->first;
+        return p.first;
     }
 };
 
