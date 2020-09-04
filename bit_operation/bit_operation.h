@@ -305,6 +305,23 @@ template<typename T> size_t _count_1_bit(T c)//for test suit use{{{1
     return ret;
 }
 
+template<typename T>
+void bit_off(T& v, size_t pos)
+{
+    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    value_type& ref = reinterpret_cast<value_type&>(v);
+    ref &= (~value_type(1) << pos);
+}
+
+template<typename T>
+void bit_on(T& v, size_t pos)
+{
+    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    value_type& ref = reinterpret_cast<value_type&>(v);
+    ref |= (value_type(1) << pos);
+}
+
+
 void buff_hex_reverse_print(std::ostream& out, const uint8_t * pdata, size_t size);
 
 template<typename T>
