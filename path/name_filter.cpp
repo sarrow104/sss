@@ -58,6 +58,8 @@ namespace sss{
             sss::replace_all(ret, ")", "\\)");
             sss::replace_all(ret, "[", "\\[");
             sss::replace_all(ret, "]", "\\]");
+            sss::replace_all(ret, "{", "\\{");
+            sss::replace_all(ret, "}", "\\}");
 
             if (ret.empty()) {
                 ret = ".*";
