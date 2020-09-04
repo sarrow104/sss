@@ -142,6 +142,13 @@ public:
         : data_(s), size_((s && s[N - 1]) ? N : traits::length(s))
     {
     }
+    //basic_string_view(basic_string_view&& right) SSS_NOEXCEPT
+    //    : data_ (nullptr), size_ (0)
+    //{
+    //    basic_string_view& right_ref{right};
+    //    right_ref.swap(*this);
+    //}
+
     void clear()
     {
         data_ = nullptr;
@@ -154,19 +161,19 @@ public:
     const_iterator cend() const SSS_NOEXCEPT { return data_ ? data_ + size_ : ""; }
     const_reverse_iterator rbegin() const SSS_NOEXCEPT
     {
-        return data_ ? data_ + size_ - 1 : "";
+        return const_reverse_iterator(end());
     };
     const_reverse_iterator rend() const SSS_NOEXCEPT
     {
-        return data_ ? data_ - 1 : "";
+        return const_reverse_iterator(begin());
     };
     const_reverse_iterator crbegin() const SSS_NOEXCEPT
     {
-        return data_ ? data_ + size_ - 1 : "";
+        return const_reverse_iterator(end());
     };
     const_reverse_iterator crend() const SSS_NOEXCEPT
     {
-        return data_ ? data_ - 1 : "";
+        return const_reverse_iterator(begin());
     };
 
     // 7.5, basic_string_view capacity
@@ -250,7 +257,7 @@ public:
 
     void append_to_string(std::basic_string<charT, traits>& target) const
     {
-        target->append(data_, size_);
+        target.append(data_, size_);
     }
 
     // 7.8, basic_string_view string operations
@@ -521,6 +528,19 @@ basic_string_view<CharT, TraitsT>::find_last_not_of(const CharT* __str, size_typ
     }
     return npos;
 }
+
+inline void trim(sss::string_view& s)
+{
+    while(!s.empty() && std::isspace(s.front()))
+    {
+        s.pop_front();
+    }
+    while(!s.empty() && std::isspace(s.back()))
+    {
+        s.pop_back();
+    }
+}
+
 }  // namespace sss
 
 #endif /* __STRING_VIEW_HPP_1476871268__ */
