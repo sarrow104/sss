@@ -3,15 +3,7 @@
 #ifndef  __BIT_OPERATION_H__
 #define  __BIT_OPERATION_H__
 
-#ifdef   _MSC_VER
-typedef unsigned char           uint8_t;
-typedef unsigned short          uint16_t;
-typedef unsigned int            uint32_t;
-typedef unsigned long long      uint64_t;
-#else
-#   include <stdint.h>//for:uint8_t, uint16_t, uint32_t, uint64_t
-#endif
-
+#include <cstdint> //for:uint8_t, uint16_t, uint32_t, uint64_t
 #include <cstring>
 #include <limits>
 #include <iostream>
@@ -93,9 +85,9 @@ template<> struct byte_type<1> //for one byte type!{{{1
 
     static inline size_t count_1_bit_impl(value_type c)
     {
-        c = (c & 0x55555555u) + ((c >>  1) & 0x55555555u);
-        c = (c & 0x33333333u) + ((c >>  2) & 0x33333333u);
-        c = (c & 0x0F0F0F0Fu) + ((c >>  4) & 0x0F0F0F0Fu);
+        c = (c & value_type(0x55555555u)) + ((c >>  1) & value_type(0x55555555u));
+        c = (c & value_type(0x33333333u)) + ((c >>  2) & value_type(0x33333333u));
+        c = (c & value_type(0x0F0F0F0Fu)) + ((c >>  4) & value_type(0x0F0F0F0Fu));
 
         return c;
     }
@@ -118,7 +110,7 @@ template<> struct byte_type<2> //for two byte type!{{{1
     static inline value_type bit_reverse_impl(value_type c)//{{{2
     {
         c = byte_type<1>::bit_reverse_impl(c);
-        c = ((c & 0x00FF00FF) << 8) | ((c >> 8) & 0x00FF00FF);
+        c = ((c & value_type(0x00FF00FF)) << 8) | ((c >> 8) & value_type(0x00FF00FF));
 
         return c;
     }
@@ -126,7 +118,7 @@ template<> struct byte_type<2> //for two byte type!{{{1
     static inline size_t count_1_bit_impl(value_type c)
     {
         c = byte_type<1>::count_1_bit_impl(c);
-        c = (c & 0x00FF00FF) + ((c >>  8) & 0x00FF00FF);
+        c = (c & value_type(0x00FF00FF)) + ((c >>  8) & value_type(0x00FF00FF));
 
         return c;
     }
@@ -233,14 +225,14 @@ template<typename T> inline typename byte_type<sizeof(T)>::value_type off_lowest
 template<typename T> inline typename byte_type<sizeof(T)>::value_type on_lowest_bit(T d)//{{{1
 {
     typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = static_cast<value_type>(d);
+    value_type _v = reinterpret_cast<value_type&>(d);
     return _v |= (_v - 1u);
 }
 
 template<typename T> inline bool is_power_of_2(T d)//{{{1
 {
     typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = static_cast<value_type>(d);
+    value_type _v = reinterpret_cast<value_type&>(d);
     return !(_v & (_v - 1u)) && _v;
     //  consider Zero as a power of 2 value, too!
 }
