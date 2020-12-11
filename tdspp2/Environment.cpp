@@ -23,9 +23,15 @@ namespace tdspp2 {
 
     Query& Environment::refer_query(DBPROCESS*)
     {
+        // TODO FIXME
+        static Query q{nullptr};
+        return q;
     }
     DBLink& Environment::refer_dblink(DBPROCESS*)
     {
+        // TODO FIXME
+        static Query q{nullptr};
+        return *(DBLink*)(nullptr);
     }
 
 } //namespace tdspp2
