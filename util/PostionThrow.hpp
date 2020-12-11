@@ -8,7 +8,9 @@
 #undef SSS_POSITION_THROW
 #endif
 
-#if defined(__cplusplus) && __cplusplus >= 201103L
+#include <sss/macro/cppstandard.hpp>
+
+#if SSS_STD_GE_11()
 namespace {
 
 inline void log_out_impl(std::ostringstream&, bool) {}
