@@ -128,7 +128,7 @@ template <typename _InputIterator1, typename _InputIterator2,
 
 std::pair<_InputIterator1, _InputIterator2> mismatch(
     _InputIterator1 __first1, _InputIterator1 __last1, _InputIterator2 __first2,
-    _InputIterator2 __last2, _BinaryPredicate __binary_pred)
+    _InputIterator2 __last2, _BinaryPredicate&& __binary_pred)
 {
     // // concept requirements
     // __glibcxx_function_requires(_InputIteratorConcept<_InputIterator1>)
@@ -162,7 +162,7 @@ template <typename _InputIterator1, typename _InputIterator2,
           typename _BinaryPredicate>
 inline int max_match(_InputIterator1 __first1, _InputIterator1 __last1,
                      _InputIterator2 __first2, _InputIterator2 __last2,
-                     _BinaryPredicate __binary_pred)
+                     _BinaryPredicate&& __binary_pred)
 {
     int cnt = 0;
     while (__first1 != __last1 && __first2 != __last2 &&
@@ -191,7 +191,7 @@ template <typename _InputIterator1, typename _InputIterator2,
           typename _BinaryPredicate>
 inline int equal(_InputIterator1 __first1, _InputIterator1 __last1,
                  _InputIterator2 __first2, _InputIterator2 __last2,
-                 _BinaryPredicate __binary_pred)
+                 _BinaryPredicate&& __binary_pred)
 {
     while (__first1 != __last1 && __first2 != __last2 &&
            bool(__binary_pred(*__first1, *__first2))) {
@@ -216,7 +216,7 @@ inline _InputIterator binary_find(_InputIterator __first, _InputIterator __last,
 
 template <typename _InputIterator, typename _T, typename _Compare>
 inline _InputIterator binary_find(_InputIterator __first, _InputIterator __last,
-                                  const _T& val, _Compare comp)
+                                  const _T& val, _Compare&& comp)
 {
     __first = std::lower_bound(__first, __last, val, comp);
     if (__first != __last && !comp(val, *__first)) {
@@ -228,7 +228,7 @@ inline _InputIterator binary_find(_InputIterator __first, _InputIterator __last,
 }
 
 template <typename _InputIterator, typename _Compare>
-inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare comp)
+inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare&& comp)
 {
     while (__first != __last && comp(*__first)) {
         __first++;
@@ -237,13 +237,13 @@ inline bool is_all(_InputIterator __first, _InputIterator __last, _Compare comp)
 }
 
 template <typename _Container, typename _Compare>
-inline bool is_all(const _Container &container, _Compare comp)
+inline bool is_all(const _Container &container, _Compare&& comp)
 {
     return sss::is_all(std::begin(container), std::end(container), comp);
 }
 
 template <typename _InputIterator, typename _Compare>
-inline bool is_any(_InputIterator __first, _InputIterator __last, _Compare comp)
+inline bool is_any(_InputIterator __first, _InputIterator __last, _Compare&& comp)
 {
     bool __has_found = false;
     while (__first != __last) {
@@ -257,7 +257,7 @@ inline bool is_any(_InputIterator __first, _InputIterator __last, _Compare comp)
 }
 
 template <typename _Container, typename _Compare>
-inline bool is_any(const _Container &container, _Compare comp)
+inline bool is_any(const _Container &container, _Compare&& comp)
 {
     return sss::is_any(std::begin(container), std::end(container), comp);
 }
