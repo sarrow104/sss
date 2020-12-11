@@ -101,11 +101,13 @@ namespace sss {
             {
                 this->first = it_beg;
                 this->second = it_end;
+                return *this;
             }
 
             StringSlice& assignTo(std::string& out)
             {
                 out.assign(this->first, this->second);
+                return *this;
             }
 
             void print(std::ostream& o) const {
