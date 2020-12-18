@@ -621,7 +621,7 @@ inline colog::log_level get_log_levels()
  *
  * @param[in] e
  */
-inline void log_out_impl(std::ostringstream& e) {}
+inline void log_out_impl(std::ostringstream& /*e*/) {}
 /**
  * @brief log_out_impl for only-one parameter
  *
