@@ -274,7 +274,7 @@ public:
             return {};
         }
         else {
-            return {data_, size_};
+            return {data_, size_, a};
         }
     }
 
