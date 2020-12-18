@@ -45,9 +45,11 @@ public:
 
     bitmask(const mask_type * data, size_t len)
     {
-        for (size_t i = 0; i != N; ++i) {
+        size_t isz = std::min<size_t>(N, len);
+        for (size_t i = 0; i != isz; ++i) {
             _bit_arr[i] = data[i];
         }
+        std::fill(_bit_arr + isz, _bit_arr + N, 0u);
     }
 
     bitmask(const this_type& ref)
@@ -399,7 +401,7 @@ public:
 
     bool is_any() const
     {
-        return this_type::operator void*();
+        return this->operator void*();
     }
 
     bool is_full() const
