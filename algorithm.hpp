@@ -261,6 +261,7 @@ inline bool is_any(const _Container &container, _Compare&& comp)
 {
     return sss::is_any(std::begin(container), std::end(container), comp);
 }
-}
+
+} // namespace sss
 
 #endif /* __ALGORITHM_HPP_1448760163__ */
