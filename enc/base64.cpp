@@ -4,7 +4,8 @@
 #include <cstring>
 #include <assert.h>
 
-namespace sss{ namespace enc {
+namespace sss{
+namespace enc {
 
 static const char *get_table()
 {
@@ -28,6 +29,20 @@ static inline char uint_32_to_base64char(unsigned int buffer, int i)
 }
 
 std::string Base64::encode(const std::string& s)
+{
+    return base64_encode(s);
+}
+
+// 如何解码呢？
+//  最开始，我以为table恰好满足降序或者升序；但结果不是这样：
+//  'A':65, 'a':97,'0':48,'1':49,'+':43,'/':47
+//  这样的话，为了追求速度，只能用创建并使用查找表了：
+std::string Base64::decode(const std::string& s)
+{
+    return base64_decode(s);
+}
+
+std::string base64_encode(const std::string& s)
 {
     int type = int(s.length()) % 3;
     std::string ret;
@@ -65,11 +80,7 @@ std::string Base64::encode(const std::string& s)
     return ret;
 }
 
-// 如何解码呢？
-//  最开始，我以为table恰好满足降序或者升序；但结果不是这样：
-//  'A':65, 'a':97,'0':48,'1':49,'+':43,'/':47
-//  这样的话，为了追求速度，只能用创建并使用查找表了：
-std::string Base64::decode(const std::string& s)
+std::string base64_decode(const std::string& s)
 {
     assert(s.length() % 4 == 0);
     class b64_rer_tab{
@@ -134,4 +145,5 @@ std::string Base64::decode(const std::string& s)
     return ret;
 }
 
-} }
+} // namespace enc
+} // namespace sss

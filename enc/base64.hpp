@@ -43,14 +43,20 @@
 
 #include <string>
 
-namespace sss { namespace enc {
-    class Base64 : public EncBase {
+namespace sss {
+namespace enc {
+class Base64 : public EncBase {
 
-    public:
-        std::string encode (const std::string& s);
-        std::string decode (const std::string& s);
-    };
-} }
+public:
+    std::string encode (const std::string& s);
+    std::string decode (const std::string& s);
+};
+
+std::string base64_encode(const std::string& s);
+std::string base64_decode(const std::string& s);
+
+} // namespace enc
+} // namespace sss
 
 
 #endif  /* __BASE64_HPP_1333729465__ */
