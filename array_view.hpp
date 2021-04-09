@@ -49,7 +49,7 @@ std::basic_ostream<ValueType>& operator<<(
     return os;
 }
 
-}  // namespace std
+}  // namespace sss
 
 namespace sss {
 
@@ -62,7 +62,7 @@ public:
     typedef const ValueType* const_pointer;
     typedef const ValueType& reference;
     typedef const ValueType& const_reference;
-    typedef const const_pointer const_iterator;
+    typedef const_pointer const_iterator;
     typedef pointer iterator;
     // 1) Because array_view refers to a constant sequence, iterator and
     // const_iterator are the same type.
@@ -107,6 +107,12 @@ public:
         right_ref.swap(*this);
     }
 
+    template<typename IteratorType>
+    array_view(IteratorType first_, IteratorType last_)
+    : data_(&*first_),
+      size_(std::distance(first_, last_))
+    {}
+
     void clear()
     {
         data_ = nullptr;
@@ -115,8 +121,8 @@ public:
     // 7.4, array_view iterator support
     const_iterator begin() const SSS_NOEXCEPT { return data_; }
     const_iterator end() const SSS_NOEXCEPT { return data_ + size_; }
-    const_iterator cbegin() const SSS_NOEXCEPT { return data_; };
-    const_iterator cend() const SSS_NOEXCEPT { return data_ + size_; }
+    //const_iterator cbegin() const SSS_NOEXCEPT { return data_; };
+    //const_iterator cend() const SSS_NOEXCEPT { return data_ + size_; }
     const_reverse_iterator rbegin() const SSS_NOEXCEPT
     {
         return data_ + size_ - 1;
