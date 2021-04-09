@@ -1395,8 +1395,7 @@ namespace path {
         }
 
         if (sss::path::is_absolute(mainDir) && sss::path::is_relative(fullFilePath)) {
-            fullFilePath = mainDir + fullFilePath;
-            return sss::path::simplify(fullFilePath);
+            return fullFilePath;
         }
 
         // NOTE 对于windows路径来说，如果连盘符都不一样，那么说明，没有必要再计
