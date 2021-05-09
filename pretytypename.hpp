@@ -6,16 +6,23 @@
 
 
 namespace sss {
-    namespace util {
+namespace util {
 
 std::string demangle(const char* name);
 
 template <class T>
-std::string pretytypename(const T& t) {
+std::string pretytypename(const T& t)
+{
     return demangle(typeid(t).name());
 }
 
-    } // namespace util
+template <class T>
+std::string pretytypename_t()
+{
+    return demangle(typeid(T).name());
+}
+
+} // namespace util
 } // namespace sss
 // https://gcc.gnu.org/onlinedocs/libstdc++/manual/ext_demangling.html
 
