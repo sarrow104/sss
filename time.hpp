@@ -143,13 +143,18 @@ std::string strftime(const std::string& fmt, const tm & c_tm);
 //}
 //#endif
 
-inline std::string strftime(const std::string& fmt)
+inline std::string strftime(const std::string& fmt, time_t lt)
 {
-    time_t lt = std::time(NULL);
+    struct tm c_tm{};
     // localtime 返回的tm结构，是从1900年开始算起。
-    struct tm c_tm = *std::localtime(&lt);
+    ::localtime_r(&lt, &c_tm);
 
     return sss::time::strftime(fmt, c_tm);
+}
+
+inline std::string strftime(const std::string& fmt)
+{
+    return sss::time::strftime(fmt, std::time(NULL));
 }
 
 // 如何对日期进行运算？
