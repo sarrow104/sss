@@ -2,6 +2,9 @@
 
 #include <mutex>
 #include <memory>
+#include <type_traits>
+
+#include <sss/function_traits.hpp>
 
 namespace sss {
 
@@ -216,26 +219,72 @@ public:
         }
     }
 
+    template<typename Foo, typename ...Args>
+    void call_function(Foo foo, Args&&... args)
+    {
+        write_lock_type lk(_mutex);
+        if (!_ptr)
+        {
+            throw std::runtime_error("null ptr on safe_wrap::call_function(void(...))");
+        }
+        ((_ptr.get()->*foo)(std::forward<Args>(args)...));
+    }
+
     template<typename result_type, typename Foo, typename ...Args>
     result_type call_function(Foo foo, Args&&... args)
     {
         write_lock_type lk(_mutex);
         if (!_ptr)
         {
-            throw std::runtime_error("");
+            throw std::runtime_error("null ptr on safe_wrap::call_function(none-void(...))");
         }
         return ((_ptr.get()->*foo)(std::forward<Args>(args)...));
     }
 
     template<typename Handler>
-    typename Handler::result_type using_handler(const Handler& handler)
+    std::enable_if_t<!std::is_same<void, typename std::result_of<Handler(value_type&)>::type>::value, typename std::result_of<Handler(value_type&)>::type>
+    using_handler(const Handler& handler)
     {
         write_lock_type lk(_mutex);
         if (!_ptr)
         {
-            throw std::runtime_error("");
+            throw std::runtime_error("null ptr on safe_wrap::using_handler with return_type");
         }
-        return handler(_ptr);
+        return handler(*_ptr);
+    }
+
+    template<typename Handler>
+    std::enable_if_t<std::is_same<void, typename std::result_of<Handler(value_type&)>::type>::value, void>
+    using_handler(const Handler& handler)
+    {
+        write_lock_type lk(_mutex);
+        if (!_ptr)
+        {
+            throw std::runtime_error("null ptr on safe_wrap::using_handler with void return");
+        }
+        handler(*_ptr);
+    }
+
+    template<class Class,typename Type>
+    Type get_by_member_ptr(Type Class::*PtrToMember)
+    {
+        write_lock_type lk(_mutex);
+        if (!_ptr)
+        {
+            throw std::runtime_error("null ptr on safe_wrap::get_by_member_ptr");
+        }
+        return (*_ptr).*PtrToMember;
+    }
+
+    template<class Class,typename Type, typename FuncType>
+    void set_by_member_ptr(Type Class::*PtrToMember, FuncType&& func)
+    {
+        write_lock_type lk(_mutex);
+        if (!_ptr)
+        {
+            throw std::runtime_error("null ptr on safe_wrap::set_by_member_ptr");
+        }
+        return func((*_ptr).*PtrToMember);
     }
 
 private:
