@@ -448,7 +448,9 @@ namespace path {
     {
         if (!sss::path::filereadable(file_name)) {
             std::ostringstream oss;
-            oss << "sss::path::" << __func__ << " unable to open file `" << file_name << "` to read!";
+            oss << "sss::path::" << __func__
+                << " unable to open file `" << file_name << "` to read!"
+                << " CUZ:" << strerror(errno);
             throw std::logic_error(oss.str());
         }
 #if 0
