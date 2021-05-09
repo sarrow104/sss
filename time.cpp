@@ -636,8 +636,7 @@ Date::Date(const std::string& str_time, const std::string& fmt)
 void Date::set_time_t(time_t t)
 {
     std::time_t t_ = t;
-    // FIXME 不可重入！
-    this->_t = *std::localtime(&t_);
+    ::localtime_r(&t_, &this->_t);
 }
 
 Date::Date(short year,  short mon,     short day)
@@ -669,17 +668,16 @@ void Date::initFinal()
 
     std::time_t t = std::mktime(&this->_t);
 #ifdef __WIN32__
+    // FIXME 不可重入！
     struct tm* pt = std::localtime(&t);
+    assert(pt);
+    this->_t = *pt;
 #else
-    struct tm lt;
-
     tzset(); // set timezone
     //! http://stackoverflow.com/questions/19170721/real-time-awareness-of-timezone-change-in-localtime-vs-localtime-r
 
-    struct tm* pt = localtime_r(&t, &lt);
+    localtime_r(&t, &this->_t);
 #endif
-    assert(pt);
-    this->_t = *pt;
 }
 
 void Date::initDatePart(short year,  short mon,     short day)
@@ -808,7 +806,7 @@ Date& Date::add_day(int day)
 {
     std::time_t t = std::mktime(&this->_t);
     t += day * 24 * 3600;
-    this->_t = *std::localtime(&t);
+    ::localtime_r(&t, &this->_t);
     return *this;
 }
 
@@ -816,7 +814,7 @@ Date& Date::add_sec(int sec)
 {
     std::time_t t = std::mktime(&this->_t);
     t += sec;
-    this->_t = *std::localtime(&t);
+    ::localtime_r(&t, &this->_t);
     return *this;
 }
 
