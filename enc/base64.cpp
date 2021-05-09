@@ -7,11 +7,33 @@
 namespace sss{
 namespace enc {
 
-static const char *get_table()
-{
-    static const char * table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "+/";
-    return table;
-}
+static const char * b64_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "+/";
+static const char * b64url_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "-_";
+// Replaces “+” by “-” (minus)
+// Replaces “/” by “_” (underline)
+
+class b64_reverse_table_t{
+public:
+    b64_reverse_table_t(const char* tab)
+    {
+        std::memset(this->buffer, 0xFFu, sizeof(this->buffer));
+        for (size_t i = 0, len = std::strlen(tab); i != len; ++i) {
+            this->buffer[size_t(tab[i])] = i;
+        }
+    }
+
+    unsigned char operator () (unsigned char c) const
+    {
+        assert(buffer[c] != 0xFFu);
+        return buffer[c];
+    }
+
+private:
+    // 因为转换后的编码，都是可打印字符，所以检索的空间，使用256/2即可。
+    // 但是，考虑到char的空间范围，是256个值。为了避免多个if语句，使用256个
+    // 值，也是可以的。
+    unsigned char buffer[256];
+};
 
 static inline unsigned int base64_cat_buffer(const unsigned char * b)
 {
@@ -23,9 +45,9 @@ static inline int base64_index6(unsigned int v, int i)
     return (v >> (6 * (3-i))) & 0x3Fu;
 }
 
-static inline char uint_32_to_base64char(unsigned int buffer, int i)
+static inline char uint32_to_b64char_impl(const char* tab, unsigned int buffer, int i)
 {
-    return get_table()[base64_index6(buffer, i)];
+    return tab[base64_index6(buffer, i)];
 }
 
 std::string Base64::encode(const std::string& s)
@@ -42,7 +64,7 @@ std::string Base64::decode(const std::string& s)
     return base64_decode(s);
 }
 
-std::string base64_encode(const std::string& s)
+static std::string base64_encode_impl(const std::string& s, const char* table)
 {
     int type = int(s.length()) % 3;
     std::string ret;
@@ -52,10 +74,10 @@ std::string base64_encode(const std::string& s)
     for (int i = 0; i < int(s.length() - type); i += 3)
     {
         buffer = base64_cat_buffer((const unsigned char*)(&s[i]));
-        ret += uint_32_to_base64char(buffer, 0);
-        ret += uint_32_to_base64char(buffer, 1);
-        ret += uint_32_to_base64char(buffer, 2);
-        ret += uint_32_to_base64char(buffer, 3);
+        ret += uint32_to_b64char_impl(table, buffer, 0);
+        ret += uint32_to_b64char_impl(table, buffer, 1);
+        ret += uint32_to_b64char_impl(table, buffer, 2);
+        ret += uint32_to_b64char_impl(table, buffer, 3);
     }
     switch (type)
     {
@@ -64,46 +86,26 @@ std::string base64_encode(const std::string& s)
 
     case 1:
         buffer = (unsigned int)(*s.rbegin()) << 16;
-        ret += uint_32_to_base64char(buffer, 0);
-        ret += uint_32_to_base64char(buffer, 1);
+        ret += uint32_to_b64char_impl(table, buffer, 0);
+        ret += uint32_to_b64char_impl(table, buffer, 1);
         ret += "==";
         break;
 
     case 2:
         buffer = (unsigned int)(*(s.rbegin() + 1)) << 16 | (unsigned int)(*s.rbegin()) << 8;
-        ret += uint_32_to_base64char(buffer, 0);
-        ret += uint_32_to_base64char(buffer, 1);
-        ret += uint_32_to_base64char(buffer, 2);
+        ret += uint32_to_b64char_impl(table, buffer, 0);
+        ret += uint32_to_b64char_impl(table, buffer, 1);
+        ret += uint32_to_b64char_impl(table, buffer, 2);
         ret += "=";
         break;
     }
     return ret;
 }
 
-std::string base64_decode(const std::string& s)
+static std::string base64_decode_impl(const std::string& s, const b64_reverse_table_t& b64_rev_op)
 {
     assert(s.length() % 4 == 0);
-    class b64_rer_tab{
-    public:
-        b64_rer_tab() {
-            std::memset(this->buffer, 0xFFu, sizeof(this->buffer));
-            for (size_t i = 0; i != std::strlen(get_table()); ++i)
-                this->buffer[size_t(get_table()[i])] = i;
-        }
 
-        unsigned char operator () (unsigned char c)
-        {
-            assert(buffer[c] != 0xFFu);
-            return buffer[c];
-        }
-
-    private:
-        // 因为转换后的编码，都是可打印字符，所以检索的空间，使用256/2即可。
-        // 但是，考虑到char的空间范围，是256个值。为了避免多个if语句，使用256个
-        // 值，也是可以的。
-        unsigned char buffer[256];
-    };
-    static b64_rer_tab b64_op;
     std::string ret;
     ret.reserve(s.length());
 
@@ -118,7 +120,7 @@ std::string base64_decode(const std::string& s)
             end_pos = i;
             break;
         }
-        buffer = (buffer << 6) | b64_op(s[i]);
+        buffer = (buffer << 6) | b64_rev_op(s[i]);
         buffer_len += 6;
 
         // 这里的 if 语句，也可以用一个4分支的switch语句代替
@@ -143,6 +145,28 @@ std::string base64_decode(const std::string& s)
     // 当然，这个还与实际输入序列，能否简单的访问尾部有关。据此，选择合适的算法。
 
     return ret;
+}
+
+std::string base64_encode(const std::string& s)
+{
+    return base64_encode_impl(s, b64_table);
+}
+
+std::string base64url_encode(const std::string& s)
+{
+    return base64_encode_impl(s, b64url_table);
+}
+
+std::string base64_decode(const std::string& s)
+{
+    const static b64_reverse_table_t b64_rev_op{b64_table};
+    return base64_decode_impl(s, b64_rev_op);
+}
+
+std::string base64url_decode(const std::string& s)
+{
+    const static b64_reverse_table_t b64_rev_op{b64url_table};
+    return base64_decode_impl(s, b64_rev_op);
 }
 
 } // namespace enc
