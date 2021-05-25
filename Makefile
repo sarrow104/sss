@@ -3,11 +3,11 @@ all: release
 
 release:
 	@mkdir -p ../../Release
-	cd ../../Release && cmake -DCMAKE_BUILD_TYPE=Release ../include/sss && make
+	cd ../../Release && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_BUILD_TYPE=Release ../include/sss && make
 
 debug:
 	@mkdir -p ../../Debug
-	cd ../../Debug && cmake -DCMAKE_BUILD_TYPE=Debug ../include/sss && make
+	cd ../../Debug && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_BUILD_TYPE=Debug ../include/sss && make
 
 doxygen:
 	@doxygen sss.conf
