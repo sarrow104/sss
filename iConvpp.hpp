@@ -4,7 +4,7 @@
 
 #include <iconv.h>
 #include <string>
-#ifndef __WIN32__
+#if defined(__linux__) || defined(__unix__) // || defined(_POSIX_VERSION) // for linux | not for OSX(BSD)
 #       include <error.h>
 #endif
 #include <string.h>
