@@ -6,6 +6,7 @@
 #include <sss/bit_operation/bit_operation.h>
 #include <sss/util/PostionThrow.hpp>
 #include <sss/utlstring.hpp>
+#include <sss/string_view.hpp>
 
 #include <stdexcept>
 #include <typeinfo>
@@ -294,10 +295,11 @@ namespace sss {
                 int width = 0;
 
                 std::pair<uint32_t, int> st;
+				sss::string_view eol{"\r\n"};
 
                 while (((st = peek(it_beg, it_end)), st.second > 0) &&
                        *it_beg != '\n' &&
-                       !sss::is_begin_with<Iterator, const char*>(it_beg, it_end, "\r\n", "\r\n" + 2))
+                       !sss::is_begin_with<Iterator, const char*>(it_beg, it_end, eol.begin(), eol.end()))
                 {
                     if (*it_beg == '\t') {
                         width = width - width % tabsize + tabsize;
@@ -492,9 +494,10 @@ namespace sss {
                 int width = 0;
 
                 int code_len = 0;
+				sss::string_view eol{"\r\n"};
                 while ((code_len = utf8::next_length(it_beg, it_end)) &&
                        *it_beg != '\n' &&
-                       !sss::is_begin_with(it_beg, it_end, "\r\n", "\r\n" + 2))
+                       !sss::is_begin_with(it_beg, it_end, eol.begin(), eol.end()))
                 {
                     if (*it_beg == '\t') {
                         width = width - width % tabsize + tabsize;
