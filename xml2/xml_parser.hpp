@@ -249,10 +249,10 @@ namespace sss {
             typedef sss::can::Handle<SegmentXML> SegHandle;
 
             class SegmentXML : public sss::can::dtree<SegmentXML> {
-                typedef sss::can::dtree<SegmentXML> Base_t;
                 friend class sss::can::Handle<SegmentXML>;
 
             public:
+                typedef sss::can::dtree<SegmentXML> Base_t;
                 SegmentXML(const char * func_name,
                            std::string::const_iterator sbeg,
                            int _start, int _end = -1)
