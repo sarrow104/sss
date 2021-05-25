@@ -138,7 +138,7 @@ public:
                                             std::chrono::duration_cast<std::chrono::milliseconds>(
                                                 duration % std::chrono::seconds(1));
                                         // 针对 "秒" 为单位，取余数。
-                                        cnt = std::sprintf(buf + offset, ".%03ld", ms.count());
+                                        cnt = std::sprintf(buf + offset, ".%03lld", ms.count());
                                     } break;
 
                     case DOT_MICRS: {
@@ -146,7 +146,7 @@ public:
                                             std::chrono::duration_cast<std::chrono::microseconds>(
                                                 duration % std::chrono::seconds(1));
                                         // 针对 "秒" 为单位，取余数。
-                                        cnt = std::sprintf(buf + offset, ".%06ld", is.count());
+                                        cnt = std::sprintf(buf + offset, ".%06lld", is.count());
                                     } break;
 
                     case DOT_NANOS: {
@@ -154,7 +154,7 @@ public:
                                             std::chrono::duration_cast<std::chrono::nanoseconds>(
                                                 duration % std::chrono::seconds(1));
                                         // 针对 "秒" 为单位，取余数。
-                                        cnt = std::sprintf(buf + offset, ".%09ld", ns.count());
+                                        cnt = std::sprintf(buf + offset, ".%09lld", ns.count());
                                     } break;
                 }
                 if (cnt <= 0) {
