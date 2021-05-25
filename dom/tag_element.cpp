@@ -1,7 +1,6 @@
 #include "tag_element.hpp"
 
 namespace sss {
-namespace html_tags {
 
 REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::title);
 REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::head);
@@ -37,7 +36,5 @@ REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::a);
 REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::li);
 REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::ol);
 REG_FACTORY(sss::dom::html_tag_factory, html_tags::html_tag, html_tags::ul);
-
-} // end of namespace html_tags
 
 } // end of namespace sss
