@@ -1,16 +1,21 @@
 #include <sss/path.hpp>
 #include <sss/util/Escaper.hpp>
 
-#ifdef __WIN32__
+#if defined (__WIN32__)
 #       include <windows.h>
 #       include <shlwapi.h>
+#elif defined (__APPLE__)
+#       include <libgen.h>
+#       include <limits.h>
+#       include <mach-o/dyld.h>
+#       include <unistd.h>
 #else
 #       include <sys/types.h>
 #       include <sys/stat.h>
 #       include <unistd.h> // int access(const char *pathname, int mode);
 #endif
 
-#ifndef __WIN32__
+#if defined(__linux__) || defined(__unix__) // for linux
 #       include <error.h>
 #endif
 
@@ -712,6 +717,16 @@ namespace path {
         // 那么，GetModuleFileName这个函数又是如何实现的呢？
         int len = ::GetModuleFileName(NULL, buffer, sizeof(buffer));
         ret.assign(buffer, len);
+#elif defined (__APPLE__)
+		// https://stackoverflow.com/questions/1528298/get-path-of-executable
+        char rawPathName[PATH_MAX];
+        char realPathName[PATH_MAX];
+        uint32_t rawPathSize = (uint32_t)sizeof(rawPathName);
+
+        if(!_NSGetExecutablePath(rawPathName, &rawPathSize)) {
+            realpath(rawPathName, realPathName);
+        }
+        ret = std::string(realPathName);
 #else
         size_t linksize = 256;
         char exeName[linksize];
