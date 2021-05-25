@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 2.8) 	# must surply this !
-add_definitions(-std=c++11)
+cmake_minimum_required(VERSION 3.10) 	# must surply this !
+
+# 设置VCPKG_ROOT所在的位置
+set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE PATH "")
+
+add_definitions(-std=c++14)
 # NOTE 如果要基于sss，创建动态库，那么libsss.a，也需要使用-fPIC参数！
 # 也就是说，不管静态库、动态库，最好都添加上 -fPIC 参数。
 # 当然，生成可执行文件的话，就不必要了。
-add_definitions(-W -fexceptions -Wunused-variable -Wfatal-errors -fPIC -Wall -Werror=return-type)
+add_definitions(-W -fexceptions -Wunused-variable -Wfatal-errors -fPIC -Wall -Werror=return-type -I /Users/sarrow/Sources/cpp/sss/include )
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-	add_definitions(-DNODEBUG -O2 -s)
+	add_definitions(-DNODEBUG -O2) #  -s
 	set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> <LINK_FLAGS> rus <TARGET> <OBJECTS>")
 	set(target_name "sss")
 else()
@@ -25,6 +29,13 @@ set(LIBRARY_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/../../lib/")
 message(STATUS ${LIBRARY_OUTPUT_NAME})
 
 project(${target_name})                 # define cmake project name
+
+#find_package(uchardet)
+#if(UCHARDET_FOUND)
+#    target_include_directories(${target_name} PRIVATE ${UCHARDET_INCLUDE_DIR})
+#else(UCHARDET_FOUND)
+#    message(FATAL_ERROR "uchardet library not found")
+#endif(UCHARDET_FOUND)
 
 file(GLOB_RECURSE SOURCE "./*.cpp")  # glob all source file
 # NOTE cmake might missing some cpp source file, if I just only use this:
