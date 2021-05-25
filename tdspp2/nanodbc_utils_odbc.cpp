@@ -17,7 +17,7 @@ const std::vector<std::string>& get_driver_list()
 {
     static std::vector<std::string> drivers;
     static std::once_flag oc;//用于call_once的局部静态变量
-    std::call_once(oc, [&drivers] {
+    std::call_once(oc, [] {
         TCHAR szDrivers[4096];
         std::memset(szDrivers, 0, sizeof(szDrivers));
         WORD wRet = 0;
