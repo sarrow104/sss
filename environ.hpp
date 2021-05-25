@@ -8,9 +8,7 @@
 #include <sss/utlstring.hpp>
 #include <memory>
 
-extern "C" {
-    extern char ** environ;
-}
+extern char **environ;
 
 namespace sss {
     namespace env {
