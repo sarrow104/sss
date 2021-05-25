@@ -1,10 +1,9 @@
 // macro/defer.hpp
 #pragma once
 
+#include <sss/macro/concat.hpp>
 #include <sss/util/scopeguard.hpp>
 
-#define SSS_CONCAT_(a, b) a ## b
-#define SSS_CONCAT(a, b) SSS_CONCAT_(a, b)
 #define SSS_DEFER(fn) sss::scopeguard SSS_CONCAT(__deffer__, __LINE__) = [&]() {  fn ; }
 // NOTE example
 // std::ofstream f("/path/to/file");
