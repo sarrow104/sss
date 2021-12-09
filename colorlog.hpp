@@ -595,15 +595,15 @@ inline colog::log_level get_log_levels()
 #else
 // NOTE TODO 如何防止，提供 空参数 时候，g++编译器，出现剩余逗号的问题？__VA_ARGS__ ？
 #define COLOG_FATAL(...) \
-    sss::colog::fatal(__FILE__, __LINE__, __func__, __VA_ARGS__)
+    sss::colog::fatal(__FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define COLOG_ERROR(...) \
-    sss::colog::error(__FILE__, __LINE__, __func__, __VA_ARGS__)
+    sss::colog::error(__FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define COLOG_WARN(...) \
-    sss::colog::warn(__FILE__, __LINE__, __func__, __VA_ARGS__)
+    sss::colog::warn(__FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define COLOG_INFO(...) \
-    sss::colog::info(__FILE__, __LINE__, __func__, __VA_ARGS__)
+    sss::colog::info(__FILE__, __LINE__, __func__, ## __VA_ARGS__)
 #define COLOG_DEBUG(...) \
-    sss::colog::debug(__FILE__, __LINE__, __func__, __VA_ARGS__)
+    sss::colog::debug(__FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
 #define COLOG_FATAL_STMT(a)\
     (sss::colog::fatal(__FILE__, __LINE__, __func__, (#a)),(a))
