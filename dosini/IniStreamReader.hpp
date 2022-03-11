@@ -1,7 +1,7 @@
 #ifndef __INISTREAMREADER_HPP_1465309881__
 #define __INISTREAMREADER_HPP_1465309881__
 
-#include <assert.h>
+#include <cassert>
 #include <string>
 
 namespace sss {
@@ -17,11 +17,11 @@ public:
     enum elementType {
         TYPE_INITIATE  = 0,
         TYPE_ATEND     = 1,
-        TYPE_UNKOWN    = TYPE_ATEND     << 1,
-        TYPE_SECTION   = TYPE_UNKOWN    << 1,
-        TYPE_KEYVALUE  = TYPE_SECTION   << 1,
-        TYPE_EMPTYLINE = TYPE_KEYVALUE  << 1,
-        TYPE_COMMENT   = TYPE_EMPTYLINE << 1,
+        TYPE_UNKOWN    = TYPE_ATEND     << 1U,
+        TYPE_SECTION   = TYPE_UNKOWN    << 1U,
+        TYPE_KEYVALUE  = TYPE_SECTION   << 1U,
+        TYPE_EMPTYLINE = TYPE_KEYVALUE  << 1U,
+        TYPE_COMMENT   = TYPE_EMPTYLINE << 1U,
     };
 
 public:

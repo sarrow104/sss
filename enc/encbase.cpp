@@ -1,11 +1,9 @@
 #include <sss/enc/encbase.hpp>
 
 namespace sss { namespace enc {
-EncBase::EncBase()
-{
-}
+EncBase::EncBase() = default;
 
-EncBase::~EncBase()
-{
-}
-} }
+EncBase::~EncBase() = default;
+
+} // namespace enc
+} // namespace sss

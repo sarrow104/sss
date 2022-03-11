@@ -5,17 +5,17 @@
 #include <map>
 
 #include <boost/fusion/adapted/std_pair.hpp>
-#include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
+#include <boost/spirit/include/qi.hpp>
 
 #include <sss/string_view.hpp>
 
 namespace json {
 struct null {
-    bool operator==(null) const { return true; }
+    bool operator==(null /*unused*/) const { return true; }
 };
 
-inline static std::ostream& operator<<(std::ostream& os, null) { return os << "null"; }
+inline static std::ostream& operator<<(std::ostream& os, null /*unused*/) { return os << "null"; }
 
 using text   = std::string;
 using value  = boost::make_recursive_variant<
@@ -71,10 +71,9 @@ struct value_handle_t
 
     explicit value_handle_t(bool parse_element = false)
         : m_state(kNone),
-          m_parse_elment(parse_element)
-    {
-        p_v = &m_v;
-    }
+          m_parse_elment(parse_element),
+          p_v(&m_v)
+    {}
 
     bool Null();
 

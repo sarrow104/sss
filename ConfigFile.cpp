@@ -1,58 +1,58 @@
 #include "ConfigFile.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <string>
-#include <algorithm>
 
 #include <sss/enc/encbase.hpp>
-#include <sss/utlstring.hpp>
-#include <sss/path.hpp>
 #include <sss/log.hpp>
+#include <sss/path.hpp>
+#include <sss/utlstring.hpp>
+
+#include <fmt/core.h>
 
 namespace sss{
 static const char INI_FILE_SEC_OPT_SEP = '\n';
-static const char * INI_FILE_MULLTY_LINE_VALUE_MARKER = ">>>";
-static const char * INI_FILE_NEW_LINE_MARKER = "\r\n";
+static const char * const INI_FILE_MULLTY_LINE_VALUE_MARKER = ">>>";
+static const char * const INI_FILE_NEW_LINE_MARKER = "\r\n";
 
-ConfigFile::Exception::Exception(const std::string& m) throw ()
+ConfigFile::Exception::Exception(const std::string& m) noexcept
     : msg("sss::Exception(" + m + ")")
 {
 }
 
-ConfigFile::Exception::~Exception() throw ()
-{
-}
+ConfigFile::Exception::~Exception() noexcept = default;
 
-const char * ConfigFile::Exception::what() const throw()
+const char * ConfigFile::Exception::what() const noexcept
 {
     return this->msg.c_str();
 }
 
-const std::string ConfigFile::option_t::section() const
+std::string ConfigFile::option_t::section() const
 {
     return this->it->first.substr(0, this->it->first.find(INI_FILE_SEC_OPT_SEP));
 }
 
-const std::string ConfigFile::option_t::key() const
+std::string ConfigFile::option_t::key() const
 {
     return this->it->first.substr(this->it->first.find(INI_FILE_SEC_OPT_SEP) + 1);
 }
 
-const std::string ConfigFile::const_option_t::section() const
+std::string ConfigFile::const_option_t::section() const
 {
     return this->it->first.substr(0, this->it->first.find(INI_FILE_SEC_OPT_SEP));
 }
 
-const std::string ConfigFile::const_option_t::key() const
+std::string ConfigFile::const_option_t::key() const
 {
     return this->it->first.substr(this->it->first.find(INI_FILE_SEC_OPT_SEP) + 1);
 }
 
 ConfigFile::ConfigFile(std::string const& configFile)
-    : is_opened(false), is_modified(false)
+    : dosini_fname(configFile), is_opened(false), is_modified(false)
 {
     SSS_LOG_DEBUG("ConfigFile::ConfigFile(std::string const& configFile) at %p\n", this);
-    this->dosini_fname = configFile;
+
     if (sss::path::filereadable(configFile))
     {
         this->is_opened = this->read(this->dosini_fname);
@@ -70,8 +70,9 @@ ConfigFile::ConfigFile(const ConfigFile& ref)
 {
     SSS_LOG_ERROR("ConfigFile::ConfigFile(const ConfigFile& ref) at %p\n", this);
     SSS_LOG_ERROR("ref at %p\n", &ref);
-    if (ref.is_open())
+    if (ref.is_open()) {
         throw ConfigFile::Exception("ConfigFile 不允许，打开构造");
+    }
 }
 
 ConfigFile::~ConfigFile()
@@ -102,9 +103,9 @@ bool ConfigFile::clear()        // clear buffer for next reading
     return false;
 }
 
-bool ConfigFile::read(const std::string& configFile)
+bool ConfigFile::read(const std::string& fname)
 {
-    std::ifstream file(configFile.c_str(), std::ios::binary);
+    std::ifstream file(fname.c_str(), std::ios::binary);
 
     if (file.is_open())
     {
@@ -112,7 +113,7 @@ bool ConfigFile::read(const std::string& configFile)
         std::string name;
         std::string value;
         std::string inSection;
-        int posEqual;
+        int posEqual = 0;
         while (std::getline(file,line))
         {
             // 2012-02-19
@@ -120,14 +121,17 @@ bool ConfigFile::read(const std::string& configFile)
             sss::trim(line);
 
             // 空行
-            if (! line.length())
+            if (line.length() == 0U) {
                 continue;
+            }
 
             // 注释行
-            if (line[0] == '#')
+            if (line[0] == '#') {
                 continue;
-            if (line[0] == ';')
+            }
+            if (line[0] == ';') {
                 continue;
+            }
 
             // Section
             if (line[0] == '[') {
@@ -136,7 +140,7 @@ bool ConfigFile::read(const std::string& configFile)
             }
 
             // 这里没有做'='存在与否的检查
-            posEqual = line.find('=');
+            posEqual = int(line.find('='));
             name  = sss::trim_copy(line.substr(0, posEqual));
             // 2013-02-14 用户自行决定是否 sss::trim_copy()
             value = line.substr(posEqual + 1);
@@ -144,10 +148,10 @@ bool ConfigFile::read(const std::string& configFile)
             {   // 获取"多行"值：
                 std::string mulline_mk = sss::trim_copy(value);
                 SSS_LOG_EXPRESSION(sss::log::log_DEBUG, mulline_mk);
-                if (mulline_mk.length() == 3 && mulline_mk[0] != '=' && ispunct(mulline_mk[0]) &&
+                if (mulline_mk.length() == 3 && mulline_mk[0] != '=' && (ispunct(mulline_mk[0]) != 0) &&
                     mulline_mk[0] == mulline_mk[1] && mulline_mk[1] == mulline_mk[2])
                 {
-                    int pos = file.tellg();
+                    auto pos = file.tellg();
                     bool is_fin_mk_found = false;
                     std::string tmp_value;
                     while (std::getline(file, line))
@@ -160,11 +164,12 @@ bool ConfigFile::read(const std::string& configFile)
                         }
                         // 这里最好不要 sss::trim(); 因为如果这里保存的是没有语
                         // 句结束符号的脚本，比如 python 等，会发生错误！
-                        if (tmp_value.length())
+                        if (tmp_value.length() != 0U) {
                             tmp_value += INI_FILE_NEW_LINE_MARKER;
+                        }
                         // 用 std::ios::binary 方式读取数据的时候，std::getline
                         // 不会把 "\r" 当作"回车换行"的一部分，而会保留。
-                        if (line.length() && *line.rbegin() == '\r')
+                        if ((line.length() != 0U) && *line.rbegin() == '\r')
                         {
                             tmp_value.append(line, 0, line.length() - 1);
                             // tmp_value += line.substr(0, line.length() - 1);
@@ -190,20 +195,20 @@ bool ConfigFile::read(const std::string& configFile)
             // 这里，应该使用，绝对不会出现 属性名 里面的 '\t' 或者 '\n' 等等
             //content_[inSection+'/'+name]=Chameleon(value);
             // Sarrow: 2011-11-04
-            this->content_[inSection + INI_FILE_SEC_OPT_SEP + name] = value;
+            this->content_[fmt::format("{}{}{}", inSection, INI_FILE_SEC_OPT_SEP, name)] = value;
         }
 
         // log file status
         this->is_opened = true;
-        this->dosini_fname = configFile;
+        this->dosini_fname = fname;
         return true;
     }
     return false;
 }
 
-bool ConfigFile::write(const std::string& configFile) const
+bool ConfigFile::write(const std::string& fname) const
 {
-    std::ofstream file(configFile.c_str(), std::ios::binary);
+    std::ofstream file(fname.c_str(), std::ios::binary);
     if (file.is_open())
     {
         // FIXME
@@ -224,7 +229,7 @@ bool ConfigFile::write(const std::string& configFile) const
         //
         std::string section(1, INI_FILE_SEC_OPT_SEP);// impossible section value
         bool is_first_line = true;
-        for (container_t::const_iterator it = this->content_.begin(); it != this->content_.end(); ++it)
+        for (auto it = this->content_.begin(); it != this->content_.end(); ++it)
         {
             const_option_t opt(it);
             if (opt.section() != section)
@@ -269,7 +274,7 @@ public:
         : section(sec + INI_FILE_SEC_OPT_SEP)
     {
     }
-    bool operator() (const sss::ConfigFile::value_type & option)
+    bool operator() (const sss::ConfigFile::value_type & option) const
     {
         return (option.first.substr(0, this->section.length()) == this->section);
     }
@@ -283,7 +288,7 @@ public:
         : section(sec + INI_FILE_SEC_OPT_SEP)
     {
     }
-    bool operator() (const sss::ConfigFile::value_type & option)
+    bool operator() (const sss::ConfigFile::value_type & option) const
     {
         return (option.first.substr(0, this->section.length()) != this->section);
     }
@@ -308,8 +313,9 @@ ConfigFile::iterator ConfigFile::block_end(std::string const& section)
 
 ConfigFile::iterator ConfigFile::block_end(std::string const& section, ConfigFile::iterator ini)
 {
-    if (ini.operator container_t::iterator() == this->content_.end())
+    if (ini.operator container_t::iterator() == this->content_.end()) {
         return ini; //ConfigFile::const_iterator(ini.operator container_t::iterator());
+    }
     return iterator(std::find_if(ini.operator container_t::iterator(), this->content_.end(), is_not_in_section(section)));
 }
 
@@ -320,7 +326,7 @@ ConfigFile::iterator ConfigFile::block_begin(std::string const& section)
 
 //----------------------------------------------------------------------
 
-const std::string& ConfigFile::value(std::string const& section, std::string const& entry) const throw(ConfigFile::Exception)
+const std::string& ConfigFile::value(std::string const& section, std::string const& entry) const noexcept(false)
 {
     container_t::const_iterator ci = this->content_.find(section + INI_FILE_SEC_OPT_SEP + entry);
 
@@ -331,17 +337,18 @@ const std::string& ConfigFile::value(std::string const& section, std::string con
 }
 
 // fetch value or throw
-std::string& ConfigFile::value(std::string const& section, std::string const& entry) throw(ConfigFile::Exception)
+std::string& ConfigFile::value(std::string const& section, std::string const& entry) noexcept(false)
 {
     container_t::iterator ci = this->content_.find(section + INI_FILE_SEC_OPT_SEP + entry);
 
-    if (ci == content_.end())
+    if (ci == content_.end()) {
         throw ConfigFile::Exception("["+ section + "]" + entry + " does not exist");
+    }
 
     return ci->second;
 }
 
-const std::string ConfigFile::value_no_throw(std::string const& section, std::string const& entry) const
+std::string ConfigFile::value_no_throw(std::string const& section, std::string const& entry) const
 {
     try {
         return this->value(section, entry);
@@ -383,7 +390,7 @@ std::string const& ConfigFile::value(std::string const& section, std::string con
 // TODO 删除值；
 void ConfigFile::del_entry(std::string const& section, std::string const& entry)
 {
-    container_t::iterator ci = this->content_.find(section + INI_FILE_SEC_OPT_SEP + entry);
+    auto ci = this->content_.find(section + INI_FILE_SEC_OPT_SEP + entry);
     if (ci != this->content_.end())
     {
         this->content_.erase(ci);
@@ -412,9 +419,7 @@ ConfigEncValued::ConfigEncValued(sss::enc::EncBase& en, sss::ConfigFile& config)
 {
 }
 
-ConfigEncValued::~ConfigEncValued()
-{
-}
+ConfigEncValued::~ConfigEncValued() = default;
 
 std::string ConfigEncValued::get_value(const std::string& block,
                                        const std::string& name,
@@ -423,7 +428,7 @@ std::string ConfigEncValued::get_value(const std::string& block,
 {
     //sss::enc::Hexblowfish hbf(this->magic_string);
     std::string value = this->cfg.value(block, name);
-    if (value.length())
+    if (value.length() != 0U)
     {
         // 更新加密后的密码
         this->cfg.value(block_alias, name_alias, enc.encode(value));
@@ -440,44 +445,6 @@ std::string ConfigEncValued::get_value(const std::string& block,
     return value;
 }
 
-} // namespace utl;
+} // namespace utl
+} // namespace sss
 
-} // namespace sss;
-
-//----------------------------------------------------------------------
-
-#ifdef CONFIGFILE_TEST
-#include "ConfigFile.h"
-
-#include <iostream>
-
-int main()
-{
-    ConfigFile cf("config.txt");
-
-    std::string foo;
-    std::string water;
-    double      four;
-
-    foo   = cf.value("section_1", "foo"  );
-    water = cf.value("section_2", "water");
-    four  = cf.value("section_2", "four" );
-
-    std::cout << foo   << INI_FILE_NEW_LINE_MARKER;
-    std::cout << water << INI_FILE_NEW_LINE_MARKER;
-    std::cout << four  << INI_FILE_NEW_LINE_MARKER;
-
-    return 0;
-}
-/*
-[section_1]
-foo  = bar
-water= h2o
-
-[section_2]
-foo  = foo
-water= wet
-four = 4.2
-*/
-
-#endif

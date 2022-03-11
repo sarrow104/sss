@@ -1,9 +1,9 @@
 // sorted_vector.hpp
 #pragma once
 
-#include <iterator>
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
+#include <iterator>
 
 namespace sss {
 
@@ -52,7 +52,7 @@ template<typename ContType, typename T>
 bool
 insert_set_sorted(ContType& vec, const T& value)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -71,7 +71,7 @@ template<typename ContType, typename T, typename Pred>
 bool
 insert_set_sorted(ContType& vec, const T& value, Pred pred)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -91,7 +91,7 @@ template<typename ContType, typename T>
 void
 erase_sorted(ContType& vec, const T& value)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -107,7 +107,7 @@ template<typename ContType, typename T, typename Pred>
 void
 erase_sorted(ContType& vec, const T& value, Pred pred)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -124,7 +124,7 @@ template<typename ContType, typename T>
 typename ContType::const_iterator
 find_sorted(const ContType& vec, const T& value)
 {
-    typedef typename ContType::const_iterator ForwardIt;
+    using ForwardIt = typename ContType::const_iterator;
     ForwardIt end = std::end(vec);
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
@@ -141,7 +141,7 @@ template<typename ContType, typename T, typename Pred>
 typename ContType::const_iterator
 find_sorted(const ContType& vec, const T& value, Pred pred)
 {
-    typedef typename ContType::const_iterator ForwardIt;
+    using ForwardIt = typename ContType::const_iterator;
     ForwardIt end = std::end(vec);
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
@@ -159,7 +159,7 @@ template<typename ContType, typename T>
 typename ContType::iterator
 find_sorted(ContType& vec, const T& value)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     ForwardIt end = std::end(vec);
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
@@ -176,7 +176,7 @@ template<typename ContType, typename T, typename Pred>
 typename ContType::iterator
 find_sorted(ContType& vec, const T& value, Pred pred)
 {
-    typedef typename ContType::iterator ForwardIt;
+    using ForwardIt = typename ContType::iterator;
     ForwardIt end = std::end(vec);
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
@@ -195,7 +195,7 @@ template<typename ContType, typename T>
 std::size_t
 count_sorted(const ContType& vec, const T& value)
 {
-    typedef typename ContType::const_iterator ForwardIt;
+    using ForwardIt = typename ContType::const_iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -209,7 +209,7 @@ template<typename ContType, typename T, typename Pred>
 std::size_t
 count_sorted(const ContType& vec, const T& value, Pred pred)
 {
-    typedef typename ContType::const_iterator ForwardIt;
+    using ForwardIt = typename ContType::const_iterator;
     std::pair<ForwardIt, ForwardIt> pr
         = std::equal_range(
             std::begin(vec),
@@ -225,14 +225,14 @@ template<typename ContType, typename T>
 bool
 has_sorted(const ContType& vec, const T& value)
 {
-    return sss::count_sorted(vec, value) != 0u;
+    return sss::count_sorted(vec, value) != 0U;
 }
 
 template<typename ContType, typename T, typename Pred>
 bool
 has_sorted(const ContType& vec, const T& value, Pred pred)
 {
-    return sss::count_sorted(vec, value, pred) != 0u;
+    return sss::count_sorted(vec, value, pred) != 0U;
 }
 
 } // namespace sss

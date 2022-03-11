@@ -2,9 +2,11 @@
 
 #include <sss/jsonpp/parser.hpp>
 
-#include <sss/string_view.hpp>
 #include <sss/colorlog.hpp>
 #include <sss/debug/value_msg.hpp>
+#include <sss/string_view.hpp>
+
+#include <fmt/core.h>
 
 // -std=c++14 201402L
 #if __cplusplus == 201103L
@@ -16,6 +18,15 @@ template< bool B, class T = void >
 
 namespace sss {
 namespace json {
+
+namespace detail {
+
+inline void err_at_front(sss::string_view saved, sss::string_view s)
+{
+    throw std::runtime_error(fmt::format("error at {:d}:'{:c}'", std::distance(saved.data(), s.data()), s[0]));
+}
+
+} // namespace detail
 
 // json-sax-query
 // 
@@ -36,8 +47,9 @@ template<typename RetValue>
 std::enable_if_t<std::is_same<bool, RetValue>::value, RetValue>
 query_converter(sss::json::Parser& jp, sss::string_view s)
 {
+    auto saved = s;
     if (s.empty()) {
-        throw "empty";
+        throw std::runtime_error("empty");
     }
     switch (jp.peekType(s)) {
         case sss::json::Parser::kJE_TRUE:
@@ -52,44 +64,44 @@ query_converter(sss::json::Parser& jp, sss::string_view s)
             }
             break;
         default:
-            throw s[0];
+            detail::err_at_front(saved, s);
     }
-    throw "parse error";
+    throw std::runtime_error("parse error");
 }
 
 template<typename RetValue>
 std::enable_if_t<std::is_arithmetic<RetValue>::value, RetValue>
 query_converter(sss::json::Parser& jp, sss::string_view s)
 {
+    auto saved = s;
     if (s.empty()) {
-        throw "empty";
+        throw std::runtime_error("empty");
     }
     std::tuple<double, int64_t> number;
-    int index;
+    int index = 0;
     switch (jp.peekType(s)) {
         case sss::json::Parser::kJE_NUMBER:
             if (jp.consumeNumber(s, number, index)) {
                 if (index == 0) {
                     return RetValue(std::get<0>(number));
                 }
-                else {
-                    return RetValue(std::get<1>(number));
-                }
+                return RetValue(std::get<1>(number));
             }
             break;
 
         default:
-            throw s[0];
+            detail::err_at_front(saved, s);
     }
-    throw "parse error";
+    throw std::runtime_error("parse error");
 }
 
 template<typename RetValue>
 std::enable_if_t<std::is_same<std::string, RetValue>::value, RetValue>
 query_converter(sss::json::Parser& jp, sss::string_view s)
 {
+    auto saved = s;
     if (s.empty()) {
-        throw "empty";
+        throw std::runtime_error("empty");
     }
     std::string value;
     switch (jp.peekType(s)) {
@@ -100,16 +112,16 @@ query_converter(sss::json::Parser& jp, sss::string_view s)
             break;
 
         default:
-            throw s[0];
+            detail::err_at_front(saved, s);
     }
-    throw "parse error";
+    throw std::runtime_error("parse error");
 }
 
 struct Null_t
 {
 };
 
-inline ::std::ostream& operator << (::std::ostream& o, const Null_t&)
+inline ::std::ostream& operator << (::std::ostream& o, const Null_t& /*unused*/)
 {
     o.write("null", 4);
     return o;
@@ -119,8 +131,9 @@ template<typename RetValue>
 std::enable_if_t<std::is_same<Null_t, RetValue>::value, RetValue>
 query_converter(sss::json::Parser& jp, sss::string_view s)
 {
+    auto saved = s;
     if (s.empty()) {
-        throw "empty";
+        throw std::runtime_error("empty");
     }
     switch (jp.peekType(s)) {
         case sss::json::Parser::kJE_NULL:
@@ -130,9 +143,9 @@ query_converter(sss::json::Parser& jp, sss::string_view s)
             break;
 
         default:
-            throw s[0];
+            detail::err_at_front(saved, s);
     }
-    throw "parse error";
+    throw std::runtime_error("parse error");
 }
 
 template<typename Id>
@@ -167,27 +180,6 @@ RetValue query(sss::string_view s, ArgsT... args)
     sss::json::Parser jp;
     return query_converter<RetValue>(jp, query_wrapper(s, args...));
 }
-
-// void test_query(sss::string_view s)
-// {
-//     // std::vector<std::function<sss::string_view(sss::string_view)> > query_list = {
-//     //     std::bind(sss::json::query_object_name, std::placeholders::_1, "hello"),
-//     //     std::bind(sss::json::query_array_index, std::placeholders::_1, 2)
-//     // };
-// 
-//     // sss::string_view value = s;
-//     // for (auto& f : query_list) {
-//     //     value = f(value);
-//     // }
-//     // COLOG_ERROR(SSS_VALUE_MSG(value));
-//     // std::cout << sss::raw_string(value) << std::endl;
-// 
-//     // std::cout << query<int>(s, 1, "hello", 0) << std::endl;
-//     std::cout << query<int>(s, sss::string_view("hello"), 0) << std::endl;
-//     std::cout << query<int>(s, sss::string_view("hello"), 1) << std::endl;
-//     std::cout << query<int>(s, sss::string_view("hello"), 2) << std::endl;
-//     std::cout << query<Null_t>(s, sss::string_view("hello"), 3) << std::endl;
-// }
 
 } // namespace json
 } // namespace sss

@@ -1,29 +1,31 @@
 #include <sss/enc/hexblowfish.hpp>
 
-#include <string>
 #include <cstring>
+#include <string>
 
 #include <sss/utlstring.hpp>
 
-namespace sss { namespace enc {
+namespace sss {
+namespace enc {
+
+const int byte_width = 8;
 
 Hexblowfish::Hexblowfish(const std::string& key)
-        :bf((const unsigned char*)key.c_str(), key.length())
+        :bf(reinterpret_cast<const unsigned char*>(key.c_str()), key.length())
 {
 }
 
-Hexblowfish::~Hexblowfish()
-{
-}
+Hexblowfish::~Hexblowfish() = default;
 
 std::string Hexblowfish::encode( const std::string& pass)
 {
     int len = int(pass.length());
-    if (len % 8 != 0)
-        len += (8 - (len % 8));
+    if (len % byte_width != 0) {
+        len += (byte_width - (len % byte_width));
+    }
     unsigned char password[len];       // 长度参数，必须是8的整数倍！
     memset(password, 0, sizeof(password));
-    memcpy((char*)password, &pass[0], pass.length());
+    memcpy(password, &pass[0], pass.length());
 
     this->bf.Encrypt(password, sizeof(password));
     //std::cout << "加密后：" << sss::to_hex(password, password+16) << std::endl;
@@ -32,9 +34,9 @@ std::string Hexblowfish::encode( const std::string& pass)
 
 std::string Hexblowfish::decode( const std::string& pass)
 {
-    assert(pass.length()%8 == 0);
+    assert(pass.length()%byte_width == 0);
     //unsigned char buffer[password.length() /2 ];
-    int buff_len = pass.length();
+    int buff_len = int(pass.length());
     std::string ret = sss::hex2string_copy(pass);
     //std::cout << "after :" << password << password.length() << std::endl;
     this->bf.Decrypt(reinterpret_cast<unsigned char*>(const_cast<char*>(ret.c_str())), buff_len);

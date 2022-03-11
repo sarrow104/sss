@@ -1,8 +1,8 @@
 #ifndef _MIN_HEAP_H
 #define _MIN_HEAP_H
 
-typedef struct min_heap_st *min_heap_t;
-typedef struct heap_node_st *heap_node_t;
+using min_heap_t = struct min_heap_st*;
+using heap_node_t = struct heap_node_st*;
 
 struct heap_node_st {
     int prio; /* 优先级 */

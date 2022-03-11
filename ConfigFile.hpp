@@ -32,15 +32,15 @@
  */
 #include <sss/utlstring.hpp>
 
-#include <string>
-#include <map>
 #include <exception>
+#include <map>
+#include <string>
 
 namespace sss {
 class ConfigFile
 {
 public:// member types
-    typedef std::map<std::string, std::string> container_t;
+    using container_t = std::map<std::string, std::string>;
     //template <typename T> class option_t // {{{1
     //{
     //    typedef T iterator_t;
@@ -85,8 +85,8 @@ public:// member types
     public:
         explicit option_t(container_t::iterator i)
             : it(i) {}
-        const std::string section() const;
-        const std::string key() const;
+        std::string section() const;
+        std::string key() const;
         const std::string& value() const
         {
             return this->it->second;
@@ -125,8 +125,8 @@ public:// member types
             : it(i) {}
         explicit const_option_t(container_t::iterator i)
             : it(i) {}
-        const std::string section() const;
-        const std::string key() const;
+        std::string section() const;
+        std::string key() const;
         const std::string& value() const
         {
             return this->it->second;
@@ -160,17 +160,18 @@ public:// member types
 
     //typedef std::map<std::string, std::string>::const_iterator const_iterator;
     //typedef std::map<std::string, std::string>::iterator iterator;
-    typedef std::map<std::string, std::string>::value_type value_type;
-    typedef option_t iterator;
-    typedef const_option_t const_iterator;
+    using value_type = std::map<std::string, std::string>::value_type;
+    using iterator = option_t;
+    using const_iterator = const_option_t;
     //typedef option_t<container_t::iterator> iterator;
     //typedef const_option_t<container_t::const_iterator> const_iterator;
     class Exception : std::exception
     {
     public:
-        Exception(const std::string& m) throw ();
-        virtual ~Exception() throw ();
-        const char * what() const throw();
+        explicit Exception(const std::string& m) noexcept;
+        Exception(const Exception& ) noexcept = default;
+        ~Exception() noexcept override;
+        const char * what() const noexcept override;
 
     private:
         std::string msg;
@@ -228,12 +229,12 @@ public:                                         // iterator
 
 public:                                         // set | get
     // 取值（不存在的话，抛出 const char * 异常）
-    const std::string& value(std::string const& section, std::string const& entry) const throw(ConfigFile::Exception);
-          std::string& value(std::string const& section, std::string const& entry) throw(ConfigFile::Exception);
+    const std::string& value(std::string const& section, std::string const& entry) const noexcept(false);
+          std::string& value(std::string const& section, std::string const& entry) noexcept(false);
 
     // 取值（不存在的话，返回""）
-    const std::string value_no_throw(std::string const& section, std::string const& entry) const;
-          std::string value_no_throw(std::string const& section, std::string const& entry) ;
+    std::string value_no_throw(std::string const& section, std::string const& entry) const;
+    std::string value_no_throw(std::string const& section, std::string const& entry) ;
 
     // 赋值 或 插入新值
     template <typename T>
@@ -256,12 +257,12 @@ protected:
 };
 
 namespace enc {
-    class EncBase;
+class EncBase;
 }
 
 namespace utl {
 
-    // ini配置文件的部分字段需要加密、解密处理；于是有了下面这个sugar类
+// ini配置文件的部分字段需要加密、解密处理；于是有了下面这个sugar类
 
 class ConfigEncValued
 {
@@ -290,9 +291,7 @@ private:
     sss::ConfigFile& cfg;
 };
 
-}
-
+} // namespace utl
 } // namespace sss
 
 #endif
-

@@ -174,13 +174,15 @@ private:
 //Extract low order byte
 inline unsigned char Byte(unsigned int ui)
 {
-    return (unsigned char)(ui & 0xff);
+    const uint32_t lower_byte_mask = ~uint8_t(0);
+    return static_cast<unsigned char>(ui & lower_byte_mask);
 }
 
 //Function F
 inline unsigned int CBlowFish::F(unsigned int ui)
 {
-    return ((m_auiS[0][Byte(ui>>24)] + m_auiS[1][Byte(ui>>16)]) ^ m_auiS[2][Byte(ui>>8)]) + m_auiS[3][Byte(ui)];
+    const uint32_t byte_width = 8U;
+    return ((m_auiS[0][Byte(ui>>(3*byte_width))] + m_auiS[1][Byte(ui>>(2*byte_width))]) ^ m_auiS[2][Byte(ui>>byte_width)]) + m_auiS[3][Byte(ui)];
 }
 
 #endif // __BLOWFISH_H__

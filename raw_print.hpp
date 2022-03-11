@@ -96,6 +96,9 @@ void raw_print_char(GenericOutputStream& stream, Tchar ch)
         case '"':
             stream.put("\\\"", 2);
             break;
+        case '\\':
+            stream.put("\\\\", 2);
+            break;
         default:
             if (!(ch & 0x80) && !std::isprint(ch)) {
                 stream.put("\\x", 2);

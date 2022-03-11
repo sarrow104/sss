@@ -17,7 +17,8 @@ public:
     virtual std::string decode (const std::string& s) = 0;
 };
 
-} }
+} // namespace enc
+} // namespace sss
 
 
 #endif  /* __ENCBASE_HPP_1373116057__ */

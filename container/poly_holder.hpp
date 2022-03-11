@@ -2,10 +2,10 @@
 #pragma once
 
 #include <boost/functional/hash.hpp>
+#include <boost/preprocessor.hpp>
+#include <boost/static_assert.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/type_traits/is_same.hpp>
-#include <boost/static_assert.hpp>
-#include <boost/preprocessor.hpp>
 
 namespace sss {
 namespace can {
@@ -13,8 +13,8 @@ namespace can {
 class poly_holder
 {
 public:
-    typedef poly_holder this_type;
-    typedef void (*deleter_t)(void*);
+    using this_type = poly_holder;
+    using deleter_t = void (*)(void *);
 
     poly_holder()
         :
@@ -23,7 +23,7 @@ public:
             _deleter   (nullptr)
     {}
 
-    poly_holder(this_type&& right)
+    poly_holder(this_type&& right) noexcept
         :
             _hash_code (0),
             _ptr       (nullptr),
@@ -37,7 +37,7 @@ public:
         this->clear();
     }
 
-    poly_holder& operator=(this_type&& right)
+    poly_holder& operator=(this_type&& right) noexcept
     {
         this_type& right_ref = right;
         if (this != &right_ref)
@@ -47,11 +47,10 @@ public:
         return *this;
     }
 
-private:
     poly_holder(const poly_holder&) = delete;
     poly_holder& operator=(const poly_holder&) = delete;
 
-public:
+//public:
     void swap(this_type&& right)
     {
         this_type& right_ref = right;
@@ -75,7 +74,7 @@ protected:
     static void wrap_deleter(void * ptr)
     {
         if (ptr) {
-            T* tmp = reinterpret_cast<T*>(ptr);
+            T* tmp = static_cast<T*>(ptr);
             delete tmp;
         }
     }
@@ -112,7 +111,7 @@ public:
     {
         assert(this_type::is_type<T>());
         return _ptr
-            ? reinterpret_cast<T*>(_ptr)
+            ? static_cast<T*>(_ptr)
             : nullptr;
     }
 
@@ -129,7 +128,7 @@ public:
 
     void clear()
     {
-        if (!_ptr)
+        if (_ptr == nullptr)
         {
             assert(_deleter);
             _deleter(_ptr);
@@ -141,7 +140,7 @@ public:
 
     bool empty() const
     {
-        return !_ptr;
+        return _ptr == nullptr;
     }
 
 private:

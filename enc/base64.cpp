@@ -1,20 +1,20 @@
 #include "base64.hpp"
 
-#include <string>
+#include <cassert>
 #include <cstring>
-#include <assert.h>
+#include <string>
 
 namespace sss{
 namespace enc {
 
-static const char * b64_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "+/";
-static const char * b64url_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "-_";
+static const char * const b64_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "+/";
+static const char * const b64url_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789" "-_";
 // Replaces “+” by “-” (minus)
 // Replaces “/” by “_” (underline)
 
 class b64_reverse_table_t{
 public:
-    b64_reverse_table_t(const char* tab)
+    explicit b64_reverse_table_t(const char* tab)
     {
         std::memset(this->buffer, 0xFFu, sizeof(this->buffer));
         for (size_t i = 0, len = std::strlen(tab); i != len; ++i) {
@@ -32,7 +32,7 @@ private:
     // 因为转换后的编码，都是可打印字符，所以检索的空间，使用256/2即可。
     // 但是，考虑到char的空间范围，是256个值。为了避免多个if语句，使用256个
     // 值，也是可以的。
-    unsigned char buffer[256];
+    unsigned char buffer[256]{};
 };
 
 static inline unsigned int base64_cat_buffer(const unsigned char * b)
@@ -66,14 +66,16 @@ std::string Base64::decode(const std::string& s)
 
 static std::string base64_encode_impl(const std::string& s, const char* table)
 {
+    const auto byte_width = uint32_t(CHAR_BIT);
+    const auto short_width = byte_width * 2U;
     int type = int(s.length()) % 3;
     std::string ret;
-    int out_len = ((s.length() - 1) % 3 + s.length()) / 3 * 4;
+    int out_len = ((s.length() - 1u) % 3 + s.length()) / 3 * 4;
     ret.reserve(out_len);
-    unsigned int buffer = 0u;
+    unsigned int buffer = 0U;
     for (int i = 0; i < int(s.length() - type); i += 3)
     {
-        buffer = base64_cat_buffer((const unsigned char*)(&s[i]));
+        buffer = base64_cat_buffer(reinterpret_cast<const unsigned char*>(&s[i]));
         ret += uint32_to_b64char_impl(table, buffer, 0);
         ret += uint32_to_b64char_impl(table, buffer, 1);
         ret += uint32_to_b64char_impl(table, buffer, 2);
@@ -85,14 +87,14 @@ static std::string base64_encode_impl(const std::string& s, const char* table)
         break;
 
     case 1:
-        buffer = (unsigned int)(*s.rbegin()) << 16;
+        buffer = static_cast<unsigned int>(*s.rbegin()) << short_width;
         ret += uint32_to_b64char_impl(table, buffer, 0);
         ret += uint32_to_b64char_impl(table, buffer, 1);
         ret += "==";
         break;
 
     case 2:
-        buffer = (unsigned int)(*(s.rbegin() + 1)) << 16 | (unsigned int)(*s.rbegin()) << 8;
+        buffer = static_cast<unsigned int>(*(s.rbegin() + 1)) << short_width | static_cast<unsigned int>(*s.rbegin()) << byte_width;
         ret += uint32_to_b64char_impl(table, buffer, 0);
         ret += uint32_to_b64char_impl(table, buffer, 1);
         ret += uint32_to_b64char_impl(table, buffer, 2);
@@ -104,13 +106,16 @@ static std::string base64_encode_impl(const std::string& s, const char* table)
 
 static std::string base64_decode_impl(const std::string& s, const b64_reverse_table_t& b64_rev_op)
 {
+    const auto ending_byte_width = 6U;
+    const auto byte_mask = 0xFFU;
+
     assert(s.length() % 4 == 0);
 
     std::string ret;
     ret.reserve(s.length());
 
     int buffer_len = 0;
-    unsigned int buffer = 0u;
+    size_t buffer = 0U;
 
     size_t end_pos = s.length();
     for( size_t i = 0 ; i != s.length(); ++i )
@@ -120,17 +125,18 @@ static std::string base64_decode_impl(const std::string& s, const b64_reverse_ta
             end_pos = i;
             break;
         }
-        buffer = (buffer << 6) | b64_rev_op(s[i]);
-        buffer_len += 6;
+        buffer = (buffer << ending_byte_width) | b64_rev_op(s[i]);
+        buffer_len += ending_byte_width;
 
         // 这里的 if 语句，也可以用一个4分支的switch语句代替
         // 因为出现push-pop动作的位置，是按每4个字节循环的。
-        if (buffer_len >= 8)
+        if (buffer_len >= CHAR_BIT)
         {
-            ret += (buffer >> (buffer_len - 8)) & 0xFFu;
-            buffer_len -= 8;
+            ret += char((buffer >> size_t(buffer_len - CHAR_BIT)) & byte_mask);
+            buffer_len -= CHAR_BIT;
         }
     }
+    (void)end_pos;
 
     // FIXME
     // 应加上对出现'='位置的检查处理。――出现'='时，要么这就是结尾；要么之后，

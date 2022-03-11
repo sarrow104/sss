@@ -1,18 +1,18 @@
 #ifndef  __DOSINI_HPP_1396739445__
 #define  __DOSINI_HPP_1396739445__
 
-#include <sss/utlstring.hpp>
 #include <sss/log.hpp>
+#include <sss/utlstring.hpp>
 
-#include <string>
-#include <vector>
 #include <list>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace sss {
 
-    // FIXME
-    // 对 空block 取值，不成功！ []!
+// FIXME
+// 对 空block 取值，不成功！ []!
 
 // NOTE
 // gap_file_t 应该是一种容器；
@@ -44,7 +44,7 @@ public:
 
 private:
     bool is_modified;
-    typedef std::vector<std::string> data_t;
+    using data_t = std::vector<std::string>;
     data_t data;
 
     struct gap_f_indexer_t
@@ -58,29 +58,9 @@ private:
         int offset;
         int len;
     };
-    typedef std::list<gap_f_indexer_t> view_t;
+    using view_t = std::list<gap_f_indexer_t>;
     view_t view;
 };
-
-// http://stackoverflow.com/questions/16135285/iterate-over-ini-file-on-c-probably-using-boostproperty-treeptree
-// boost::ptree风格：
-// #include <boost/property_tree/ptree.hpp>
-// #include <boost/property_tree/ini_parser.hpp>
-// 
-// int main()
-// {
-//     using boost::property_tree::ptree;
-//     ptree pt;
-// 
-//     read_ini("input.txt", pt);
-// 
-//     for (auto& section : pt)
-//     {
-//         std::cout << '[' << section.first << "]\n";
-//         for (auto& key : section.second)
-//             std::cout << key.first << "=" << key.second.get_value<std::string>() << "\n";
-//     }
-// }
 
 class dosini
 {
@@ -96,19 +76,15 @@ public:
     public:
         value_t()
             : lineno(0), pos(0), len(0), p_dosini(0)
-        {
-        }
+        {}
         value_t( int r, int p, int l, dosini * p_dosini)
             : lineno(r), pos(p), len(l), p_dosini(p_dosini)
-        {
-        }
-        ~value_t()
-        {
-        }
+        {}
+        ~value_t() = default;
 
     public:
         std::string get() const {
-            return p_dosini ? p_dosini->get_data_slice(*this) : "";
+            return p_dosini != nullptr ? p_dosini->get_data_slice(*this) : "";
         }
         void print(std::ostream& o) const {
             o << this->get();
@@ -121,12 +97,12 @@ public:
     friend struct value_t;
 
 public:
-    typedef std::map<std::string, value_t>      section_t;
-    typedef std::map<std::string, section_t>    sections_t;
-    typedef std::list<int> linenos_t;
+    using section_t = std::map<std::string, value_t>;
+    using sections_t = std::map<std::string, section_t>;
+    using linenos_t = std::list<int>;
 
 public:
-    typedef sections_t::value_type value_type;
+    using value_type = sections_t::value_type;
 
 public:
     explicit dosini(const std::string& fname);
@@ -153,7 +129,7 @@ public:
 
     const section_t& section(const std::string& sec_name) const
     {
-        sections_t::const_iterator it = this->blocks.find(sec_name);
+        auto it = this->blocks.find(sec_name);
         return it != this->blocks.end() ? it->second : this->end_section;
     }
 
@@ -167,10 +143,10 @@ public:
 
     template <typename T> bool get(const std::string& block, const std::string& key, T& val) const
     {
-        sections_t::const_iterator b_it = this->blocks.find(block);
+        auto b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
             const section_t& b = b_it->second;
-            section_t::const_iterator key_it = b.find(key);
+            auto key_it = b.find(key);
             if (key_it != b.end()) {
                 val =  sss::string_cast<T>(this->get_data_slice(key_it->second));
                 return true;
@@ -187,10 +163,10 @@ public:
     template <typename T> T get(const std::string& block, const std::string& key) const
     {
         T ret;
-        sections_t::const_iterator b_it = this->blocks.find(block);
+        auto b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
             const section_t& b = b_it->second;
-            section_t::const_iterator key_it = b.find(key);
+            auto key_it = b.find(key);
             if (key_it != b.end()) {
                 ret =  sss::string_cast<T>(this->get_data_slice(key_it->second));
             }
@@ -202,12 +178,12 @@ public:
     template <typename T> bool set(const std::string& block, const std::string& key, const T& val)
     {
         std::string str_val = sss::cast_string(val);
-        sections_t::iterator b_it = this->blocks.find(block);
+        auto b_it = this->blocks.find(block);
         if (b_it != this->blocks.end()) {
             section_t& b = b_it->second;
-            section_t::iterator key_it = b.find(key);
+            auto key_it = b.find(key);
             if (key_it != b.end() && this->get_data_slice(key_it->second) != str_val) {
-                linenos_t::iterator it = std::find(this->linenos.begin(), this->linenos.end(), key_it->second.lineno);
+                auto it = std::find(this->linenos.begin(), this->linenos.end(), key_it->second.lineno);
                 if (it == this->linenos.end()) {
                     SSS_LOG_ERROR("value_t index not find.\n");
                     exit(EXIT_FAILURE);
@@ -223,13 +199,9 @@ public:
             }
             return true;
         }
-        else {
-            this->append_block(block);
-            this->append_key(block, key, str_val);
-            return true;
-        }
-
-        return false;
+        this->append_block(block);
+        this->append_key(block, key, str_val);
+        return true;
     }
 
     dosini::value_t append_line(const std::string& line);

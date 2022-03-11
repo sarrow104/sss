@@ -3,13 +3,13 @@
 #ifndef  __BIT_OPERATION_H__
 #define  __BIT_OPERATION_H__
 
+#include <bitset>
 #include <cstdint> //for:uint8_t, uint16_t, uint32_t, uint64_t
 #include <cstring>
-#include <limits>
-#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <bitset>
+#include <iostream>
+#include <limits>
 
 /*TODO{{{1
 添加
@@ -58,45 +58,51 @@ namespace sss { namespace bit {
 // 返回'?' 表示未知
 char bit_order();
 
-inline size_t round_8(size_t bytes) { return (bytes + 7UL) & ~7UL; }
+static const auto FOUR_BIT_MASK = 0x7UL;
+static const auto HEX_BIT_MASK = 0x0FU;
+
+inline size_t round_8(size_t bytes) { return (bytes + FOUR_BIT_MASK) & ~FOUR_BIT_MASK; }
 
 //! http://blog.chinaunix.net/xmlrpc.php?r=blog/article&uid=25272011&id=3658875
 // NOTE m,n 取值范围 [0, 31]
-inline uint32_t swapbit(uint32_t data, int m, int n)
+inline uint32_t swapbit(uint32_t data, uint8_t m, uint8_t n)
 {
-    return (data & (1 << m)) == (data & (1 << n)) ? data : data ^ ((1 << m) | (1 << n));
+    return (data & (1U << m)) == (data & (1U << n)) ? data : data ^ ((1U << m) | (1U << n));
 }
 
 template<size_t i> struct byte_type;//{{{1
 
 template<> struct byte_type<1> //for one byte type!{{{1
 {
-    typedef uint32_t value_type;
-    typedef uint8_t ret_t;
+    using value_type = uint32_t;
+    using ret_t = uint8_t;
+    static const auto mask_level_1 = 0x55555555U;
+    static const auto mask_level_2 = 0x33333333U;
+    static const auto mask_level_3 = 0x0F0F0F0FU;
 
     static inline value_type bit_reverse_impl(value_type c)//{{{2
     {
-        c = ((c & 0x55555555u) <<  1) | ((c >>  1) & 0x55555555u);
-        c = ((c & 0x33333333u) <<  2) | ((c >>  2) & 0x33333333u);
-        c = ((c & 0x0F0F0F0Fu) <<  4) | ((c >>  4) & 0x0F0F0F0Fu);
+        c = ((c & mask_level_1) << 1U) | ((c >>  1U) & mask_level_1);
+        c = ((c & mask_level_2) << 2U) | ((c >>  2U) & mask_level_2);
+        c = ((c & mask_level_3) << 4U) | ((c >>  4U) & mask_level_3);
 
         return c;
     }
 
     static inline size_t count_1_bit_impl(value_type c)
     {
-        c = (c & value_type(0x55555555u)) + ((c >>  1) & value_type(0x55555555u));
-        c = (c & value_type(0x33333333u)) + ((c >>  2) & value_type(0x33333333u));
-        c = (c & value_type(0x0F0F0F0Fu)) + ((c >>  4) & value_type(0x0F0F0F0Fu));
+        c = (c & value_type(mask_level_1)) + ((c >>  1U) & value_type(mask_level_1));
+        c = (c & value_type(mask_level_2)) + ((c >>  2U) & value_type(mask_level_2));
+        c = (c & value_type(mask_level_3)) + ((c >>  4U) & value_type(mask_level_3));
 
         return c;
     }
 
     static inline value_type on_low_bits_impl(value_type c)
     {
-        c |= (c >> 1);//1000 0000 -> 1100 0000
-        c |= (c >> 2);//1100 0000 -> 1111 0000
-        c |= (c >> 4);//1111 0000 -> 1111 1111
+        c |= (c >> 1U);//1000 0000 -> 1100 0000
+        c |= (c >> 2U);//1100 0000 -> 1111 0000
+        c |= (c >> 4U);//1111 0000 -> 1111 1111
 
         return c;
     }//}}}2
@@ -104,13 +110,16 @@ template<> struct byte_type<1> //for one byte type!{{{1
 
 template<> struct byte_type<2> //for two byte type!{{{1
 {
-    typedef uint32_t value_type;
-    typedef uint16_t ret_t;
+    using value_type = uint32_t;
+    using ret_t = uint16_t;
+
+    static const auto mask_level_4 = 0x00FF00FF;
+    static const auto level_4 = 8U;
 
     static inline value_type bit_reverse_impl(value_type c)//{{{2
     {
         c = byte_type<1>::bit_reverse_impl(c);
-        c = ((c & value_type(0x00FF00FF)) << 8) | ((c >> 8) & value_type(0x00FF00FF));
+        c = ((c & value_type(mask_level_4)) << level_4) | ((c >> level_4) & value_type(mask_level_4));
 
         return c;
     }
@@ -118,7 +127,7 @@ template<> struct byte_type<2> //for two byte type!{{{1
     static inline size_t count_1_bit_impl(value_type c)
     {
         c = byte_type<1>::count_1_bit_impl(c);
-        c = (c & value_type(0x00FF00FF)) + ((c >>  8) & value_type(0x00FF00FF));
+        c = (c & value_type(mask_level_4)) + ((c >>  level_4) & value_type(mask_level_4));
 
         return c;
     }
@@ -126,7 +135,7 @@ template<> struct byte_type<2> //for two byte type!{{{1
     static inline value_type on_low_bits_impl(value_type c)
     {
         c = byte_type<1>::on_low_bits_impl(c);
-        c |= (c >> 8);
+        c |= (c >> level_4);
 
         return c;
     }//}}}
@@ -134,13 +143,15 @@ template<> struct byte_type<2> //for two byte type!{{{1
 
 template<> struct byte_type<4> //for four byte type!{{{1
 {
-    typedef uint32_t value_type;
-    typedef uint32_t ret_t;
+    using value_type = uint32_t;
+    using ret_t = uint32_t;
+    static const auto mask_level_5 = 0x0000FFFFU;
+    static const auto level_5 = 16U;
 
     static inline value_type bit_reverse_impl(value_type c)//{{{2
     {
         c = byte_type<2>::bit_reverse_impl(c);
-        c = ((c & 0x0000FFFF) << 16) | ((c >> 16) & 0x0000FFFF);
+        c = ((c & mask_level_5) << level_5) | ((c >> level_5) & mask_level_5);
 
         return c;
     }
@@ -148,7 +159,7 @@ template<> struct byte_type<4> //for four byte type!{{{1
     static inline size_t count_1_bit_impl(value_type c)
     {
         c = byte_type<2>::count_1_bit_impl(c);
-        c = (c & 0x0000FFFF) + ((c >> 16) & 0x0000FFFF);
+        c = (c & mask_level_5) + ((c >> level_5) & mask_level_5);
 
         return c;
     }
@@ -156,7 +167,7 @@ template<> struct byte_type<4> //for four byte type!{{{1
     static inline value_type on_low_bits_impl(value_type c)
     {
         c = byte_type<2>::on_low_bits_impl(c);
-        c |= (c >> 16);
+        c |= (c >> level_5);
 
         return c;
     }//}}}
@@ -164,41 +175,55 @@ template<> struct byte_type<4> //for four byte type!{{{1
 
 template<> struct byte_type<8> //for eight byte type!{{{1
 {
-    typedef uint64_t value_type;
-    typedef uint64_t ret_t;
+    using value_type = uint64_t;
+    using ret_t = uint64_t;
+
+    static const auto mask_level_1 = 0x5555555555555555LLU;
+    static const auto mask_level_2 = 0x3333333333333333LLU;
+    static const auto mask_level_3 = 0x0F0F0F0F0F0F0F0FLLU;
+    static const auto mask_level_4 = 0x00FF00FF00FF00FFLLU;
+    static const auto mask_level_5 = 0x0000FFFF0000FFFFLLU;
+    static const auto mask_level_6 = 0x00000000FFFFFFFFLLU;
+
+    static const auto level_1 =  1U;
+    static const auto level_2 =  2U;
+    static const auto level_3 =  4U;
+    static const auto level_4 =  8U;
+    static const auto level_5 = 16U;
+    static const auto level_6 = 32U;
 
     static inline value_type bit_reverse_impl(value_type c)//{{{2
     {
-        c = ((c & 0x5555555555555555LL) <<  1) | ((c >>  1) & 0x5555555555555555LL);
-        c = ((c & 0x3333333333333333LL) <<  2) | ((c >>  2) & 0x3333333333333333LL);
-        c = ((c & 0x0F0F0F0F0F0F0F0FLL) <<  4) | ((c >>  4) & 0x0F0F0F0F0F0F0F0FLL);
-        c = ((c & 0x00FF00FF00FF00FFLL) <<  8) | ((c >>  8) & 0x00FF00FF00FF00FFLL);
-        c = ((c & 0x0000FFFF0000FFFFLL) << 16) | ((c >> 16) & 0x0000FFFF0000FFFFLL);
-        c = ((c & 0x00000000FFFFFFFFLL) << 32) | ((c >> 32) & 0x00000000FFFFFFFFLL);
+        c = ((c & mask_level_1) << level_1) | ((c >> level_1) & mask_level_1);
+        c = ((c & mask_level_2) << level_2) | ((c >> level_2) & mask_level_2);
+        c = ((c & mask_level_3) << level_3) | ((c >> level_3) & mask_level_3);
+        c = ((c & mask_level_4) << level_4) | ((c >> level_4) & mask_level_4);
+        c = ((c & mask_level_5) << level_5) | ((c >> level_5) & mask_level_5);
+        c = ((c & mask_level_6) << level_6) | ((c >> level_6) & mask_level_6);
 
         return c;
     }
 
     static inline size_t count_1_bit(value_type c)
     {
-        c = (c & 0x5555555555555555LL) + ((c >>  1) & 0x5555555555555555LL);
-        c = (c & 0x3333333333333333LL) + ((c >>  2) & 0x3333333333333333LL);
-        c = (c & 0x0F0F0F0F0F0F0F0FLL) + ((c >>  4) & 0x0F0F0F0F0F0F0F0FLL);
-        c = (c & 0x00FF00FF00FF00FFLL) + ((c >>  8) & 0x00FF00FF00FF00FFLL);
-        c = (c & 0x0000FFFF0000FFFFLL) + ((c >> 16) & 0x0000FFFF0000FFFFLL);
-        c = (c & 0x00000000FFFFFFFFLL) + ((c >> 32) & 0x00000000FFFFFFFFLL);
+        c = (c & mask_level_1) + ((c >> level_1) & mask_level_1);
+        c = (c & mask_level_2) + ((c >> level_2) & mask_level_2);
+        c = (c & mask_level_3) + ((c >> level_3) & mask_level_3);
+        c = (c & mask_level_4) + ((c >> level_4) & mask_level_4);
+        c = (c & mask_level_5) + ((c >> level_5) & mask_level_5);
+        c = (c & mask_level_6) + ((c >> level_6) & mask_level_6);
 
         return static_cast<size_t>(c);
     }
 
     static inline size_t count_1_bit_impl(value_type c)
     {
-        c = (c & 0x5555555555555555ull) + ((c >>  1) & 0x5555555555555555ull);
-        c = (c & 0x3333333333333333ull) + ((c >>  2) & 0x3333333333333333ull);
-        c = (c & 0x0F0F0F0F0F0F0F0Full) + ((c >>  4) & 0x0F0F0F0F0F0F0F0Full);
-        c = (c & 0x00FF00FF00FF00FFull) + ((c >>  8) & 0x00FF00FF00FF00FFull);
-        c = (c & 0x0000FFFF0000FFFFull) + ((c >> 16) & 0x0000FFFF0000FFFFull);
-        c = (c & 0x00000000FFFFFFFFull) + ((c >> 32) & 0x00000000FFFFFFFFull);
+        c = (c & mask_level_1) + ((c >> level_1) & mask_level_1);
+        c = (c & mask_level_2) + ((c >> level_2) & mask_level_2);
+        c = (c & mask_level_3) + ((c >> level_3) & mask_level_3);
+        c = (c & mask_level_4) + ((c >> level_4) & mask_level_4);
+        c = (c & mask_level_5) + ((c >> level_5) & mask_level_5);
+        c = (c & mask_level_6) + ((c >> level_6) & mask_level_6);
 
         return c;
     }
@@ -206,41 +231,42 @@ template<> struct byte_type<8> //for eight byte type!{{{1
     static inline value_type on_low_bits_impl(value_type c)
     {
         c = byte_type<4>::on_low_bits_impl(static_cast<byte_type<4>::value_type>(c));
-        c |= (c >> 32);
+        c |= (c >> level_6);
 
         return c;
     }//}}}
 };
+
 // NOW, operate on type flowt, double, even user defined struct (size below .8.){{{1
 //      is OK!
 
 //off and on the lowest bit
 template<typename T> inline typename byte_type<sizeof(T)>::value_type off_lowest_bit(T d)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
-    value_type _v = static_cast<value_type>(d);
-    return _v &= (_v - 1u);
+    using value_type = typename byte_type<sizeof(T)>::value_type;
+    value_type _v = reinterpret_cast<value_type&>(d);
+    return _v &= (_v - 1U);
 }
 
 template<typename T> inline typename byte_type<sizeof(T)>::value_type on_lowest_bit(T d)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
     value_type _v = reinterpret_cast<value_type&>(d);
-    return _v |= (_v - 1u);
+    return _v |= (_v - 1U);
 }
 
 template<typename T> inline bool is_power_of_2(T d)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
     value_type _v = reinterpret_cast<value_type&>(d);
-    return !(_v & (_v - 1u)) && _v;
+    return !(_v & (_v - 1U)) && _v;
     //  consider Zero as a power of 2 value, too!
 }
 
 template<typename T> typename byte_type<sizeof(T)>::ret_t bit_reverse(T c)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
-    typedef typename byte_type<sizeof(T)>::ret_t ret_t;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
+    using ret_t = typename byte_type<sizeof(T)>::ret_t;
 
     ret_t ret = byte_type<sizeof(T)>::bit_reverse_impl(static_cast<value_type>(c));
 
@@ -249,7 +275,7 @@ template<typename T> typename byte_type<sizeof(T)>::ret_t bit_reverse(T c)//{{{1
 
 template<typename T> size_t count_1_bit(T c)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
 
     size_t ret = byte_type<sizeof(T)>::count_1_bit_impl(static_cast<value_type>(c));
 
@@ -261,7 +287,7 @@ template<typename T> size_t count_1_bit(T c)//{{{1
 //  none zero   : the left most 1 bit pos
 template<typename T> size_t highest_bit_pos(T c)//{{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
 
     typename byte_type<sizeof(T)>::ret_t ret
         = byte_type<sizeof(T)>::on_low_bits_impl(static_cast<value_type>(c));
@@ -271,7 +297,7 @@ template<typename T> size_t highest_bit_pos(T c)//{{{1
 
 template<typename T> size_t lowest_bit_pos(T c) // {{{1
 {
-    typedef typename byte_type<sizeof(T)>::value_type value_type;
+    using value_type = typename byte_type<sizeof(T)>::value_type;
 
     value_type _v = static_cast<T>(c) ^ off_lowest_bit(c);
 
@@ -290,7 +316,7 @@ template<typename T> size_t _count_1_bit(T c)//for test suit use{{{1
         while ( c )
         {
             ret++;
-            c &= (c - 1);
+            c &= (c - 1U);
         }
     }
 
@@ -300,7 +326,7 @@ template<typename T> size_t _count_1_bit(T c)//for test suit use{{{1
 template<typename T>
 void bit_off(T& v, size_t pos)
 {
-    typedef typename byte_type<sizeof(T)>::ret_t value_type;
+    using value_type = typename byte_type<sizeof(T)>::ret_t;
     value_type& ref = reinterpret_cast<value_type&>(v);
     ref &= (~value_type(1) << pos);
 }
@@ -308,7 +334,7 @@ void bit_off(T& v, size_t pos)
 template<typename T>
 void bit_on(T& v, size_t pos)
 {
-    typedef typename byte_type<sizeof(T)>::ret_t value_type;
+    using value_type = typename byte_type<sizeof(T)>::ret_t;
     value_type& ref = reinterpret_cast<value_type&>(v);
     ref |= (value_type(1) << pos);
 }
@@ -321,17 +347,19 @@ class hex_out_t
 {
 public:
     explicit hex_out_t(const T& val)
-        : _data(val)
-    {
-    }
-    ~hex_out_t()
-    {
-    }
+        : _data(val) {}
+    hex_out_t(const hex_out_t&) = default;
+    hex_out_t(hex_out_t&&) noexcept = default;
 
-public:
+    hex_out_t& operator=(const hex_out_t&) = default;
+    hex_out_t& operator=(hex_out_t&&) noexcept = default;
+
+    ~hex_out_t() = default;
+
+//public:
     void print(std::ostream& o) const
     {
-        const uint8_t * pdata = reinterpret_cast<const uint8_t*>(&_data);
+        const auto * pdata = reinterpret_cast<const uint8_t*>(&_data);
         o << "0x";
         ::sss::bit::buff_hex_reverse_print(o, pdata, sizeof(T));
     }
@@ -344,20 +372,21 @@ template<>
 class hex_out_t<std::string>
 {
 public:
-    typedef std::string T;
+    using T = std::string;
 
     explicit hex_out_t(const T& val)
-        : _data(val)
-    {
-    }
-    ~hex_out_t()
-    {
-    }
+        : _data(val) {}
+    hex_out_t(const hex_out_t&) = default;
+    hex_out_t(hex_out_t&&) noexcept = default;
 
-public:
+    //hex_out_t& operator=(const hex_out_t&) = default;
+    //hex_out_t& operator=(hex_out_t&&) noexcept = default;
+    ~hex_out_t() = default;
+
+//public:
     void print(std::ostream& o) const
     {
-        const uint8_t * pdata = reinterpret_cast<const uint8_t*>(_data.data());
+        const auto * pdata = reinterpret_cast<const uint8_t*>(_data.data());
         o << "0x"; // NOTE byte order!
         ::sss::bit::buff_hex_reverse_print(o, pdata, _data.size());
     }
@@ -387,28 +416,29 @@ namespace ext // binary out put for std::ostream{{{1
     class binary_out_t
     {
         static const char * binary_table[];
+        // NOTE
+        //  {
+        //      "0000",
+        //      "0001",
+        //      ...
+        //      "1110",
+        //      "1111"
+        // };
     private:
         //data member list:
         std::ostream& _o;
+
     public:
         //method member list:
         binary_out_t(std::ostream& o) : _o(o) { }
 
-        //TODO
-        //  本函数可以用查找表进行少量的优化
-        //  char * bin_bit[] = {
-        //      "0000",
-        //      "0001",
-        //      ...
-        //      "1110"};
-        //      "1111"};
         template<typename T>
             std::ostream& operator<<(T d)
             {
-                typedef typename sss::bit::byte_type<sizeof(T)>::ret_t value_type;
-                value_type & v = reinterpret_cast<value_type&>(d);
+                using value_type = typename sss::bit::byte_type<sizeof(T)>::ret_t;
+                auto & v = reinterpret_cast<value_type&>(d);
                 for ( size_t i = sizeof(T) * 2; i != 0 ; --i) {
-                    int idx =  ((v >> (4 * value_type(i - 1))) & value_type(0x0Fu));
+                    int idx =  ((v >> (4 * value_type(i - 1))) & value_type(sss::bit::HEX_BIT_MASK));
                     _o << binary_table[idx];
                 }
                 return this->_o;
@@ -417,20 +447,21 @@ namespace ext // binary out put for std::ostream{{{1
 
     inline binary_out_t binary(std::ostream& o)
     {
-        return binary_out_t(o);
+        return binary_out_t{o};
     }
 
 template<>
 inline
 std::ostream& binary_out_t::operator<< <float>(float d)
 {
-    typedef uint32_t value_type;
-    value_type v;
-    memcpy(&v, &d, sizeof(value_type));
-    for ( size_t i = 32; i != 0 ; --i) {
-        char c =  ((v >> value_type(i - 1)) & value_type(1u)) + '0';
+    using value_type = uint32_t;
+    value_type v = reinterpret_cast<const value_type&>(d);
+    const auto bit_count = CHAR_BIT * sizeof(value_type);
+
+    for ( size_t i = bit_count; i != 0 ; --i) {
+        char c = char(((v >> value_type(i - 1)) & value_type(1U)) + '0');
         _o << c;
-        if ( i == 32 || i == 24 ) {
+        if ( i == bit_count || i == bit_count - CHAR_BIT) {
             _o << ' ';
         }
     }
@@ -441,13 +472,13 @@ template<>
 inline
 std::ostream& binary_out_t::operator << <double>(double d)
 {
-    typedef uint64_t value_type;
-    value_type v;
-    memcpy(&v, &d, sizeof(value_type));
-    for ( size_t i = 64; i != 0 ; --i) {
-        char c =  ((v >> value_type(i - 1)) & value_type(1u)) + '0';
+    using value_type = uint64_t;
+    value_type v = reinterpret_cast<const value_type&>(d);
+    const auto bit_count = CHAR_BIT * sizeof(value_type);
+    for ( size_t i = bit_count; i != 0 ; --i) {
+        char c =  char(((v >> value_type(i - 1)) & value_type(1U)) + '0');
         _o << c;
-        if ( i == 64 || i == 53 ) {
+        if ( i == bit_count || i == (bit_count - CHAR_BIT - 3) ) {
             _o << ' ';
         }
     }

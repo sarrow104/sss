@@ -15,11 +15,11 @@ bool value_handle_t::Null()
     else if (m_state == kExpectElementOrArrayEnd) {
         boost::get<array>(p_v)->emplace_back(null{});
     }
-    else if (m_parse_elment && p_v) {
+    else if (m_parse_elment && (p_v != nullptr)) {
         *p_v = null{};
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -36,11 +36,11 @@ bool value_handle_t::Bool(bool b)
     else if (m_state == kExpectElementOrArrayEnd) {
         boost::get<array>(p_v)->emplace_back(b);
     }
-    else if (m_parse_elment && p_v) {
+    else if (m_parse_elment && (p_v != nullptr)) {
         *p_v = b;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -57,11 +57,11 @@ bool value_handle_t::Int64(int64_t i)
     else if (m_state == kExpectElementOrArrayEnd) {
         boost::get<array>(p_v)->emplace_back(i);
     }
-    else if (m_parse_elment && p_v) {
+    else if (m_parse_elment && (p_v != nullptr)) {
         *p_v = i;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
 
     COLOG_DEBUG(__PRETTY_FUNCTION__);
@@ -79,11 +79,11 @@ bool value_handle_t::Double(double d)
     else if (m_state == kExpectElementOrArrayEnd) {
         boost::get<array>(p_v)->emplace_back(d);
     }
-    else if (m_parse_elment && p_v) {
+    else if (m_parse_elment && (p_v != nullptr)) {
         *p_v = d;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -100,11 +100,11 @@ bool value_handle_t::String(sss::string_view s)
     else if (m_state == kExpectElementOrArrayEnd) {
         boost::get<array>(p_v)->emplace_back(s.to_string());
     }
-    else if (m_parse_elment && p_v) {
+    else if (m_parse_elment && (p_v != nullptr)) {
         *p_v = s.to_string();
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -130,7 +130,7 @@ bool value_handle_t::StartObject()
         m_state = kExpectKeyOrObjectEnd;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -144,7 +144,7 @@ bool value_handle_t::Key(sss::string_view s)
         m_state = kExpectValue;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -155,7 +155,7 @@ bool value_handle_t::EndObject(int /*memberCount*/)
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     if (m_state == kExpectKeyOrObjectEnd && m_key.empty()) {
         if (m_path.empty()) {
-            p_v = 0;
+            p_v = nullptr;
         }
         else {
             p_v = m_path.back();
@@ -163,18 +163,18 @@ bool value_handle_t::EndObject(int /*memberCount*/)
         }
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
 
-    if (p_v) {
-        if (boost::get<object>(p_v)) {
+    if (p_v != nullptr) {
+        if (boost::get<object>(p_v) != nullptr) {
             m_state = kExpectKeyOrObjectEnd;
         }
-        else if (boost::get<array>(p_v)){
+        else if (boost::get<array>(p_v) != nullptr){
             m_state = kExpectElementOrArrayEnd;
         }
         else {
-            throw __PRETTY_FUNCTION__;
+            throw std::runtime_error(__PRETTY_FUNCTION__);
         }
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
@@ -203,7 +203,7 @@ bool value_handle_t::StartArray()
         m_state = kExpectKeyOrObjectEnd;
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     return true;
@@ -214,7 +214,7 @@ bool value_handle_t::EndArray(int /*memberCount*/)
     COLOG_DEBUG(__PRETTY_FUNCTION__);
     if (m_state == kExpectElementOrArrayEnd && m_key.empty()) {
         if (m_path.empty()) {
-            p_v = 0;
+            p_v = nullptr;
         }
         else {
             p_v = m_path.back();
@@ -222,18 +222,18 @@ bool value_handle_t::EndArray(int /*memberCount*/)
         }
     }
     else {
-        throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
     }
 
-    if (p_v) {
-        if (boost::get<object>(p_v)) {
+    if (p_v != nullptr) {
+        if (boost::get<object>(p_v) != nullptr) {
             m_state = kExpectKeyOrObjectEnd;
         }
-        else if (boost::get<array>(p_v)){
+        else if (boost::get<array>(p_v) != nullptr){
             m_state = kExpectElementOrArrayEnd;
         }
         else {
-            throw __PRETTY_FUNCTION__;
+        throw std::runtime_error(__PRETTY_FUNCTION__);
         }
     }
     COLOG_DEBUG(__PRETTY_FUNCTION__);

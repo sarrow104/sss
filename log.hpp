@@ -283,182 +283,171 @@ typedef SERVERFUNC * PSERVERFUNC;// 定义函数类型(这个是函数指针)
 #endif
 
 namespace sss{
-    namespace log {
-        enum log_level {
-            log_NOMSG = 0,                      // 0x00
-            log_ERROR = 1,                      // 0x01
-            log_WARN  = (log_ERROR << 1),       // 0x02
-            log_INFO  = (log_ERROR << 2),       // 0x04
-            log_DEBUG = (log_ERROR << 3)        // 0x08
-        };
-        const log_level log_level_min = log_NOMSG;
-        const log_level log_level_max = log_DEBUG;
-        const uint32_t  log_level_mask = (1u << sss::bit::highest_bit_pos(log_level_max)) - 1;
+namespace log {
+enum log_level {
+    log_NOMSG = 0,                      // 0x00
+    log_ERROR = 1,                      // 0x01
+    log_WARN  = (log_ERROR << 1),       // 0x02
+    log_INFO  = (log_ERROR << 2),       // 0x04
+    log_DEBUG = (log_ERROR << 3)        // 0x08
+};
+const log_level log_level_min = log_NOMSG;
+const log_level log_level_max = log_DEBUG;
+const uint32_t  log_level_mask = (1u << sss::bit::highest_bit_pos(log_level_max)) - 1;
 
-        const char * level2name(log_level);
+const char * level2name(log_level);
 
-        // 2013-02-20
-        // 检测某一消息级别是否开启
-        // 可用于开关用户自定义的消息输出序列。
-        bool  is_level_on(log_level level);
+// 2013-02-20
+// 检测某一消息级别是否开启
+// 可用于开关用户自定义的消息输出序列。
+bool  is_level_on(log_level level);
 
-        // 用于控制日志输出的位置
-        void outto(const std::string& fname, bool append = false);
-        void outto(const char * fname, bool append = false);
-        // stdout 、stderr
-        void outto(FILE * c_file);
-        // 返回当前的日志信息输出级别
+// 用于控制日志输出的位置
+void outto(const std::string& fname, bool append = false);
+void outto(const char * fname, bool append = false);
+// stdout 、stderr
+void outto(FILE * c_file);
+// 返回当前的日志信息输出级别
 
-        //! 过滤形如：
-        // --sss-log-level [debug |info |nomsg |error |warn]
-        // --sss-log-outto log_file_name
-        // 的命令行参数。
-        void parse_command_line(int & argc, char * argv[]);
+//! 过滤形如：
+// --sss-log-level [debug |info |nomsg |error |warn]
+// --sss-log-outto log_file_name
+// 的命令行参数。
+void parse_command_line(int & argc, char * argv[]);
 
-        //log_level level();
+//log_level level();
 
-        // 设置新的级别；并返回以前的输出级别
-        // NOTE
-        // 消息日志级别，是从log_DEBUG往上的。如果设置为log_DEBUG，那么，其他所有种类的信息都将会被输出！
-        // 相反，如果设置为log_ERROR，那么，只有这一级别的信息会被输出。
-        // 至于，如果设置为log_NOMSG，那么，什么消息都不会被输出。
-        log_level level(log_level level);
+// 设置新的级别；并返回以前的输出级别
+// NOTE
+// 消息日志级别，是从log_DEBUG往上的。如果设置为log_DEBUG，那么，其他所有种类的信息都将会被输出！
+// 相反，如果设置为log_ERROR，那么，只有这一级别的信息会被输出。
+// 至于，如果设置为log_NOMSG，那么，什么消息都不会被输出。
+log_level level(log_level level);
 
-        // 程序有时候想开关部分代码区域（流程时间范围之内）的调试代码，于是有了如下：
-        // 设置新的消息日志级别
-        void push_level(log_level level);
-        void push_mask(int m);
+// 程序有时候想开关部分代码区域（流程时间范围之内）的调试代码，于是有了如下：
+// 设置新的消息日志级别
+void push_level(log_level level);
+void push_mask(int m);
 
-        // 放弃当前消息日志级别，而使用之前的消息日志级别
-        void pop_level();
-        void pop_mask();
+// 放弃当前消息日志级别，而使用之前的消息日志级别
+void pop_level();
+void pop_mask();
 
-        void mask(int);
+void mask(int);
 
-        // 设置消息的时间格式；并返回之前的格式
-        std::string timef(const std::string fmt);
-        // 取消输出时间
-        std::string timef();
+// 设置消息的时间格式；并返回之前的格式
+std::string timef(const std::string fmt);
+// 取消输出时间
+std::string timef();
 
-        // 设置对应位置的消息级别
-        bool warn (const char * fmt, ...);
-        bool info (const char * fmt, ...);
-        bool debug(const char * fmt, ...);
-        bool error(const char * fmt, ...);
+// 设置对应位置的消息级别
+bool warn (const char * fmt, ...);
+bool info (const char * fmt, ...);
+bool debug(const char * fmt, ...);
+bool error(const char * fmt, ...);
 
-        bool trace(log_level l, const char * fmt, ...);
+bool trace(log_level l, const char * fmt, ...);
 
-        bool write(log_level l, const char * fmt, ...);
-        bool write_no_time(log_level l, const char * fmt, ...);
+bool write(log_level l, const char * fmt, ...);
+bool write_no_time(log_level l, const char * fmt, ...);
 
 
-        // "是否打印时间"
-        // 针对时间密集型(短时间，多次调用)的log输出，应该加上ms级别的时间。不
-        // 过，这就得使用clock系列函数了——strftime是通过time函数得到的，只有
-        // 秒的精度。
-        bool time_stamp(bool status);
-        bool time_stamp_status();
+// "是否打印时间"
+// 针对时间密集型(短时间，多次调用)的log输出，应该加上ms级别的时间。不
+// 过，这就得使用clock系列函数了——strftime是通过time函数得到的，只有
+// 秒的精度。
+bool time_stamp(bool status);
+bool time_stamp_status();
 
-        // 开启某模块输出
-        void model_on(const std::string& model_name);
+// 开启某模块输出
+void model_on(const std::string& model_name);
 
-        // 关闭某模块输出
-        void model_off(const std::string& model_name);
+// 关闭某模块输出
+void model_off(const std::string& model_name);
 
-        // 开关某模块输出(true:开; false 关)
-        void model_trig(const std::string& model_name, bool trig);
+// 开关某模块输出(true:开; false 关)
+void model_trig(const std::string& model_name, bool trig);
 
-        // 某模块是否已经启用？
-        bool model(const std::string& model_name);
+// 某模块是否已经启用？
+bool model(const std::string& model_name);
 
-        void func_call_msg(const char * src, const char * func, int line, const std::string& msg);
+void func_call_msg(const char * src, const char * func, int line, const std::string& msg);
 
-        // 2012-11-06
-        class tracer
-        {
-            class caller_stack_depth_recorder
-            {
-            public:
-                caller_stack_depth_recorder() {}
-                ~caller_stack_depth_recorder() {}
-
-            public:
-                inline int get_depth()
-                {
-                    return this->func_names.size();
-                }
-
-                const char * step_in(const char * func_name);
-
-                const char * step_out();
-
-            private:
-                std::vector<const char*> func_names;
-            };
-
-            struct caller_info_t
-            {
-                caller_info_t()
-                {
-                    this->fcall_src = 0;
-                    this->fcall_func = 0;
-                    this->fcall_line = 0;
-                }
-                const char * fcall_src;
-                const char * fcall_func;
-                int          fcall_line;
-                std::string  fcall_msg;
-            };
-
-        public:
-            tracer(sss::log::log_level l,
-                   const char * sf_name = "NULL",
-                   int line_num = 0,
-                   const char * func_name = "NULL");
-
-            ~tracer();
-
-            static caller_stack_depth_recorder & get_caller_stack_ref();
-
-            static caller_info_t & get_caller_info()
-            {
-                static caller_info_t caller_info;
-                return caller_info;
-            }
-
-            static void func_call_msg(const char * src, const char * func, int line, const std::string& msg)
-            {
-                caller_info_t& info(get_caller_info());
-                info.fcall_src = src;
-                info.fcall_func = func;
-                info.fcall_line = line;
-                info.fcall_msg = msg;
-            }
-
-        protected:
-
-            // 报告状态
-            void report();
-
-        private:
-            sss::log::log_level level;
-            const char * file;
-            const char * func;
-            int          line;
-        };
-    }
-} // namespace sss
-
-#ifdef _SSS_LOG_TEST_
-int main(int argc, char *argv[])
+// 2012-11-06
+class tracer
 {
-    sss::log::level(sss::log::log_WARN);
-    sss::log::timef();
-    sss::log::error("%s func %s, line %d, level %d log_ERROR\n", __FILE__, __func__, __LINE__, sss::log::log_ERROR);
-    sss::log::warn("%s line %d %d log_WARN\n", __func__, __LINE__, sss::log::log_WARN);
-    sss::log::info("%s line %d %d log_INFO\n", __func__, __LINE__, sss::log::log_INFO);
-    sss::log::debug("%s line %d %d log_DEBUG\n", __func__, __LINE__, sss::log::log_DEBUG);
-}
-#endif
+    class caller_stack_depth_recorder
+    {
+    public:
+        caller_stack_depth_recorder() {}
+        ~caller_stack_depth_recorder() {}
+
+    public:
+        inline int get_depth()
+        {
+            return this->func_names.size();
+        }
+
+        const char * step_in(const char * func_name);
+
+        const char * step_out();
+
+    private:
+        std::vector<const char*> func_names;
+    };
+
+    struct caller_info_t
+    {
+        caller_info_t()
+        {
+            this->fcall_src = 0;
+            this->fcall_func = 0;
+            this->fcall_line = 0;
+        }
+        const char * fcall_src;
+        const char * fcall_func;
+        int          fcall_line;
+        std::string  fcall_msg;
+    };
+
+public:
+    tracer(sss::log::log_level l,
+           const char * sf_name = "NULL",
+           int line_num = 0,
+           const char * func_name = "NULL");
+
+    ~tracer();
+
+    static caller_stack_depth_recorder & get_caller_stack_ref();
+
+    static caller_info_t & get_caller_info()
+    {
+        static caller_info_t caller_info;
+        return caller_info;
+    }
+
+    static void func_call_msg(const char * src, const char * func, int line, const std::string& msg)
+    {
+        caller_info_t& info(get_caller_info());
+        info.fcall_src = src;
+        info.fcall_func = func;
+        info.fcall_line = line;
+        info.fcall_msg = msg;
+    }
+
+protected:
+
+    // 报告状态
+    void report();
+
+private:
+    sss::log::log_level level;
+    const char * file;
+    const char * func;
+    int          line;
+};
+
+} // namespace log
+} // namespace sss
 
 #endif  /* __LOG_HPP_1321928111__ */
