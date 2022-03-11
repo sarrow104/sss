@@ -1,4 +1,4 @@
-.PHONY: all release debug clean clean-debug clean-release doxygen
+.PHONY: all release debug clean clean-debug clean-release doxygen ctest
 all: release
 
 release:
@@ -25,3 +25,8 @@ clean-debug:
 clean-release:
 	if [ -d ../../Release ]; then cd ../../Release && make clean && rm -rf ./* ; fi
 	#cd ../../Release && make clean && rm -rf ./*
+
+ctest:
+	(cd ../../Release/tests ; ctest --output-on-failure --timeout 10 ; cd -)
+#--test-timeout 10
+
