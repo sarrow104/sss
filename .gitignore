@@ -6,4 +6,5 @@
 *.bak1
 *.bak2
 *.bak3
-
+.cache/
+build/
